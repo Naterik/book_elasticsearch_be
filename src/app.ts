@@ -1,17 +1,16 @@
 import express from "express";
 const app = express();
 import "dotenv/config";
+import apiRoutes from "routes/api";
+import initData from "configs/seed";
 const port = process.env.PORT;
 
-app.get("/", (req, res) => {
-  res.send("Hello World!adfadfádfádf");
-});
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.get("/about", (req, res) => {
-  res.status(200).json({
-    data: "success",
-  });
-});
+apiRoutes(app);
+
+initData();
 
 app.listen(port, () => {
   return console.log(`Express is listening at http://localhost:${port}`);
