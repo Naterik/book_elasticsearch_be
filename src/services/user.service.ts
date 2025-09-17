@@ -90,10 +90,30 @@ const handleLoginUser = async (username: string, password: string) => {
   return token;
 };
 
+const handleRegisterUser = async (
+  username: string,
+  fullName: string,
+  password: string
+) => {
+  const checkUsername = await prisma.user.findUnique({
+    where: { username },
+  });
+  console.log("checkUsername :>> ", checkUsername);
+  if (!checkUsername.username) {
+    throw new Error("Username already exist !");
+  }
+  const hashPassword = await bcryptPassword(password);
+  const user = await prisma.user.create({
+    data: { username, fullName, password: hashPassword, roleId: 2 },
+  });
+  return user;
+};
+
 export {
   handleGetAllUser,
   handleDeleteUser,
   handlePostUser,
   handlePutUser,
   handleLoginUser,
+  handleRegisterUser,
 };

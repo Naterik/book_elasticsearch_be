@@ -16,7 +16,8 @@
       "routes/*": ["./src/routes/*"],
       "services/*": ["./src/services/*"],
       "views/*": ["./src/views/*"],
-      "middleware/*": ["./src/middleware/*"]
+      "middleware/*": ["./src/middleware/*"],
+      "validation/*": ["./src/validation/*"]
     }
   }
 }

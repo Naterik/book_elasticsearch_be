@@ -1,4 +1,4 @@
-import { loginUser } from "controllers/auth.controller";
+import { loginUser, registerUser } from "controllers/auth.controller";
 import {
   deleteUser,
   getAllUser,
@@ -18,6 +18,7 @@ const apiRoutes = (app: Express) => {
 
   //auth
   router.post("/login", loginUser);
+  router.post("/register", registerUser);
 
   app.use("/api/v1", verifyValidJWT, router);
 };
