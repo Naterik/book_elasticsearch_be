@@ -1,20 +1,26 @@
-import { ok } from "assert";
-import { prisma } from "configs/client";
 import { Request, Response } from "express";
 import {
   handleDeleteUser,
   handleGetAllUser,
   handlePostUser,
   handlePutUser,
+  handleTotalPages,
 } from "services/user.service";
+import { TUser, User } from "validation/user.schema";
+import { fromError } from "zod-validation-error";
 const getAllUser = async (req: Request, res: Response) => {
   try {
-    const allUser = await handleGetAllUser();
-    return res.status(200).json({
+    const { page } = req.query;
+    let currentPage = page ? page : 1;
+    if (+currentPage <= 0) currentPage = 1;
+    const allUser = await handleGetAllUser(+currentPage);
+    const totalPage = await handleTotalPages();
+    res.status(200).json({
       data: allUser,
+      totalPage,
     });
   } catch (err) {
-    return res.status(400).json({
+    res.status(400).json({
       message: err.message,
       data: null,
     });
@@ -23,7 +29,9 @@ const getAllUser = async (req: Request, res: Response) => {
 
 const postUser = async (req: Request, res: Response) => {
   try {
-    const { username, password, fullName, address, phone, role } = req.body;
+    const { username, password, fullName, address, phone, roleId } =
+      req.body as TUser;
+    User.omit({ id: true }).parse(req.body);
     const avatar = req?.file?.filename;
     const user = await handlePostUser(
       username,
@@ -32,14 +40,14 @@ const postUser = async (req: Request, res: Response) => {
       address,
       phone,
       avatar,
-      role
+      roleId
     );
-    return res.status(200).json({
+    res.status(200).json({
       data: user,
     });
   } catch (err) {
-    return res.status(400).json({
-      message: err.message,
+    res.status(400).json({
+      message: fromError(err).toString(),
       data: null,
     });
   }
@@ -47,7 +55,9 @@ const postUser = async (req: Request, res: Response) => {
 
 const putUser = async (req: Request, res: Response) => {
   try {
-    const { username, fullName, address, phone, role, id } = req.body;
+    const { username, fullName, address, phone, roleId, id } =
+      req.body as TUser;
+    User.parse(req.body);
     const avatar = req?.file?.filename ?? null;
     const user = await handlePutUser(
       id,
@@ -55,15 +65,15 @@ const putUser = async (req: Request, res: Response) => {
       fullName,
       address,
       phone,
-      role,
+      roleId,
       avatar
     );
-    return res.status(200).json({
+    res.status(200).json({
       data: user,
     });
   } catch (err) {
-    return res.status(400).json({
-      message: err.message,
+    res.status(400).json({
+      message: fromError(err).toString(),
       data: null,
     });
   }
@@ -73,11 +83,11 @@ const deleteUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const user = await handleDeleteUser(id);
-    return res.status(200).json({
+    res.status(200).json({
       data: user,
     });
   } catch (err) {
-    return res.status(400).json({
+    res.status(400).json({
       message: err.message,
       data: null,
     });

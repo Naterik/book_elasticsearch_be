@@ -1,4 +1,5 @@
 import { loginUser, registerUser } from "controllers/auth.controller";
+import { getAllAuthor } from "controllers/author.controller";
 import {
   deleteUser,
   getAllUser,
@@ -15,6 +16,11 @@ const apiRoutes = (app: Express) => {
   router.post("/users", fileUploadMiddleware("avatar"), postUser);
   router.put("/users", fileUploadMiddleware("avatar"), putUser);
   router.delete("/users/:id", deleteUser);
+
+  router.get("/authors", getAllAuthor);
+  // router.post("/authors", postAuthor);
+  // router.put("/authors", putAuthor);
+  // router.delete("/authors/:id", deleteAuthor);
 
   //auth
   router.post("/login", loginUser);

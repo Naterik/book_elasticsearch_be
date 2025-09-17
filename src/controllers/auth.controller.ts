@@ -6,7 +6,7 @@ import { fromError } from "zod-validation-error";
 const loginUser = async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body as TAuth;
-    const validate = Auth.omit({
+    Auth.omit({
       confirmPassword: true,
       fullName: true,
     }).parse(req.body);
@@ -25,8 +25,7 @@ const loginUser = async (req: Request, res: Response) => {
 const registerUser = async (req: Request, res: Response) => {
   try {
     const { username, fullName, password, confirmPassword } = req.body as TAuth;
-    const validate = Auth.parse(req.body);
-    console.log("validate :>> ", validate);
+    Auth.parse(req.body);
     const checkRegister = await handleRegisterUser(
       username,
       fullName,

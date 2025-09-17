@@ -2,8 +2,20 @@ import { prisma } from "configs/client";
 import { bcryptPassword, comparePassword } from "configs/password";
 import jwt from "jsonwebtoken";
 import "dotenv/config";
-const handleGetAllUser = async () => {
-  return prisma.user.findMany();
+const pageSize: number = +process.env.ITEM_PER_PAGE;
+const handleGetAllUser = async (page: number) => {
+  const skip = (page - 1) * pageSize;
+  const paginate = prisma.user.findMany({
+    skip: skip,
+    take: pageSize,
+  });
+  return paginate;
+};
+
+const handleTotalPages = async () => {
+  const total_items = await prisma.user.count();
+  const totalPage = Math.ceil(total_items / pageSize);
+  return totalPage;
 };
 
 const handlePostUser = async (
@@ -13,8 +25,14 @@ const handlePostUser = async (
   address: string,
   phone: string,
   avatar: string,
-  role: string
+  roleId: string
 ) => {
+  const checkUsername = await prisma.user.findUnique({
+    where: { username },
+  });
+  if (checkUsername) {
+    throw new Error("Username already exist !");
+  }
   const hashPassword = await bcryptPassword(password);
   const user = await prisma.user.create({
     data: {
@@ -24,7 +42,7 @@ const handlePostUser = async (
       address,
       phone,
       avatar,
-      roleId: +role,
+      roleId: +roleId,
     },
   });
   return user;
@@ -36,7 +54,7 @@ const handlePutUser = async (
   fullName: string,
   address: string,
   phone: string,
-  role: string,
+  roleId: string,
   avatar: string
 ) => {
   const user = await prisma.user.update({
@@ -46,7 +64,7 @@ const handlePutUser = async (
       fullName,
       address,
       phone,
-      roleId: +role,
+      roleId: +roleId,
       ...(avatar !== undefined && { avatar: avatar }),
     },
   });
@@ -98,7 +116,6 @@ const handleRegisterUser = async (
   const checkUsername = await prisma.user.findUnique({
     where: { username },
   });
-  console.log("checkUsername :>> ", checkUsername);
   if (!checkUsername.username) {
     throw new Error("Username already exist !");
   }
@@ -116,4 +133,5 @@ export {
   handlePutUser,
   handleLoginUser,
   handleRegisterUser,
+  handleTotalPages,
 };
