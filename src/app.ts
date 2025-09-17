@@ -3,7 +3,10 @@ const app = express();
 import "dotenv/config";
 import apiRoutes from "routes/api";
 import initData from "configs/seed";
+import cors from "cors";
 const port = process.env.PORT;
+
+// app.use(cors({origin:['http://localhost:3000']}))
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

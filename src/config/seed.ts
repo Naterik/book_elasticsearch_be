@@ -20,12 +20,15 @@ const initData = async () => {
   if (countUser === 0) {
     const password = await bcryptPassword("123456");
 
-    await prisma.user.create({
-      data: { username: "admin@gmail.com", password: password, roleId: 1 },
+    await prisma.user.createMany({
+      data: [
+        { username: "admin@gmail.com", password: password, roleId: 1 },
+        { username: "khuong@gmail.com", password: password, roleId: 1 },
+      ],
     });
   }
   if (countRole !== 0 && countUser !== 0) {
-    console.log("Have data already :>>");
+    console.log("Has data already :>>");
   }
 };
 

@@ -1,6 +1,7 @@
 import { prisma } from "configs/client";
-import { bcryptPassword } from "configs/password";
-
+import { bcryptPassword, comparePassword } from "configs/password";
+import jwt from "jsonwebtoken";
+import "dotenv/config";
 const handleGetAllUser = async () => {
   return prisma.user.findMany();
 };
@@ -61,4 +62,38 @@ const handleDeleteUser = async (id: string) => {
   return deleteUser;
 };
 
-export { handleGetAllUser, handleDeleteUser, handlePostUser, handlePutUser };
+const handleLoginUser = async (username: string, password: string) => {
+  const user = await prisma.user.findUnique({
+    where: { username },
+    include: {
+      role: true,
+    },
+  });
+  if (!user) {
+    throw new Error("Invalid username/password!");
+  }
+  const isMatchPassword = await comparePassword(password, user.password);
+  if (!isMatchPassword) {
+    throw new Error("Invalid password!");
+  }
+  const secret = process.env.JWT_SECRET;
+  const expire: any = process.env.JWT_EXPIRE;
+  const payload = {
+    id: user.id,
+    username: user.username,
+    role: user.role.name,
+    fullName: user?.fullName,
+    membershipStart: user?.membershipStart,
+    membershipEnd: user?.membershipEnd,
+  };
+  const token = jwt.sign(payload, secret, { expiresIn: expire });
+  return token;
+};
+
+export {
+  handleGetAllUser,
+  handleDeleteUser,
+  handlePostUser,
+  handlePutUser,
+  handleLoginUser,
+};
