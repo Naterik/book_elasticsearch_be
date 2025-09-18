@@ -6,6 +6,7 @@ import {
   handlePutUser,
   handleTotalPages,
 } from "services/user.service";
+import "dotenv/config";
 import { TUser, User } from "validation/user.schema";
 import { fromError } from "zod-validation-error";
 const getAllUser = async (req: Request, res: Response) => {

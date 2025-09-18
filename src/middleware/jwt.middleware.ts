@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import "dotenv/config";
 import { NextFunction, Request, Response } from "express";
+import { User } from "@prisma/client";
 
 const verifyValidJWT = (req: Request, res: Response, next: NextFunction) => {
   const path = req.path;
@@ -26,7 +27,8 @@ const verifyValidJWT = (req: Request, res: Response, next: NextFunction) => {
       fullName: decodeData.fullName,
       membershipStart: decodeData.membershipStart,
       membershipEnd: decodeData.membershipEnd,
-      role: decodeData.role,
+      roleId: +decodeData.roleId,
+      googleId: null,
     };
 
     next();

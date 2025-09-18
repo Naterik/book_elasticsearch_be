@@ -1,7 +1,11 @@
 import { Request, Response } from "express";
-import { handleLoginUser, handleRegisterUser } from "services/user.service";
 import { Auth, TAuth } from "validation/auth.schema";
 import { fromError } from "zod-validation-error";
+import {
+  handleCreateJWT,
+  handleLoginUser,
+  handleRegisterUser,
+} from "services/auth.services";
 
 const loginUser = async (req: Request, res: Response) => {
   try {
@@ -11,11 +15,11 @@ const loginUser = async (req: Request, res: Response) => {
       fullName: true,
     }).parse(req.body);
     const checkLogin = await handleLoginUser(username, password);
-    return res.status(200).json({
+    res.status(200).json({
       data: checkLogin,
     });
   } catch (err) {
-    return res.status(400).json({
+    res.status(400).json({
       message: fromError(err).toString(),
       data: null,
     });
@@ -35,11 +39,26 @@ const registerUser = async (req: Request, res: Response) => {
       data: checkRegister,
     });
   } catch (err) {
-    return res.status(400).json({
+    res.status(400).json({
       message: fromError(err).toString(),
       data: null,
     });
   }
 };
 
-export { loginUser, registerUser };
+const googleAccessToken = async (req: Request, res: Response) => {
+  try {
+    const getToken = await handleCreateJWT(req.user as any);
+    console.log("getToekn :>> ", getToken);
+    res.status(200).json({
+      data: getToken,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: fromError(err).toString(),
+      data: null,
+    });
+  }
+};
+
+export { loginUser, registerUser, googleAccessToken };
