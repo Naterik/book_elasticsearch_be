@@ -48,7 +48,8 @@ const registerUser = async (req: Request, res: Response) => {
 
 const googleAccessToken = async (req: Request, res: Response) => {
   try {
-    const getToken = await handleCreateJWT(req.user as any);
+    const { id } = req.user as any;
+    const getToken = await handleCreateJWT(id);
     console.log("getToekn :>> ", getToken);
     res.status(200).json({
       data: getToken,

@@ -10,7 +10,7 @@ datasource db {
 model Author {
   @@map("authors")
   id    Int     @id @default(autoincrement())
-  name  String  @db.VarChar(255)
+  name  String  @unique @db.VarChar(255)
   bio   String? @db.Text
 
   books Book[]
@@ -57,7 +57,7 @@ model Bookcopy {
 model Genre {
   @@map("genres")
   id          Int    @id @default(autoincrement())
-  name        String @db.VarChar(255)
+  name        String @unique @db.VarChar(255)
   description String @db.Text
 
   books Book[]
@@ -94,7 +94,7 @@ model Notification {
 model Publisher {
   @@map("publishers")
   id          Int    @id @default(autoincrement())
-  name        String @db.VarChar(255)
+  name        String @unique @db.VarChar(255)
   description String @db.Text
 
   books Book[]
