@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -8,141 +7,141 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model author {
-    @@map("authors")
-  id   Int    @id @default(autoincrement())
-  name String @db.VarChar(255)
-  bio  String? @db.Text
+model Author {
+  @@map("authors")
+  id    Int     @id @default(autoincrement())
+  name  String  @db.VarChar(255)
+  bio   String? @db.Text
 
-  
-  books book[]
+  books Book[]
 }
 
-model book {
+model Book {
   @@map("books")
-  id          Int      @id @default(autoincrement())
-  isbn        String      @unique(map: "Book_isbn_key")
-  title       String   @db.VarChar(255)
-  shortDesc   String   @db.VarChar(255)
-  detailDesc  String   @db.MediumText
-  price       Int
-  quantity    Int
-  publishDate DateTime @default(now())
-  image       String   @db.MediumText
-  language    String?   @db.VarChar(20)
-  pages       Int
-  borrowed    Int      @default(0)
-  
+  id           Int       @id @default(autoincrement())
+  isbn         String    @unique(map: "Book_isbn_key")
+  title        String    @db.VarChar(255)
+  shortDesc    String    @db.VarChar(255)
+  detailDesc   String    @db.MediumText
+  price        Int
+  quantity     Int
+  publishDate  DateTime?
+  image        String    @db.MediumText
+  language     String?   @db.VarChar(20)
+  pages        Int
+  borrowed     Int       @default(0)
 
-  authors    author @relation(fields: [authorId],references: [id])
-authorId   Int
+  authors      Author    @relation(fields: [authorId], references: [id])
+  authorId     Int
 
-  publishers  publisher@relation(fields: [publisherId],references: [id])
-  publisherId Int
+  publishers   Publisher @relation(fields: [publisherId], references: [id])
+  publisherId  Int
 
-   bookCopys  bookcopy[]
-  genres genre[]
-
+  bookCopys    Bookcopy[]
+  genres       Genre[]
+  reservations Reservation[]
 }
 
-model bookcopy {
-    @@map("book_copy")
-  id             Int @id @default(autoincrement())
-  year_published Int @db.Year
+model Bookcopy {
+  @@map("book_copy")
+  id             Int    @id @default(autoincrement())
+  year_published Int    @db.Year
   copyNumber     Int
 
-  books    book @relation(fields: [bookId], references: [id])
-  bookId Int
+  books   Book @relation(fields: [bookId], references: [id])
+  bookId  Int
 
-  loans loan[]
+  loans   Loan[]
 }
 
-model genre {
-     @@map("genres")
+model Genre {
+  @@map("genres")
   id          Int    @id @default(autoincrement())
   name        String @db.VarChar(255)
   description String @db.Text
 
-  books book[]
+  books Book[]
 }
 
-model loan {
-   @@map("loans")
-  id         Int      @id @default(autoincrement())
+model Loan {
+  @@map("loans")
+  id         Int       @id @default(autoincrement())
   loanDate   DateTime? @default(now())
   dueDate    DateTime?
   returnDate DateTime?
-  status     String   @db.VarChar(255)
+  status     String    @db.VarChar(255)
   fineAmount Int?
- 
-  bookCopy bookcopy @relation(fields: [bookcopyId], references: [id])
+
+  bookCopy   Bookcopy @relation(fields: [bookcopyId], references: [id])
   bookcopyId Int
 
-  user user @relation(fields: [userId], references: [id])
-  userId Int
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
 }
 
-model notification {
-   @@map("notifications")
-  id      Int      @id @default(autoincrement())
-  sentAt  DateTime
-  type    String   @db.VarChar(255)
-  content String   @db.Text
-  isRead Boolean  @default(false)
+model Notification {
+  @@map("notifications")
+  id      Int       @id @default(autoincrement())
+  sentAt  DateTime?
+  type    String    @db.VarChar(255)
+  content String    @db.Text
+  isRead  Boolean   @default(false)
 
-   user user @relation(fields: [userId], references: [id])
-  userId Int
+  user    User      @relation(fields: [userId], references: [id])
+  userId  Int
 }
 
-model publisher {
-   @@map("publishers")
+model Publisher {
+  @@map("publishers")
   id          Int    @id @default(autoincrement())
   name        String @db.VarChar(255)
   description String @db.Text
- 
 
-  books book[]
+  books Book[]
 }
 
-model reservation {
+model Reservation {
   @@map("reservations")
-
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   requestDate DateTime?
-  status      String   @db.VarChar(255)
-  
-  user user @relation(fields: [userId], references: [id])
+  status      String    @db.VarChar(255)
+
+  book  Book @relation(fields: [bookId], references: [id])
+  bookId Int
+
+  user  User @relation(fields: [userId], references: [id])
   userId Int
 }
 
-model role {
-    @@map("roles")
+model Role {
+  @@map("roles")
   id          Int    @id @default(autoincrement())
   name        String @db.VarChar(20)
   description String @db.VarChar(255)
 
-  users user[]
+  users User[]
 }
 
-model user {
-   @@map("users")
-  id              Int      @id @default(autoincrement())
-  username        String   @db.VarChar(255)
+model User {
+  @@map("users")
+  id              Int      @id  @default(autoincrement())
+  username        String   @unique @db.VarChar(255)
   password        String   @db.VarChar(255)
-  fullName        String?   @db.VarChar(255)
+  fullName        String?  @db.VarChar(255)
   address         String?  @db.VarChar(255)
-  phone           String?   @db.VarChar(255)
-  image           String?  @db.VarChar(255)
+  phone           String?  @db.VarChar(255)
+  avatar          String?  @db.VarChar(255)
+  type            String   @default("SYSTEM")
   cardNumber      Int?
-  membershipStart DateTime? @default(now())
-  membershipEnd   DateTime? @default(now())
+  membershipStart DateTime?
+  membershipEnd   DateTime?
   status          String   @default("ACTIVE")
- 
-  role role @relation(fields: [roleId], references: [id])
-  roleId Int
+  googleId        String?  @unique @db.VarChar(64)
 
-  loans loan []
-  reservations reservation[]
-  notifications notification[]
+  roleId          Int
+  role            Role     @relation(fields: [roleId], references: [id])
+
+  loans           Loan[]
+  reservations    Reservation[]
+  notifications   Notification[]
 }
-

@@ -1,48 +1,3 @@
-/*
-  Warnings:
-
-  - You are about to drop the `author` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `book` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `bookcopy` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `genre` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `loan` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `notification` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `publisher` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `reservation` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `role` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `user` table. If the table is not empty, all the data it contains will be lost.
-
-*/
--- DropTable
-DROP TABLE `author`;
-
--- DropTable
-DROP TABLE `book`;
-
--- DropTable
-DROP TABLE `bookcopy`;
-
--- DropTable
-DROP TABLE `genre`;
-
--- DropTable
-DROP TABLE `loan`;
-
--- DropTable
-DROP TABLE `notification`;
-
--- DropTable
-DROP TABLE `publisher`;
-
--- DropTable
-DROP TABLE `reservation`;
-
--- DropTable
-DROP TABLE `role`;
-
--- DropTable
-DROP TABLE `user`;
-
 -- CreateTable
 CREATE TABLE `authors` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
@@ -61,7 +16,7 @@ CREATE TABLE `books` (
     `detailDesc` MEDIUMTEXT NOT NULL,
     `price` INTEGER NOT NULL,
     `quantity` INTEGER NOT NULL,
-    `publishDate` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `publishDate` DATETIME(3) NULL,
     `image` MEDIUMTEXT NOT NULL,
     `language` VARCHAR(20) NULL,
     `pages` INTEGER NOT NULL,
@@ -109,7 +64,7 @@ CREATE TABLE `loans` (
 -- CreateTable
 CREATE TABLE `notifications` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `sentAt` DATETIME(3) NOT NULL,
+    `sentAt` DATETIME(3) NULL,
     `type` VARCHAR(255) NOT NULL,
     `content` TEXT NOT NULL,
     `isRead` BOOLEAN NOT NULL DEFAULT false,
@@ -132,6 +87,7 @@ CREATE TABLE `reservations` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `requestDate` DATETIME(3) NULL,
     `status` VARCHAR(255) NOT NULL,
+    `bookId` INTEGER NOT NULL,
     `userId` INTEGER NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -154,13 +110,14 @@ CREATE TABLE `users` (
     `fullName` VARCHAR(255) NULL,
     `address` VARCHAR(255) NULL,
     `phone` VARCHAR(255) NULL,
-    `image` VARCHAR(255) NULL,
+    `avatar` VARCHAR(255) NULL,
     `cardNumber` INTEGER NULL,
-    `membershipStart` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `membershipEnd` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `membershipStart` DATETIME(3) NULL,
+    `membershipEnd` DATETIME(3) NULL,
     `status` VARCHAR(191) NOT NULL DEFAULT 'ACTIVE',
     `roleId` INTEGER NOT NULL,
 
+    UNIQUE INDEX `users_username_key`(`username`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -190,6 +147,9 @@ ALTER TABLE `loans` ADD CONSTRAINT `loans_userId_fkey` FOREIGN KEY (`userId`) RE
 
 -- AddForeignKey
 ALTER TABLE `notifications` ADD CONSTRAINT `notifications_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `reservations` ADD CONSTRAINT `reservations_bookId_fkey` FOREIGN KEY (`bookId`) REFERENCES `books`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `reservations` ADD CONSTRAINT `reservations_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

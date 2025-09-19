@@ -1,0 +1,78 @@
+import { bcryptPassword, comparePassword } from "configs/password";
+import jwt from "jsonwebtoken";
+import "dotenv/config";
+import { prisma } from "configs/client";
+import { handleCheckUsername } from "./user.service";
+import { User } from "@prisma/client";
+const handleLoginUser = async (username: string, password: string) => {
+  const user = await prisma.user.findUnique({
+    where: { username },
+    include: {
+      role: true,
+    },
+  });
+  if (!user) {
+    throw new Error("Invalid username/password!");
+  }
+  const isMatchPassword = await comparePassword(password, user.password);
+  if (!isMatchPassword) {
+    throw new Error("Invalid password!");
+  }
+  const accessToken = await handleCreateJWT(user);
+  return accessToken;
+};
+
+const handleCreateJWT = async (user: User) => {
+  const secret = process.env.JWT_SECRET;
+  const expire: any = process.env.JWT_EXPIRE;
+  const payload = {
+    id: user.id,
+    username: user.username,
+    fullName: user?.fullName,
+    roleId: user.roleId,
+    membershipStart: user?.membershipStart,
+    membershipEnd: user?.membershipEnd,
+  };
+  const token = jwt.sign(payload, secret, { expiresIn: expire });
+  return token;
+};
+
+const handleRegisterUser = async (
+  username: string,
+  fullName: string,
+  password: string
+) => {
+  await handleCheckUsername(username);
+  const hashPassword = await bcryptPassword(password);
+  const user = await prisma.user.create({
+    data: { username, fullName, password: hashPassword, roleId: 2 },
+  });
+  return user;
+};
+
+const handleLoginWithGoogle = async (data: any) => {
+  const { username, fullName, avatar, type, googleId } = data;
+  const user = await prisma.user.upsert({
+    where: {
+      googleId,
+    },
+    update: { username, fullName, avatar, roleId: 2 },
+    create: {
+      googleId,
+      username,
+      fullName,
+      avatar,
+      type,
+      password: "",
+      role: { connect: { id: 2 } },
+    },
+  });
+  return user;
+};
+
+export {
+  handleLoginUser,
+  handleRegisterUser,
+  handleLoginWithGoogle,
+  handleCreateJWT,
+};
