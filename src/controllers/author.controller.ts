@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { fromError } from "zod-validation-error";
 import {
+  handleCreateManyAuthors,
   handleDeleteAuthor,
   handleGetAllAuthor,
   handlePostAuthor,
@@ -56,4 +57,16 @@ const deleteAuthor = async (req: Request, res: Response) => {
   }
 };
 
-export { getAllAuthor, postAuthor, putAuthor, deleteAuthor };
+const postManyAuthors = async (req: Request, res: Response) => {
+  try {
+    Author.array().parse(req.body);
+    const authors = req.body as { name: string; bio?: string }[];
+    if (!Array.isArray(authors)) throw new Error("Invalid authors data");
+    const result = await handleCreateManyAuthors(authors);
+    res.status(200).json({ data: result });
+  } catch (err) {
+    res.status(400).json({ message: fromError(err).toString(), data: null });
+  }
+};
+
+export { getAllAuthor, postAuthor, putAuthor, deleteAuthor, postManyAuthors };

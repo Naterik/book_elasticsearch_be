@@ -7,14 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Author {
-  @@map("authors")
-  id    Int     @id @default(autoincrement())
-  name  String  @unique @db.VarChar(255)
-  bio   String? @db.Text
 
-  books Book[]
-}
 
 model Book {
   @@map("books")
@@ -24,11 +17,11 @@ model Book {
   shortDesc    String    @db.VarChar(255)
   detailDesc   String    @db.MediumText
   price        Int
-  quantity     Int
-  publishDate  DateTime?
-  image        String    @db.MediumText
+  quantity     Int       @default(1)
+  publishDate  DateTime?  @db.Date
+  image        String?    @db.MediumText
   language     String?   @db.VarChar(20)
-  pages        Int
+  pages        Int  
   borrowed     Int       @default(0)
 
   authors      Author    @relation(fields: [authorId], references: [id])
@@ -38,10 +31,38 @@ model Book {
   publisherId  Int
 
   bookCopys    Bookcopy[]
-  genres       Genre[]
+  genres       BooksOnGenres[]
   reservations Reservation[]
 }
+model Genre {
+  @@map("genres")
+  id          Int    @id @default(autoincrement())
+  name        String @unique @db.VarChar(255)
+  description String @db.Text
 
+  books BooksOnGenres[]
+}
+
+model BooksOnGenres {
+  book       Book     @relation(fields: [bookId], references: [id])
+  bookId     Int // relation scalar field (used in the `@relation` attribute above)
+  genre   Genre @relation(fields: [genreId], references: [id])
+  genreId Int // relation scalar field (used in the `@relation` attribute above)
+  assignedAt DateTime @default(now())
+
+  @@id([bookId, genreId])
+}
+
+
+
+model Author {
+  @@map("authors")
+  id    Int     @id @default(autoincrement())
+  name  String  @unique @db.VarChar(255)
+  bio   String? @db.Text
+
+  books Book[]
+}
 model Bookcopy {
   @@map("book_copy")
   id             Int    @id @default(autoincrement())
@@ -54,20 +75,13 @@ model Bookcopy {
   loans   Loan[]
 }
 
-model Genre {
-  @@map("genres")
-  id          Int    @id @default(autoincrement())
-  name        String @unique @db.VarChar(255)
-  description String @db.Text
 
-  books Book[]
-}
 
 model Loan {
   @@map("loans")
   id         Int       @id @default(autoincrement())
   loanDate   DateTime? @default(now())
-  dueDate    DateTime?
+  dueDate    DateTime?  
   returnDate DateTime?
   status     String    @db.VarChar(255)
   fineAmount Int?

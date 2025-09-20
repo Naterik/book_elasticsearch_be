@@ -55,6 +55,16 @@ const handleDeleteAuthor = async (id: string) => {
   return prisma.author.delete({ where: { id: +id } });
 };
 
+const handleCreateManyAuthors = async (
+  authors: { name: string; bio?: string }[]
+) => {
+  const createAuthors = await prisma.author.createMany({
+    data: authors,
+    skipDuplicates: true,
+  });
+  return createAuthors;
+};
+
 export {
   handleGetAllAuthor,
   handleTotalPagesAuthor,
@@ -62,4 +72,5 @@ export {
   handlePostAuthor,
   handlePutAuthor,
   handleDeleteAuthor,
+  handleCreateManyAuthors,
 };

@@ -1,5 +1,4 @@
 import * as z from "zod";
-import { id } from "zod/v4/locales";
 
 export const Author = z.object({
   id: z.string(),

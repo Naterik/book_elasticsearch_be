@@ -7,14 +7,23 @@ import {
   deleteAuthor,
   getAllAuthor,
   postAuthor,
+  postManyAuthors,
   putAuthor,
 } from "controllers/author.controller";
+import {
+  deleteBook,
+  getAllBook,
+  postBook,
+  putBook,
+} from "controllers/book.controller";
 import {
   deleteGenre,
   getAllGenre,
   postGenre,
   putGenre,
 } from "controllers/genre.controller";
+import { createAuthorFromOpenLibrary } from "controllers/import.controller";
+
 import {
   deletePublisher,
   getAllPublisher,
@@ -35,12 +44,13 @@ import passport from "passport";
 const router = express.Router();
 const apiRoutes = (app: Express) => {
   router.get("/users", getAllUser);
-  router.post("/users", fileUploadMiddleware("avatar"), postUser);
-  router.put("/users", fileUploadMiddleware("avatar"), putUser);
+  router.post("/users", fileUploadMiddleware("avatar", "users"), postUser);
+  router.put("/users", fileUploadMiddleware("avatar", "users"), putUser);
   router.delete("/users/:id", deleteUser);
 
   router.get("/authors", getAllAuthor);
   router.post("/authors", postAuthor);
+  router.post("/authors/bulk", postManyAuthors);
   router.put("/authors", putAuthor);
   router.delete("/authors/:id", deleteAuthor);
 
@@ -53,6 +63,13 @@ const apiRoutes = (app: Express) => {
   router.post("/genres", postGenre);
   router.put("/genres", putGenre);
   router.delete("/genres/:id", deleteGenre);
+
+  router.get("/books", getAllBook);
+  router.post("/books", fileUploadMiddleware("image", "books"), postBook);
+  router.put("/books", fileUploadMiddleware("image", "books"), putBook);
+  router.delete("/books/:id", deleteBook);
+
+  router.post("/authors/openlibrary", createAuthorFromOpenLibrary);
 
   //auth
   router.post("/login", loginUser);

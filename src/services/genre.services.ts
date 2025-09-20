@@ -48,15 +48,6 @@ const handlePutGenre = async (
 };
 
 const handleDeleteGenre = async (id: string) => {
-  const used = await prisma.book.count({
-    where: { genres: { some: { id: +id } } },
-  });
-  if (used > 0) {
-    throw new Error(
-      "Cannot delete genre: there are books linked to this genre."
-    );
-  }
-
   return prisma.genre.delete({ where: { id: +id } });
 };
 
