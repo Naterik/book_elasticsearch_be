@@ -11,6 +11,12 @@ import {
   putAuthor,
 } from "controllers/author.controller";
 import {
+  deleteBookCopy,
+  getAllBookCopy,
+  postBookCopy,
+  putBookCopy,
+} from "controllers/book-copy.controller";
+import {
   deleteBook,
   getAllBook,
   postBook,
@@ -22,7 +28,7 @@ import {
   postGenre,
   putGenre,
 } from "controllers/genre.controller";
-import { createAuthorFromOpenLibrary } from "controllers/import.controller";
+import { createBooksFromOpenLibrary } from "controllers/import.controller";
 
 import {
   deletePublisher,
@@ -69,7 +75,12 @@ const apiRoutes = (app: Express) => {
   router.put("/books", fileUploadMiddleware("image", "books"), putBook);
   router.delete("/books/:id", deleteBook);
 
-  router.post("/authors/openlibrary", createAuthorFromOpenLibrary);
+  router.get("/book-copy", getAllBookCopy);
+  router.post("/book-copy", postBookCopy);
+  router.put("/book-copy", putBookCopy);
+  router.delete("/book-copy/:id", deleteBookCopy);
+
+  router.post("/authors/openlibrary", createBooksFromOpenLibrary);
 
   //auth
   router.post("/login", loginUser);
