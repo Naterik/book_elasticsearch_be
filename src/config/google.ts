@@ -6,6 +6,18 @@ const clientID = process.env.GOOGLE_CLIENT_ID!;
 const clientSecret = process.env.GOOGLE_CLIENT_SECRET!;
 const callbackURL = process.env.GOOGLE_REDIRECT!;
 
+type PublicUser = {
+  id: number;
+  username: string;
+  fullName: string | null;
+  membershipStart: Date | null;
+  membershipEnd: Date | null;
+  role: {
+    name: string;
+    id: number;
+    description: string;
+  };
+};
 const loginWithGoogle = () => {
   passport.use(
     new GoogleStrategy(
@@ -24,7 +36,7 @@ const loginWithGoogle = () => {
             avatar: profile._json.picture ?? "",
             type: "GOOGLE",
           };
-          const user: any = await handleLoginWithGoogle(data);
+          const user: PublicUser = await handleLoginWithGoogle(data);
 
           return cb(null, user);
         } catch (err) {

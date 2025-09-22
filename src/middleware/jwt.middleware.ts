@@ -1,11 +1,11 @@
 import jwt from "jsonwebtoken";
 import "dotenv/config";
 import { NextFunction, Request, Response } from "express";
-import { User } from "@prisma/client";
+import { AccessTokenPayload } from "src/types/jwt";
 
 const verifyValidJWT = (req: Request, res: Response, next: NextFunction) => {
   const path = req.path;
-  const whiteLists = ["/login", "/register"];
+  const whiteLists = ["/login", "/register", "/auth/google"];
   const isWhiteList = whiteLists.some((route) => route === path);
   if (isWhiteList) {
     next();
@@ -20,15 +20,14 @@ const verifyValidJWT = (req: Request, res: Response, next: NextFunction) => {
       });
     }
     const secret = process.env.JWT_SECRET;
-    const decodeData: any = jwt.verify(access_token, secret);
+    const decodeData = jwt.verify(access_token, secret) as AccessTokenPayload;
     req.user = {
       id: +decodeData.id,
       username: decodeData.username,
       fullName: decodeData.fullName,
       membershipStart: decodeData.membershipStart,
       membershipEnd: decodeData.membershipEnd,
-      roleId: +decodeData.roleId,
-      googleId: null,
+      role: decodeData.role,
     };
 
     next();
