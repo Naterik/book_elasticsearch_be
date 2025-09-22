@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { handleFilterBook } from "services/book.filter.services";
 import {
   handleDeleteBook,
   handleGetAllBooks,
@@ -112,4 +113,28 @@ const deleteBook = async (req: Request, res: Response) => {
   }
 };
 
-export { getAllBook, postBook, putBook, deleteBook };
+const filterBook = async (req: Request, res: Response) => {
+  try {
+    const { page, genres, search, minPrice, maxPrice, order } = req.query;
+    const filter = await handleFilterBook(
+      +page,
+      +minPrice,
+      +maxPrice,
+      search as string,
+      genres as string,
+      order as string
+    );
+
+    res
+      .status(200)
+      .json({
+        data: filter.filter,
+        item: filter.count,
+        totalPage: filter.totalPages,
+      });
+  } catch (error: any) {
+    res.status(400).json({ error: fromError(error).toString(), data: null });
+  }
+};
+
+export { getAllBook, postBook, putBook, deleteBook, filterBook };

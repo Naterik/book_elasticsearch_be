@@ -18,10 +18,12 @@ import {
 } from "controllers/book-copy.controller";
 import {
   deleteBook,
+  filterBook,
   getAllBook,
   postBook,
   putBook,
 } from "controllers/book.controller";
+import { fixAllPlaceholderBooks } from "controllers/fix.controller";
 import {
   deleteGenre,
   getAllGenre,
@@ -74,6 +76,7 @@ const apiRoutes = (app: Express) => {
   router.post("/books", fileUploadMiddleware("image", "books"), postBook);
   router.put("/books", fileUploadMiddleware("image", "books"), putBook);
   router.delete("/books/:id", deleteBook);
+  router.get("/books/filter", filterBook);
 
   router.get("/book-copy", getAllBookCopy);
   router.post("/book-copy", postBookCopy);
@@ -81,6 +84,7 @@ const apiRoutes = (app: Express) => {
   router.delete("/book-copy/:id", deleteBookCopy);
 
   router.post("/authors/openlibrary", createBooksFromOpenLibrary);
+  router.post("/books/fix-placeholders", fixAllPlaceholderBooks);
 
   //auth
   router.post("/login", loginUser);

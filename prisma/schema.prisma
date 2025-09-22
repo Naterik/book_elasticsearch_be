@@ -44,9 +44,9 @@ model Genre {
 }
 
 model BooksOnGenres {
-  book       Book     @relation(fields: [bookId], references: [id])
+  books       Book     @relation(fields: [bookId], references: [id])
   bookId     Int // relation scalar field (used in the `@relation` attribute above)
-  genre   Genre @relation(fields: [genreId], references: [id])
+  genres   Genre @relation(fields: [genreId], references: [id])
   genreId Int // relation scalar field (used in the `@relation` attribute above)
   assignedAt DateTime @default(now())
 
