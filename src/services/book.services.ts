@@ -10,7 +10,7 @@ const handleGetAllBooks = async (currentPage: number) => {
     orderBy: { id: "desc" },
     include: {
       authors: { select: { name: true } },
-      genres: { select: { genre: { select: { name: true } } } },
+      genres: { select: { genres: { select: { name: true } } } },
       publishers: { select: { name: true } },
     },
   });
@@ -60,14 +60,14 @@ const handlePostBook = async (
       publisherId,
       genres: {
         create: (genreIds as string[]).map((id) => ({
-          genre: { connect: { id: +id } },
+          genres: { connect: { id: +id } },
         })),
       },
       ...(image !== undefined && { image }),
     },
     include: {
       authors: { select: { name: true } },
-      genres: { include: { genre: { select: { name: true } } } },
+      genres: { include: { genres: { select: { name: true } } } },
       publishers: { select: { name: true } },
     },
   });
@@ -109,14 +109,14 @@ const handlePutBook = async (
       genres: {
         deleteMany: {},
         create: (genreIds as string[]).map((id) => ({
-          genre: { connect: { id: +id } },
+          genres: { connect: { id: +id } },
         })),
       },
       ...(image !== undefined && { image }),
     },
     include: {
       authors: { select: { name: true } },
-      genres: { include: { genre: { select: { name: true } } } },
+      genres: { include: { genres: { select: { name: true } } } },
       publishers: { select: { name: true } },
     },
   });
