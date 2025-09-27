@@ -23,14 +23,15 @@ import {
   postBook,
   putBook,
 } from "controllers/book.controller";
-import { fixAllPlaceholderBooks } from "controllers/fix.controller";
+import { fixAllPlaceholderBooks } from "controllers/import/fix.controller";
 import {
   deleteGenre,
   getAllGenre,
   postGenre,
   putGenre,
 } from "controllers/genre.controller";
-import { createBooksFromOpenLibrary } from "controllers/import.controller";
+import { createAuthorFromOpenLibrary } from "controllers/import/import.authors.controller";
+import { createBooksFromOpenLibrary } from "controllers/import/import.controller";
 
 import {
   deletePublisher,
@@ -48,6 +49,8 @@ import express, { Express } from "express";
 import verifyValidJWT from "middleware/jwt.middleware";
 import fileUploadMiddleware from "middleware/multer.middleware";
 import passport from "passport";
+import { postWorksIdOpen } from "controllers/import/import.workid";
+import { createIndex, filterElastic } from "controllers/elastic/index.elastic";
 
 const router = express.Router();
 const apiRoutes = (app: Express) => {
@@ -78,14 +81,19 @@ const apiRoutes = (app: Express) => {
   router.delete("/books/:id", deleteBook);
   router.get("/books/filter", filterBook);
 
+  //elastic
+  router.get("/index-elastic", createIndex);
+  router.post("/filter-elastic", filterElastic);
+
   router.get("/book-copy", getAllBookCopy);
   router.post("/book-copy", postBookCopy);
   router.put("/book-copy", putBookCopy);
   router.delete("/book-copy/:id", deleteBookCopy);
 
-  router.post("/authors/openlibrary", createBooksFromOpenLibrary);
-  router.post("/books/fix-placeholders", fixAllPlaceholderBooks);
-
+  //openLibrary
+  router.post("/authors/openlibrary", createAuthorFromOpenLibrary);
+  router.post("/books/open", createBooksFromOpenLibrary);
+  router.post("/worksid/open", postWorksIdOpen);
   //auth
   router.post("/login", loginUser);
   router.post("/register", registerUser);

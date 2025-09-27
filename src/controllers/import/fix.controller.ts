@@ -2,8 +2,6 @@ import { Request, Response } from "express";
 import { prisma } from "configs/client";
 
 // ====== Cấu hình ======
-const PRICE_MIN = 100_000;
-const PRICE_MAX = 1_500_000;
 
 const FALLBACK_DETAIL =
   "Within every book, a unique journey awaits. It's shaped by a captivating title and penned by an author with the ability to breathe life into words. From the very first pages, readers are led into a world that might be a thrilling adventure, a mystery waiting to be solved, or a deep reflection on life. A book is more than just a story; it's a mirror reflecting human questions and complex emotions. Every element, from the plot to the characters, is crafted to spark curiosity and invite you to explore. It's an invitation to step beyond the boundaries of reality, to get lost in another world, and to find the hidden meaning behind every word for yourself.";
@@ -62,7 +60,8 @@ export const fixAllPlaceholderBooks = async (req: Request, res: Response) => {
         ? FALLBACK_DETAIL
         : b.detailDesc || FALLBACK_DETAIL;
       const nextShort = needShort ? shortOneFifth(nextDetail) : b.shortDesc;
-
+      const PRICE_MIN = 100_000;
+      const PRICE_MAX = 1_500_000;
       const data: any = {};
       if (needPrice) data.price = randInt(PRICE_MIN, PRICE_MAX);
       if (needDetail) data.detailDesc = nextDetail;

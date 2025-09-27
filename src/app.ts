@@ -6,6 +6,7 @@ import initData from "configs/seed";
 import cors from "cors";
 const port = process.env.PORT;
 import { loginWithGoogle } from "configs/google";
+import { createIndex } from "controllers/elastic/index.elastic";
 // app.use(cors({origin:['http://localhost:3000']}))
 
 app.use(express.json());

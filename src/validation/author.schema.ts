@@ -2,7 +2,7 @@ import * as z from "zod";
 
 export const Author = z.object({
   id: z.string(),
-  name: z.string().trim().min(3),
+  name: z.string().trim().min(3).optional(),
   bio: z.string().min(10).optional(),
 });
 

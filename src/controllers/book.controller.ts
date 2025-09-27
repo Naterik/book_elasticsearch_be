@@ -125,13 +125,11 @@ const filterBook = async (req: Request, res: Response) => {
       order as string
     );
 
-    res
-      .status(200)
-      .json({
-        data: filter.filter,
-        item: filter.count,
-        totalPage: filter.totalPages,
-      });
+    res.status(200).json({
+      data: filter.filter,
+      item: filter.count,
+      totalPage: filter.totalPages,
+    });
   } catch (error: any) {
     res.status(400).json({ error: fromError(error).toString(), data: null });
   }
