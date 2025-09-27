@@ -2,10 +2,10 @@
 import { Request, Response } from "express";
 import { handlePostAuthor } from "services/author.service";
 
-async function getJSON<T = any>(url: string) {
+async function getJSON(url: string) {
   const r = await fetch(url, { headers: { "User-Agent": "LMS/1.0" } });
   if (!r.ok) throw new Error(`OpenLibrary error ${r.status}: ${url}`);
-  return (await r.json()) as T;
+  return await r.json();
 }
 
 function pickBio(bio: any): string | undefined {
@@ -41,9 +41,7 @@ export const createAuthorFromOpenLibrary = async (
 
     // 2) Hàm import 1 tác giả
     const importOne = async (olid: string) => {
-      const ol = await getJSON<any>(
-        `https://openlibrary.org/authors/${olid}.json`
-      );
+      const ol = await getJSON(`https://openlibrary.org/authors/${olid}.json`);
       const name: string | undefined = ol?.name?.trim();
       const bio: string | undefined = pickBio(ol?.bio);
       if (!name)

@@ -1,6 +1,15 @@
 import { prisma } from "configs/client";
 import "dotenv/config";
-import { connect } from "http2";
+
+const allBook = async () => {
+  return await prisma.book.findMany({
+    include: {
+      authors: { select: { name: true } },
+      genres: { select: { genres: { select: { name: true } } } },
+      publishers: { select: { name: true } },
+    },
+  });
+};
 const handleGetAllBooks = async (currentPage: number) => {
   const pageSize = process.env.ITEM_PER_PAGE || 10;
   const skip = (currentPage - 1) * +pageSize;
@@ -132,4 +141,10 @@ const handleDeleteBook = async (id: number) => {
   return await prisma.book.delete({ where: { id } });
 };
 
-export { handleGetAllBooks, handlePostBook, handlePutBook, handleDeleteBook };
+export {
+  handleGetAllBooks,
+  handlePostBook,
+  handlePutBook,
+  handleDeleteBook,
+  allBook,
+};

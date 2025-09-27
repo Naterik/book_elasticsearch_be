@@ -22,7 +22,7 @@
     "exec": "ts-node -r tsconfig-paths/register ./src/app.ts"
   },
   "dependencies": {
-    "@elastic/elasticsearch": "^9.1.1",
+    "@elastic/elasticsearch": "^8.13.1",
     "@prisma/client": "^6.16.1",
     "@types/cors": "^2.8.19",
     "@types/passport": "^1.0.17",

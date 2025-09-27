@@ -33,7 +33,9 @@ const handlePostAuthor = async (name: string, bio?: string) => {
 };
 
 const handlePutAuthor = async (id: string, name: string, bio?: string) => {
-  await handleCheckAuthorName(name);
+  if (name) {
+    await handleCheckAuthorName(name);
+  }
 
   return prisma.author.update({
     where: { id: +id },

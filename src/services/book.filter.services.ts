@@ -1,6 +1,4 @@
-import { Genre } from "validation/genre.schema";
 import { prisma } from "configs/client";
-
 const handleFilterBook = async (
   page: number,
   minPrice: number,
@@ -38,8 +36,8 @@ const handleFilterBook = async (
       ...whereClause,
       OR: [
         { title: { contains: search } },
-        { shortDesc: { contains: search } },
         { detailDesc: { contains: search } },
+        { authors: { is: { name: { contains: search } } } },
       ],
     };
   }
@@ -68,7 +66,9 @@ const handleFilterBook = async (
     }),
     prisma.book.count({ where: whereClause }),
   ]);
-  console.log("filter :>> ", filter);
+  if (!filter.length) {
+    throw new Error("No search results found !");
+  }
   const totalPages = Math.ceil(count / pageSize);
   return {
     filter,
