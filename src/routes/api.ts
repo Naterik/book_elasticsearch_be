@@ -50,7 +50,12 @@ import verifyValidJWT from "middleware/jwt.middleware";
 import fileUploadMiddleware from "middleware/multer.middleware";
 import passport from "passport";
 import { postWorksIdOpen } from "controllers/import/import.workid";
-import { createIndex, filterElastic } from "controllers/elastic/index.elastic";
+import {
+  createIndex,
+  createIndexWithToken,
+} from "controllers/elastic/index.elastic";
+import { countLanguage } from "controllers/elastic/aggregation.elastic";
+import { filterElastic } from "controllers/elastic/filter.elastic";
 
 const router = express.Router();
 const apiRoutes = (app: Express) => {
@@ -82,13 +87,15 @@ const apiRoutes = (app: Express) => {
   router.get("/books/filter", filterBook);
 
   //elastic
-  router.get("/index-elastic", createIndex);
-  router.post("/filter-elastic", filterElastic);
+  router.get("/index/elastic", createIndex);
+  router.get("/index/elastic/ngram", createIndexWithToken);
+  router.get("/filter/elastic", filterElastic);
+  router.get("/languages/elastic", countLanguage);
 
-  router.get("/book-copy", getAllBookCopy);
-  router.post("/book-copy", postBookCopy);
-  router.put("/book-copy", putBookCopy);
-  router.delete("/book-copy/:id", deleteBookCopy);
+  router.get("/book-copies", getAllBookCopy);
+  router.post("/book-copies", postBookCopy);
+  router.put("/book-copies", putBookCopy);
+  router.delete("/book-copies/:id", deleteBookCopy);
 
   //openLibrary
   router.post("/authors/openlibrary", createAuthorFromOpenLibrary);

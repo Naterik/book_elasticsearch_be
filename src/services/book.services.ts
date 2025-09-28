@@ -5,7 +5,7 @@ const allBook = async () => {
   return await prisma.book.findMany({
     include: {
       authors: { select: { name: true } },
-      genres: { select: { genres: { select: { name: true } } } },
+      genres: { select: { genres: { select: { id: true, name: true } } } },
       publishers: { select: { name: true } },
     },
   });
@@ -19,7 +19,7 @@ const handleGetAllBooks = async (currentPage: number) => {
     orderBy: { id: "desc" },
     include: {
       authors: { select: { name: true } },
-      genres: { select: { genres: { select: { name: true } } } },
+      genres: { select: { genres: { select: { id: true, name: true } } } },
       publishers: { select: { name: true } },
     },
   });
@@ -76,7 +76,7 @@ const handlePostBook = async (
     },
     include: {
       authors: { select: { name: true } },
-      genres: { include: { genres: { select: { name: true } } } },
+      genres: { include: { genres: { select: { id: true, name: true } } } },
       publishers: { select: { name: true } },
     },
   });
@@ -125,7 +125,7 @@ const handlePutBook = async (
     },
     include: {
       authors: { select: { name: true } },
-      genres: { include: { genres: { select: { name: true } } } },
+      genres: { include: { genres: { select: { id: true, name: true } } } },
       publishers: { select: { name: true } },
     },
   });
