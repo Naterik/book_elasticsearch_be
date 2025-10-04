@@ -34,7 +34,7 @@ const postUser = async (req: Request, res: Response) => {
       req.body as TUser;
     User.omit({ id: true }).parse(req.body);
     const avatar = req?.file?.filename;
-    const user = await handlePostUser(
+    const result = await handlePostUser(
       username,
       password,
       fullName,
@@ -44,7 +44,7 @@ const postUser = async (req: Request, res: Response) => {
       roleId
     );
     res.status(200).json({
-      data: user,
+      data: result,
     });
   } catch (err) {
     res.status(400).json({
@@ -60,7 +60,7 @@ const putUser = async (req: Request, res: Response) => {
       req.body as TUser;
     User.parse(req.body);
     const avatar = req?.file?.filename ?? null;
-    const user = await handlePutUser(
+    const result = await handlePutUser(
       id,
       username,
       fullName,
@@ -70,7 +70,7 @@ const putUser = async (req: Request, res: Response) => {
       avatar
     );
     res.status(200).json({
-      data: user,
+      data: result,
     });
   } catch (err) {
     res.status(400).json({
@@ -83,9 +83,9 @@ const putUser = async (req: Request, res: Response) => {
 const deleteUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const user = await handleDeleteUser(id);
+    const result = await handleDeleteUser(id);
     res.status(200).json({
-      data: user,
+      data: result,
     });
   } catch (err) {
     res.status(400).json({

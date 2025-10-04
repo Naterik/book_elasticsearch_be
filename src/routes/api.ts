@@ -1,4 +1,5 @@
 import {
+  fetchAccount,
   googleAccessToken,
   loginUser,
   registerUser,
@@ -104,6 +105,7 @@ const apiRoutes = (app: Express) => {
   //auth
   router.post("/login", loginUser);
   router.post("/register", registerUser);
+  router.get("/account", fetchAccount);
   router.get(
     "/auth/google",
     passport.authenticate("google", { scope: ["profile", "email"] })

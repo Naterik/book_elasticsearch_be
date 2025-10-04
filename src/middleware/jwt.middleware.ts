@@ -19,14 +19,21 @@ const verifyValidJWT = (req: Request, res: Response, next: NextFunction) => {
         message: "Header not exist",
       });
     }
+    const checkValidCookie = req.cookies.access_token;
+    if (!checkValidCookie) {
+      res.clearCookie("access_token");
+      res.status(400).json({ message: "Unvalid cookie " });
+    }
     const secret = process.env.JWT_SECRET;
-    const decodeData = jwt.verify(access_token, secret) as AccessTokenPayload;
+    const decodeData = jwt.verify(
+      checkValidCookie,
+      secret
+    ) as AccessTokenPayload;
     req.user = {
-      id: +decodeData.id,
+      id: +decodeData.sub,
       username: decodeData.username,
       fullName: decodeData.fullName,
-      membershipStart: decodeData.membershipStart,
-      membershipEnd: decodeData.membershipEnd,
+      status: decodeData.status,
       role: decodeData.role,
     };
 

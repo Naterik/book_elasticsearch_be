@@ -4,6 +4,7 @@ import "dotenv/config";
 import { prisma } from "configs/client";
 import { handleCheckUsername } from "./user.service";
 import { AccessTokenPayload } from "src/types/jwt";
+
 const handleLoginUser = async (username: string, password: string) => {
   const user = await prisma.user.findUnique({
     where: { username },
@@ -19,7 +20,17 @@ const handleLoginUser = async (username: string, password: string) => {
     throw new Error("Invalid password!");
   }
   const accessToken = await handleCreateJWT(+user.id);
-  return accessToken;
+  return {
+    access_token: accessToken,
+    user: {
+      id: user.id,
+      email: user.username,
+      fullName: user.fullName,
+      avatar: user.avatar,
+      status: user.status,
+      role: user.role.name,
+    },
+  };
 };
 
 const handleCreateJWT = async (userId: number) => {
@@ -36,11 +47,12 @@ const handleCreateJWT = async (userId: number) => {
     sub: String(user.id),
     username: user.username,
     fullName: user?.fullName,
+    avatar: user?.avatar,
     role: user?.role.name,
-    membershipStart: user?.membershipStart,
-    membershipEnd: user?.membershipEnd,
+    status: user?.status,
   };
   const token = jwt.sign(payload, secret, { expiresIn: expire });
+
   return token;
 };
 
@@ -54,7 +66,11 @@ const handleRegisterUser = async (
   const user = await prisma.user.create({
     data: { username, fullName, password: hashPassword, roleId: 2 },
   });
-  return user;
+  return {
+    id: user.id,
+    email: user.username,
+    fullName: user.fullName,
+  };
 };
 
 const handleLoginWithGoogle = async (data) => {

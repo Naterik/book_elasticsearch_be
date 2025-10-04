@@ -5,14 +5,14 @@ const handleGetAllBookCopy = async (page: number) => {
   const skip = (page - 1) * pageSize;
   const countTotalItems = await prisma.bookcopy.count();
   const totalPages = Math.ceil(countTotalItems / pageSize);
-  const bookCopy = await prisma.bookcopy.findMany({
+  const result = await prisma.bookcopy.findMany({
     skip,
     take: pageSize,
     orderBy: { id: "desc" },
     include: { books: true },
   });
   return {
-    bookCopy,
+    result,
     pagination: {
       currentPage: page,
       totalPages,
@@ -28,7 +28,7 @@ const handlePostBookCopy = async (
   status: string,
   location: string
 ) => {
-  const newCopy = await prisma.bookcopy.create({
+  const result = await prisma.bookcopy.create({
     data: {
       year_published,
       copyNumber,
@@ -38,7 +38,7 @@ const handlePostBookCopy = async (
     },
     include: { books: true },
   });
-  return newCopy;
+  return result;
 };
 const handlePutBookCopy = async (
   id: number,
@@ -48,7 +48,7 @@ const handlePutBookCopy = async (
   status: string,
   location: string
 ) => {
-  const updatedCopy = await prisma.bookcopy.update({
+  const result = await prisma.bookcopy.update({
     where: { id },
     data: {
       year_published,
@@ -59,13 +59,13 @@ const handlePutBookCopy = async (
     },
     include: { books: true },
   });
-  return updatedCopy;
+  return result;
 };
 const handleDeleteBookCopy = async (id: number) => {
-  const deletedCopy = await prisma.bookcopy.delete({
+  const result = await prisma.bookcopy.delete({
     where: { id },
   });
-  return deletedCopy;
+  return result;
 };
 export {
   handleGetAllBookCopy,

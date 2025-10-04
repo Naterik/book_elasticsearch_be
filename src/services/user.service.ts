@@ -4,11 +4,11 @@ import { bcryptPassword } from "configs/password";
 const pageSize: number = +process.env.ITEM_PER_PAGE;
 const handleGetAllUser = async (page: number) => {
   const skip = (page - 1) * pageSize;
-  const paginate = prisma.user.findMany({
+  const result = prisma.user.findMany({
     skip: skip,
     take: pageSize,
   });
-  return paginate;
+  return result;
 };
 
 const handleTotalPages = async () => {
@@ -27,7 +27,7 @@ const handlePostUser = async (
   roleId: string
 ) => {
   const hashPassword = await bcryptPassword(password);
-  const user = await prisma.user.create({
+  const result = await prisma.user.create({
     data: {
       username,
       password: hashPassword,
@@ -38,7 +38,7 @@ const handlePostUser = async (
       roleId: +roleId,
     },
   });
-  return user;
+  return result;
 };
 
 const handlePutUser = async (
@@ -50,7 +50,7 @@ const handlePutUser = async (
   roleId: string,
   avatar: string
 ) => {
-  const user = await prisma.user.update({
+  const result = await prisma.user.update({
     where: { id: +id },
     data: {
       username,
@@ -61,16 +61,16 @@ const handlePutUser = async (
       ...(avatar !== undefined && { avatar: avatar }),
     },
   });
-  return user;
+  return result;
 };
 
 const handleDeleteUser = async (id: string) => {
-  const deleteUser = await prisma.user.delete({
+  const result = await prisma.user.delete({
     where: {
       id: +id,
     },
   });
-  return deleteUser;
+  return result;
 };
 
 const handleCheckUsername = async (username: string) => {

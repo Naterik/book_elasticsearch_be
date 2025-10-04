@@ -1,5 +1,5 @@
 {
-  "name": "book_nodejs",
+  "name": "book-nodejs",
   "version": "1.0.0",
   "description": "project for thesis",
   "license": "ISC",
@@ -28,7 +28,7 @@
     "@types/passport": "^1.0.17",
     "@types/passport-google-oauth20": "^2.0.16",
     "bcrypt": "^6.0.0",
-    "cookie": "^1.0.2",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
@@ -43,6 +43,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
+    "@types/cookie-parser": "^1.4.9",
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",

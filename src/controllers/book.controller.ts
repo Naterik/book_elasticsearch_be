@@ -14,8 +14,8 @@ const getAllBook = async (req: Request, res: Response) => {
     const { page } = req.query;
     let currentPage: number = page ? +page : 1;
     if (currentPage <= 0) currentPage = 1;
-    const books = await handleGetAllBooks(+currentPage);
-    res.status(200).json({ data: books });
+    const result = await handleGetAllBooks(+currentPage);
+    res.status(200).json({ data: result });
   } catch (error: any) {
     res.status(400).json({ error: fromError(error).toString(), data: null });
   }
@@ -39,7 +39,7 @@ const postBook = async (req: Request, res: Response) => {
     } = req.body as TBook;
     Book.omit({ id: true }).parse(req.body);
     const image = req?.file?.filename ?? null;
-    const book = await handlePostBook(
+    const result = await handlePostBook(
       isbn,
       title,
       shortDesc,
@@ -54,7 +54,7 @@ const postBook = async (req: Request, res: Response) => {
       genreIds,
       image
     );
-    res.status(201).json({ data: book });
+    res.status(201).json({ data: result });
   } catch (error: any) {
     res.status(400).json({ error: fromError(error).toString(), data: null });
   }
@@ -81,7 +81,7 @@ const putBook = async (req: Request, res: Response) => {
     Book.parse(req.body);
     const image = req?.file?.filename ?? null;
 
-    const book = await handlePutBook(
+    const result = await handlePutBook(
       +id,
       isbn,
       title,
@@ -97,7 +97,7 @@ const putBook = async (req: Request, res: Response) => {
       genreIds,
       image
     );
-    res.status(201).json({ data: book });
+    res.status(201).json({ data: result });
   } catch (error: any) {
     res.status(400).json({ error: fromError(error).toString(), data: null });
   }
@@ -106,8 +106,8 @@ const putBook = async (req: Request, res: Response) => {
 const deleteBook = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const book = await handleDeleteBook(+id);
-    res.status(200).json({ data: book });
+    const result = await handleDeleteBook(+id);
+    res.status(200).json({ data: result });
   } catch (error: any) {
     res.status(400).json({ error: fromError(error).toString(), data: null });
   }
@@ -116,7 +116,7 @@ const deleteBook = async (req: Request, res: Response) => {
 const filterBook = async (req: Request, res: Response) => {
   try {
     const { page, genres, search, minPrice, maxPrice, order } = req.query;
-    const filter = await handleFilterBook(
+    const result = await handleFilterBook(
       +page,
       +minPrice,
       +maxPrice,
@@ -126,9 +126,7 @@ const filterBook = async (req: Request, res: Response) => {
     );
 
     res.status(200).json({
-      data: filter.filter,
-      item: filter.count,
-      totalPage: filter.totalPages,
+      data: result,
     });
   } catch (error: any) {
     res.status(400).json({ error: fromError(error).toString(), data: null });

@@ -147,7 +147,7 @@ const filterElastic = async (req: Request, res: Response) => {
       };
     });
     res.status(200).json({
-      data,
+      result: data,
       pagination: {
         currentPage,
         totalPage,

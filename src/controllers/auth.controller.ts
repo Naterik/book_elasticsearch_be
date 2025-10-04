@@ -15,6 +15,12 @@ const loginUser = async (req: Request, res: Response) => {
       fullName: true,
     }).parse(req.body);
     const checkLogin = await handleLoginUser(username, password);
+
+    res.cookie("access_token", checkLogin.access_token, {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     res.status(200).json({
       data: checkLogin,
     });
@@ -27,6 +33,7 @@ const loginUser = async (req: Request, res: Response) => {
 };
 
 const registerUser = async (req: Request, res: Response) => {
+  console.log("Request reached /register!");
   try {
     const { username, fullName, password, confirmPassword } = req.body as TAuth;
     Auth.parse(req.body);
@@ -46,10 +53,25 @@ const registerUser = async (req: Request, res: Response) => {
   }
 };
 
+const fetchAccount = (req: Request, res: Response) => {
+  try {
+    const { user } = req;
+    res.status(200).json({
+      data: user,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: "Fetch error" + fromError(err).toString(),
+      data: null,
+    });
+  }
+};
+
 const googleAccessToken = async (req: Request, res: Response) => {
   try {
     const { id } = req.user as any;
     const getToken = await handleCreateJWT(id);
+
     console.log("getToekn :>> ", getToken);
     res.status(200).json({
       data: getToken,
@@ -62,4 +84,4 @@ const googleAccessToken = async (req: Request, res: Response) => {
   }
 };
 
-export { loginUser, registerUser, googleAccessToken };
+export { loginUser, registerUser, googleAccessToken, fetchAccount };

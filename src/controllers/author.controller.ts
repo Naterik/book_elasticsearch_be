@@ -16,10 +16,10 @@ const getAllAuthor = async (req: Request, res: Response) => {
     let currentPage: any = page ? page : 1;
     if (+currentPage <= 0) currentPage = 1;
 
-    const data = await handleGetAllAuthor(+currentPage);
+    const result = await handleGetAllAuthor(+currentPage);
     const totalPage = await handleTotalPagesAuthor();
 
-    res.status(200).json({ data, totalPage });
+    res.status(200).json({ data: result, totalPage });
   } catch (err: any) {
     res.status(400).json({ message: err.message, data: null });
   }
@@ -29,8 +29,8 @@ const postAuthor = async (req: Request, res: Response) => {
   try {
     const { name, bio } = req.body as TAuthor;
     Author.omit({ id: true }).parse(req.body);
-    const author = await handlePostAuthor(name, bio);
-    res.status(200).json({ data: author });
+    const result = await handlePostAuthor(name, bio);
+    res.status(200).json({ data: result });
   } catch (err) {
     res.status(400).json({ message: fromError(err).toString(), data: null });
   }
@@ -40,8 +40,8 @@ const putAuthor = async (req: Request, res: Response) => {
   try {
     Author.parse(req.body);
     const { id, name, bio } = req.body as TAuthor;
-    const author = await handlePutAuthor(id, name, bio);
-    res.status(200).json({ data: author });
+    const result = await handlePutAuthor(id, name, bio);
+    res.status(200).json({ data: result });
   } catch (err) {
     res.status(400).json({ message: fromError(err).toString(), data: null });
   }
@@ -50,8 +50,8 @@ const putAuthor = async (req: Request, res: Response) => {
 const deleteAuthor = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const author = await handleDeleteAuthor(id);
-    res.status(200).json({ data: author });
+    const result = await handleDeleteAuthor(id);
+    res.status(200).json({ data: result });
   } catch (err: any) {
     res.status(400).json({ message: err.message, data: null });
   }

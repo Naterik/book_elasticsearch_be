@@ -13,7 +13,7 @@ const allBook = async () => {
 const handleGetAllBooks = async (currentPage: number) => {
   const pageSize = process.env.ITEM_PER_PAGE || 10;
   const skip = (currentPage - 1) * +pageSize;
-  const books = await prisma.book.findMany({
+  const result = await prisma.book.findMany({
     skip,
     take: +pageSize,
     orderBy: { id: "desc" },
@@ -26,7 +26,7 @@ const handleGetAllBooks = async (currentPage: number) => {
   const countTotalBooks = await prisma.book.count();
   const totalPages = Math.ceil(countTotalBooks / +pageSize);
   return {
-    books,
+    result,
     pagination: {
       currentPage,
       totalPages,
@@ -54,7 +54,7 @@ const handlePostBook = async (
   if (!Array.isArray(genreIds)) {
     genreIds = [genreIds];
   }
-  const newBook = await prisma.book.create({
+  const result = await prisma.book.create({
     data: {
       isbn,
       title,
@@ -80,7 +80,7 @@ const handlePostBook = async (
       publishers: { select: { name: true } },
     },
   });
-  return newBook;
+  return result;
 };
 const handlePutBook = async (
   id: number,
@@ -101,7 +101,7 @@ const handlePutBook = async (
   if (!Array.isArray(genreIds)) {
     genreIds = [genreIds];
   }
-  const updateBook = await prisma.book.update({
+  const result = await prisma.book.update({
     where: { id },
     data: {
       isbn,
@@ -129,14 +129,13 @@ const handlePutBook = async (
       publishers: { select: { name: true } },
     },
   });
-  return updateBook;
+  return result;
 };
 
 const handleDeleteBook = async (id: number) => {
   const deleteBookOnGenres = await prisma.booksOnGenres.deleteMany({
     where: { bookId: id },
   });
-  console.log("object :>> ", deleteBookOnGenres);
   if (!deleteBookOnGenres) throw new Error("Failed to delete related genres.");
   return await prisma.book.delete({ where: { id } });
 };

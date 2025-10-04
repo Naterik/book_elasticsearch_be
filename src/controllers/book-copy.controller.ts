@@ -12,8 +12,8 @@ const getAllBookCopy = async (req: Request, res: Response) => {
     const { page } = req.query;
     let currentPage = page ? +page : 1;
     if (currentPage <= 0) currentPage = 1;
-    const bookCopy = await handleGetAllBookCopy(+page);
-    res.status(200).json({ data: bookCopy });
+    const result = await handleGetAllBookCopy(+page);
+    res.status(200).json({ data: result });
   } catch (error) {
     res.status(400).json({ message: error.message, data: null });
   }
@@ -22,14 +22,14 @@ const postBookCopy = async (req: Request, res: Response) => {
   try {
     const { year_published, copyNumber, bookId, status, location } = req.body;
     BookCopy.omit({ id: true }).parse(req.body);
-    const copy = await handlePostBookCopy(
+    const result = await handlePostBookCopy(
       +year_published,
       copyNumber,
       +bookId,
       status,
       location
     );
-    res.status(201).json({ data: copy });
+    res.status(201).json({ data: result });
   } catch (error) {
     res.status(400).json({ message: fromError(error).toString(), data: null });
   }
@@ -40,7 +40,7 @@ const putBookCopy = async (req: Request, res: Response) => {
     const { id, year_published, copyNumber, bookId, status, location } =
       req.body;
     BookCopy.parse(req.body);
-    const copy = await handlePutBookCopy(
+    const result = await handlePutBookCopy(
       +id,
       +year_published,
       copyNumber,
@@ -48,7 +48,7 @@ const putBookCopy = async (req: Request, res: Response) => {
       status,
       location
     );
-    res.status(200).json({ data: copy });
+    res.status(200).json({ data: result });
   } catch (error) {
     res.status(400).json({ message: fromError(error).toString(), data: null });
   }
@@ -57,8 +57,8 @@ const putBookCopy = async (req: Request, res: Response) => {
 const deleteBookCopy = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const deletedCopy = await handleDeleteBookCopy(+id);
-    res.status(200).json({ data: deletedCopy });
+    const result = await handleDeleteBookCopy(+id);
+    res.status(200).json({ data: result });
   } catch (error) {
     res.status(400).json({ message: error.message, data: null });
   }

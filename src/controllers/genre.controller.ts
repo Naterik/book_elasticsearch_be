@@ -15,10 +15,10 @@ const getAllGenre = async (req: Request, res: Response) => {
     let currentPage: any = page ? page : 1;
     if (+currentPage <= 0) currentPage = 1;
 
-    const data = await handleGetAllGenre(+currentPage);
+    const result = await handleGetAllGenre(+currentPage);
     const totalPage = await handleTotalPagesGenre();
 
-    res.status(200).json({ data, totalPage });
+    res.status(200).json({ data: result, totalPage });
   } catch (err: any) {
     res.status(400).json({ message: err.message, data: null });
   }
@@ -28,8 +28,8 @@ const postGenre = async (req: Request, res: Response) => {
   try {
     Genre.omit({ id: true }).parse(req.body);
     const { name, description } = req.body as TGenre;
-    const genre = await handlePostGenre(name, description);
-    res.status(200).json({ data: genre });
+    const result = await handlePostGenre(name, description);
+    res.status(200).json({ data: result });
   } catch (err) {
     res.status(400).json({ message: fromError(err).toString(), data: null });
   }
@@ -39,8 +39,8 @@ const putGenre = async (req: Request, res: Response) => {
   try {
     Genre.parse(req.body);
     const { id, name, description } = req.body as TGenre;
-    const genre = await handlePutGenre(id, name, description);
-    res.status(200).json({ data: genre });
+    const result = await handlePutGenre(id, name, description);
+    res.status(200).json({ data: result });
   } catch (err) {
     res.status(400).json({ message: fromError(err).toString(), data: null });
   }
@@ -49,8 +49,8 @@ const putGenre = async (req: Request, res: Response) => {
 const deleteGenre = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const genre = await handleDeleteGenre(id);
-    res.status(200).json({ data: genre });
+    const result = await handleDeleteGenre(id);
+    res.status(200).json({ data: result });
   } catch (err: any) {
     res.status(400).json({ message: err.message, data: null });
   }

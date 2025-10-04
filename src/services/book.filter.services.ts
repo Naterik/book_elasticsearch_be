@@ -1,4 +1,5 @@
 import { prisma } from "configs/client";
+import { title } from "node:process";
 const handleFilterBook = async (
   page: number,
   minPrice: number,
@@ -10,10 +11,14 @@ const handleFilterBook = async (
   let whereClause = {};
   let orderClause = {};
   if (order) {
-    if (order === "desc") {
-      orderClause = { price: "desc" };
-    } else {
-      orderClause = { price: "asc" };
+    if (order === "newest") {
+      orderClause = { publishDate: "desc" };
+    }
+    if (order === "oldest") {
+      orderClause = { publishDate: "asc" };
+    }
+    if (order === "title") {
+      orderClause = { title: "asc" };
     }
   }
   if (minPrice || maxPrice) {
@@ -57,7 +62,7 @@ const handleFilterBook = async (
   }
   const pageSize = +process.env.ITEM_PER_PAGE;
   const skip = (page - 1) * pageSize;
-  const [filter, count] = await prisma.$transaction([
+  const [result, count] = await prisma.$transaction([
     prisma.book.findMany({
       take: pageSize,
       skip,
@@ -66,14 +71,18 @@ const handleFilterBook = async (
     }),
     prisma.book.count({ where: whereClause }),
   ]);
-  if (!filter.length) {
+  if (!result.length) {
     throw new Error("No search results found !");
   }
   const totalPages = Math.ceil(count / pageSize);
   return {
-    filter,
-    count,
-    totalPages,
+    result,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      pageSize: +pageSize,
+      totalItems: count,
+    },
   };
 };
 
