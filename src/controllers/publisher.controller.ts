@@ -5,7 +5,7 @@ import {
   handlePostPublisher,
   handlePutPublisher,
   handleTotalPagesPublisher,
-} from "services/publisher.services";
+} from "services/book/publisher.services";
 import { Publisher, TPublisher } from "validation/publisher.schema";
 import { fromError } from "zod-validation-error";
 

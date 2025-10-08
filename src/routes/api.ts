@@ -16,18 +16,20 @@ import {
   getAllBookCopy,
   postBookCopy,
   putBookCopy,
-} from "controllers/book-copy.controller";
+} from "controllers/book/book-copy.controller";
 import {
   deleteBook,
   filterBook,
   getAllBook,
+  getBookById,
   postBook,
   putBook,
-} from "controllers/book.controller";
+} from "controllers/book/book.controller";
 import { fixAllPlaceholderBooks } from "controllers/import/fix.controller";
 import {
   deleteGenre,
   getAllGenre,
+  getAllGenreDisplay,
   postGenre,
   putGenre,
 } from "controllers/genre.controller";
@@ -41,8 +43,10 @@ import {
   putPublisher,
 } from "controllers/publisher.controller";
 import {
+  createMemberCard,
   deleteUser,
   getAllUser,
+  paymentUpdateStatusUser,
   postUser,
   putUser,
 } from "controllers/user.controller";
@@ -77,6 +81,7 @@ const apiRoutes = (app: Express) => {
   router.delete("/publishers/:id", deletePublisher);
 
   router.get("/genres", getAllGenre);
+  router.get("/genres/display", getAllGenreDisplay);
   router.post("/genres", postGenre);
   router.put("/genres", putGenre);
   router.delete("/genres/:id", deleteGenre);
@@ -84,8 +89,13 @@ const apiRoutes = (app: Express) => {
   router.get("/books", getAllBook);
   router.post("/books", fileUploadMiddleware("image", "books"), postBook);
   router.put("/books", fileUploadMiddleware("image", "books"), putBook);
+  router.get("/books/:id", getBookById);
   router.delete("/books/:id", deleteBook);
   router.get("/books/filter", filterBook);
+
+  //member
+  router.post("/users/member", createMemberCard);
+  router.post("/users/member/update-status", paymentUpdateStatusUser);
 
   //elastic
   router.get("/index/elastic", createIndex);

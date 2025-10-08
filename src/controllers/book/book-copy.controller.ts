@@ -4,7 +4,7 @@ import {
   handleGetAllBookCopy,
   handlePostBookCopy,
   handlePutBookCopy,
-} from "services/book-copy.services";
+} from "services/book/book-copy.services";
 import { BookCopy } from "validation/book-copy.schema";
 import { fromError } from "zod-validation-error";
 const getAllBookCopy = async (req: Request, res: Response) => {

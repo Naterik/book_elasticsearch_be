@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `payments` ADD COLUMN `status` VARCHAR(20) NOT NULL DEFAULT 'UNPAID';

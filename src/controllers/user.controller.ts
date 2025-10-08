@@ -9,6 +9,11 @@ import {
 import "dotenv/config";
 import { TUser, User } from "validation/user.schema";
 import { fromError } from "zod-validation-error";
+import {
+  handleCreatePaymentMember,
+  handlePaymentUpdateStatus,
+} from "services/member.services";
+import { prisma } from "configs/client";
 const getAllUser = async (req: Request, res: Response) => {
   try {
     const { page } = req.query;
@@ -95,4 +100,44 @@ const deleteUser = async (req: Request, res: Response) => {
   }
 };
 
-export { getAllUser, deleteUser, postUser, putUser };
+const createMemberCard = async (req: Request, res: Response) => {
+  try {
+    const { userId, duration, paymentRef } = req.body;
+    const result = await handleCreatePaymentMember(
+      +userId,
+      duration,
+      paymentRef
+    );
+    res.status(200).json({
+      data: result,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: err.message,
+      data: null,
+    });
+  }
+};
+const paymentUpdateStatusUser = async (req: Request, res: Response) => {
+  try {
+    const { paymentStatus, paymentRef } = req.body;
+    const result = await handlePaymentUpdateStatus(paymentStatus, paymentRef);
+    res.status(200).json({
+      data: result,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: err.message,
+      data: null,
+    });
+  }
+};
+
+export {
+  getAllUser,
+  deleteUser,
+  postUser,
+  putUser,
+  createMemberCard,
+  paymentUpdateStatusUser,
+};

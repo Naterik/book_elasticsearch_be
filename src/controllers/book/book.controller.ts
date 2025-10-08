@@ -1,11 +1,12 @@
 import { Request, Response } from "express";
-import { handleFilterBook } from "services/book.filter.services";
+import { handleFilterBook } from "services/book/book.filter.services";
 import {
   handleDeleteBook,
   handleGetAllBooks,
+  handleGetBookById,
   handlePostBook,
   handlePutBook,
-} from "services/book.services";
+} from "services/book/book.services";
 import { Book, TBook } from "validation/books.schema";
 import { fromError } from "zod-validation-error";
 
@@ -113,16 +114,48 @@ const deleteBook = async (req: Request, res: Response) => {
   }
 };
 
+const getBookById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await handleGetBookById(+id);
+    res.status(200).json({
+      data: result,
+    });
+  } catch (e) {
+    res.status(400).json({
+      data: null,
+      message: e.message,
+    });
+  }
+};
+
 const filterBook = async (req: Request, res: Response) => {
   try {
-    const { page, genres, search, minPrice, maxPrice, order } = req.query;
+    const {
+      page,
+      genres,
+      search = "",
+      priceRange,
+      order = "",
+      yearRange,
+      language,
+    } = req.query as unknown as {
+      page?: number;
+      genres: string;
+      search: string;
+      priceRange: string[];
+      order: string;
+      yearRange: string[];
+      language: string;
+    };
     const result = await handleFilterBook(
       +page,
-      +minPrice,
-      +maxPrice,
-      search as string,
-      genres as string,
-      order as string
+      priceRange,
+      search,
+      genres,
+      order,
+      yearRange,
+      language
     );
 
     res.status(200).json({
@@ -133,4 +166,4 @@ const filterBook = async (req: Request, res: Response) => {
   }
 };
 
-export { getAllBook, postBook, putBook, deleteBook, filterBook };
+export { getAllBook, postBook, putBook, deleteBook, filterBook, getBookById };

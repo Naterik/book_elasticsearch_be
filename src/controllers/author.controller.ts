@@ -7,7 +7,7 @@ import {
   handlePostAuthor,
   handlePutAuthor,
   handleTotalPagesAuthor,
-} from "services/author.service";
+} from "services/book/author.service";
 import { Author, TAuthor } from "validation/author.schema";
 
 const getAllAuthor = async (req: Request, res: Response) => {

@@ -1,6 +1,6 @@
 import { client } from "configs/elastic";
 import { Request, Response } from "express";
-import { allBook, handleGetAllBooks } from "services/book.services";
+import { allBook, handleGetAllBooks } from "services/book/book.services";
 
 const index = process.env.INDEX_N_GRAM!;
 const createIndex = async (req: Request, res: Response) => {

@@ -1,6 +1,6 @@
 // src/controllers/author.import.controller.ts
 import { Request, Response } from "express";
-import { handlePostAuthor } from "services/author.service";
+import { handlePostAuthor } from "services/book/author.service";
 
 async function getJSON(url: string) {
   const r = await fetch(url, { headers: { "User-Agent": "LMS/1.0" } });

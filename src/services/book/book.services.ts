@@ -76,7 +76,7 @@ const handlePostBook = async (
     },
     include: {
       authors: { select: { name: true } },
-      genres: { include: { genres: { select: { id: true, name: true } } } },
+      genres: { select: { genres: { select: { id: true, name: true } } } },
       publishers: { select: { name: true } },
     },
   });
@@ -125,7 +125,19 @@ const handlePutBook = async (
     },
     include: {
       authors: { select: { name: true } },
-      genres: { include: { genres: { select: { id: true, name: true } } } },
+      genres: { select: { genres: { select: { id: true, name: true } } } },
+      publishers: { select: { name: true } },
+    },
+  });
+  return result;
+};
+
+const handleGetBookById = async (id: number) => {
+  const result = prisma.book.findUnique({
+    where: { id: +id },
+    include: {
+      authors: { select: { name: true } },
+      genres: { select: { genres: { select: { id: true, name: true } } } },
       publishers: { select: { name: true } },
     },
   });
@@ -146,4 +158,5 @@ export {
   handlePutBook,
   handleDeleteBook,
   allBook,
+  handleGetBookById,
 };

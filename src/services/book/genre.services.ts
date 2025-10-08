@@ -2,6 +2,10 @@ import { prisma } from "configs/client";
 import "dotenv/config";
 const pageSize: number = Number(process.env.ITEM_PER_PAGE || 10);
 
+const handleGetAllGenreDisplay = () => {
+  return prisma.genre.findMany({ select: { name: true, id: true } });
+};
+
 const handleGetAllGenre = async (page: number) => {
   const p = Math.max(1, Number(page || 1));
   const skip = (p - 1) * pageSize;
@@ -58,4 +62,5 @@ export {
   handlePostGenre,
   handlePutGenre,
   handleDeleteGenre,
+  handleGetAllGenreDisplay,
 };
