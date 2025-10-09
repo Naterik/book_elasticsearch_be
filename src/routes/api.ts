@@ -10,7 +10,7 @@ import {
   postAuthor,
   postManyAuthors,
   putAuthor,
-} from "controllers/author.controller";
+} from "controllers/book/author.controller";
 import {
   deleteBookCopy,
   getAllBookCopy,
@@ -32,7 +32,7 @@ import {
   getAllGenreDisplay,
   postGenre,
   putGenre,
-} from "controllers/genre.controller";
+} from "controllers/book/genre.controller";
 import { createAuthorFromOpenLibrary } from "controllers/import/import.authors.controller";
 import { createBooksFromOpenLibrary } from "controllers/import/import.controller";
 
@@ -41,7 +41,7 @@ import {
   getAllPublisher,
   postPublisher,
   putPublisher,
-} from "controllers/publisher.controller";
+} from "controllers/book/publisher.controller";
 import {
   createMemberCard,
   deleteUser,
@@ -61,6 +61,12 @@ import {
 } from "controllers/elastic/index.elastic";
 import { countLanguage } from "controllers/elastic/aggregation.elastic";
 import { filterElastic } from "controllers/elastic/filter.elastic";
+import {
+  createLoans,
+  getAllLoans,
+  renewalLoans,
+} from "controllers/loan.controller";
+import { createReservation } from "controllers/reservation.controller";
 
 const router = express.Router();
 const apiRoutes = (app: Express) => {
@@ -96,6 +102,12 @@ const apiRoutes = (app: Express) => {
   //member
   router.post("/users/member", createMemberCard);
   router.post("/users/member/update-status", paymentUpdateStatusUser);
+
+  router.get("/loans", getAllLoans);
+  router.post("/loans/create", createLoans);
+  router.put("/loans/renewal", renewalLoans);
+
+  router.post("/reservations/create", createReservation);
 
   //elastic
   router.get("/index/elastic", createIndex);

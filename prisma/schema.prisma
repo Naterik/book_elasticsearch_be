@@ -112,9 +112,10 @@ model Bookcopy {
 model Loan {
   @@map("loans")
   id           Int       @id @default(autoincrement())
-  loanDate     DateTime? @default(now())
+  loanDate     DateTime  @default(now())
   dueDate      DateTime?
   returnDate   DateTime? 
+  renewalCount Int       @default(0)
   status       String    @db.VarChar(255) // ON_LOAN, RETURNED, OVERDUE, LOST
   bookCopy     Bookcopy  @relation(fields: [bookcopyId], references: [id])
   bookcopyId   Int

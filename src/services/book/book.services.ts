@@ -13,6 +13,8 @@ const allBook = async () => {
 const handleGetAllBooks = async (currentPage: number) => {
   const pageSize = process.env.ITEM_PER_PAGE || 10;
   const skip = (currentPage - 1) * +pageSize;
+  const countTotalBooks = await prisma.book.count();
+  const totalPages = Math.ceil(countTotalBooks / +pageSize);
   const result = await prisma.book.findMany({
     skip,
     take: +pageSize,
@@ -23,8 +25,7 @@ const handleGetAllBooks = async (currentPage: number) => {
       publishers: { select: { name: true } },
     },
   });
-  const countTotalBooks = await prisma.book.count();
-  const totalPages = Math.ceil(countTotalBooks / +pageSize);
+
   return {
     result,
     pagination: {

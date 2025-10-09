@@ -10,10 +10,9 @@ import "dotenv/config";
 import { TUser, User } from "validation/user.schema";
 import { fromError } from "zod-validation-error";
 import {
-  handleCreatePaymentMember,
+  handleCreateMemberCard,
   handlePaymentUpdateStatus,
 } from "services/member.services";
-import { prisma } from "configs/client";
 const getAllUser = async (req: Request, res: Response) => {
   try {
     const { page } = req.query;
@@ -102,8 +101,11 @@ const deleteUser = async (req: Request, res: Response) => {
 
 const createMemberCard = async (req: Request, res: Response) => {
   try {
-    const { userId, duration, paymentRef } = req.body;
-    const result = await handleCreatePaymentMember(
+    const { fullName, phone, address, userId, duration, paymentRef } = req.body;
+    const result = await handleCreateMemberCard(
+      fullName,
+      phone,
+      address,
       +userId,
       duration,
       paymentRef
