@@ -1,6 +1,7 @@
 import { prisma } from "configs/client";
 import { handleCheckMemberCard } from "./member.services";
 import "dotenv/config";
+
 const handleGetAllLoans = async (currentPage: number) => {
   const pageSize = +process.env.ITEM_PER_PAGE;
   const skip = (currentPage - 1) * pageSize;
@@ -35,7 +36,7 @@ const handleCreateLoan = async (userId: number, bookcopyId: number) => {
     const activeLoans = await tx.loan.count({
       where: { userId, status: { in: ["ON_LOAN", "OVERDUE"] } },
     });
-    if (activeLoans >= policy.maxActiveLoans)
+    if (activeLoans > policy.maxActiveLoans)
       throw new Error(`Maximum ${policy.maxActiveLoans} books allowed`);
 
     const copy = await tx.bookcopy.findUnique({
@@ -163,4 +164,46 @@ const handleRenewalLoans = async (loanId: number, userId: number) => {
   });
 };
 
-export { handleGetAllLoans, handleCreateLoan, handleRenewalLoans };
+const handleCheckLoanExist = async (loanId: number) => {
+  const loan = await prisma.loan.findFirst({
+    where: { id: loanId },
+    include: { bookCopy: { include: { books: true } } },
+  });
+  if (!loan) throw new Error("Loan not exist !");
+  return loan;
+};
+
+const handleUpdateStatus = async (loanId: number, userId: number) => {
+  const { policy } = await handleCheckMemberCard(userId);
+  const returnDate = new Date();
+  const loan = await handleCheckLoanExist(loanId);
+  const daysLate = Math.ceil(
+    (returnDate.getTime() - loan.dueDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  let status = "";
+  if (daysLate > policy.maxActiveLoans) {
+    status = "OVERDUE";
+  } else if (daysLate > 30) {
+    status = "LOST";
+  } else {
+    status = "RETURNED";
+  }
+
+  const updateStatusLoan = await prisma.loan.update({
+    where: { id: loanId },
+    data: {
+      status,
+      returnDate,
+    },
+  });
+
+  return updateStatusLoan;
+};
+
+export {
+  handleGetAllLoans,
+  handleCreateLoan,
+  handleRenewalLoans,
+  handleUpdateStatus,
+  handleCheckLoanExist,
+};

@@ -24,6 +24,7 @@ import {
   getBookById,
   postBook,
   putBook,
+  returnBook,
 } from "controllers/book/book.controller";
 import { fixAllPlaceholderBooks } from "controllers/import/fix.controller";
 import {
@@ -46,7 +47,6 @@ import {
   createMemberCard,
   deleteUser,
   getAllUser,
-  paymentUpdateStatusUser,
   postUser,
   putUser,
 } from "controllers/user.controller";
@@ -67,6 +67,7 @@ import {
   renewalLoans,
 } from "controllers/loan.controller";
 import { createReservation } from "controllers/reservation.controller";
+import { paymentUpdateStatusUser } from "controllers/payment.controller";
 
 const router = express.Router();
 const apiRoutes = (app: Express) => {
@@ -98,6 +99,7 @@ const apiRoutes = (app: Express) => {
   router.get("/books/:id", getBookById);
   router.delete("/books/:id", deleteBook);
   router.get("/books/filter", filterBook);
+  router.put("/books/return", returnBook);
 
   //member
   router.post("/users/member", createMemberCard);

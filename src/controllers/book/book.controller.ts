@@ -6,7 +6,9 @@ import {
   handleGetBookById,
   handlePostBook,
   handlePutBook,
+  handleReturnBook,
 } from "services/book/book.services";
+
 import { Book, TBook } from "validation/books.schema";
 import { fromError } from "zod-validation-error";
 
@@ -166,4 +168,27 @@ const filterBook = async (req: Request, res: Response) => {
   }
 };
 
-export { getAllBook, postBook, putBook, deleteBook, filterBook, getBookById };
+const returnBook = async (req: Request, res: Response) => {
+  try {
+    const { loanId, userId } = req.body;
+    const result = await handleReturnBook(+loanId, +userId);
+    res.status(200).json({
+      data: result,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: err.message,
+      data: null,
+    });
+  }
+};
+
+export {
+  getAllBook,
+  postBook,
+  putBook,
+  deleteBook,
+  filterBook,
+  getBookById,
+  returnBook,
+};

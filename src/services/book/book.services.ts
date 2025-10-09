@@ -1,5 +1,12 @@
 import { prisma } from "configs/client";
 import "dotenv/config";
+import { handleCreateFine } from "services/fine.services";
+
+import {
+  handleCheckLoanExist,
+  handleUpdateStatus,
+} from "services/loan.services";
+import { handleCheckMemberCard } from "services/member.services";
 
 const allBook = async () => {
   return await prisma.book.findMany({
@@ -152,7 +159,57 @@ const handleDeleteBook = async (id: number) => {
   if (!deleteBookOnGenres) throw new Error("Failed to delete related genres.");
   return await prisma.book.delete({ where: { id } });
 };
+const handleReturnBook = async (loanId: number, userId: number) => {
+  const loan = await handleCheckLoanExist(loanId);
+  return prisma.$transaction(async (tx) => {
+    const updateStatusLoan = await handleUpdateStatus(loanId, userId);
+    const isFined =
+      updateStatusLoan?.status === "LOST" ||
+      updateStatusLoan?.status === "OVERDUE";
+    if (isFined) {
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          status: isFined ? "INACTIVE" : "SUSPENDED",
+        },
+      });
+      await handleCreateFine(updateStatusLoan.id);
+    }
 
+    const book = await tx.book.update({
+      where: {
+        id: loan.bookCopy.books.id,
+        borrowed: {
+          gt: 0,
+        },
+      },
+      data: {
+        borrowed: { decrement: 1 },
+      },
+    });
+    await tx.bookcopy.update({
+      where: { id: loan.bookCopy.id },
+      data: {
+        status: isFined ? "AVAILABLE" : "LOST",
+        heldByUserId: null,
+      },
+    });
+    const returnSuccess = await tx.notification.create({
+      data: {
+        userId: loan.userId,
+        type: !isFined ? "SUCCESS_RETURNED" : "FINE_CREATED",
+        content: !isFined
+          ? "You have successfully returned the book."
+          : `You have been fined with the "${loan.bookCopy.books.title}" for ${updateStatusLoan.status} `,
+        sentAt: new Date(),
+      },
+    });
+    return {
+      book,
+      returnSuccess,
+    };
+  });
+};
 export {
   handleGetAllBooks,
   handlePostBook,
@@ -160,4 +217,5 @@ export {
   handleDeleteBook,
   allBook,
   handleGetBookById,
+  handleReturnBook,
 };

@@ -9,10 +9,7 @@ import {
 import "dotenv/config";
 import { TUser, User } from "validation/user.schema";
 import { fromError } from "zod-validation-error";
-import {
-  handleCreateMemberCard,
-  handlePaymentUpdateStatus,
-} from "services/member.services";
+import { handleCreateMemberCard } from "services/member.services";
 const getAllUser = async (req: Request, res: Response) => {
   try {
     const { page } = req.query;
@@ -120,26 +117,5 @@ const createMemberCard = async (req: Request, res: Response) => {
     });
   }
 };
-const paymentUpdateStatusUser = async (req: Request, res: Response) => {
-  try {
-    const { paymentStatus, paymentRef } = req.body;
-    const result = await handlePaymentUpdateStatus(paymentStatus, paymentRef);
-    res.status(200).json({
-      data: result,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: err.message,
-      data: null,
-    });
-  }
-};
 
-export {
-  getAllUser,
-  deleteUser,
-  postUser,
-  putUser,
-  createMemberCard,
-  paymentUpdateStatusUser,
-};
+export { getAllUser, deleteUser, postUser, putUser, createMemberCard };
