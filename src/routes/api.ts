@@ -67,7 +67,11 @@ import {
   renewalLoans,
 } from "controllers/loan.controller";
 import { createReservation } from "controllers/reservation.controller";
-import { paymentUpdateStatusUser } from "controllers/payment.controller";
+import {
+  createPaymentFine,
+  paymentUpdateStatusForFine,
+  paymentUpdateStatusUser,
+} from "controllers/payment.controller";
 
 const router = express.Router();
 const apiRoutes = (app: Express) => {
@@ -104,6 +108,8 @@ const apiRoutes = (app: Express) => {
   //member
   router.post("/users/member", createMemberCard);
   router.post("/users/member/update-status", paymentUpdateStatusUser);
+  router.post("/users/fine", createPaymentFine);
+  router.post("/users/fine/update-status", paymentUpdateStatusForFine);
 
   router.get("/loans", getAllLoans);
   router.post("/loans/create", createLoans);

@@ -1,6 +1,6 @@
 import { prisma } from "configs/client";
 import { v4 as uuidv4 } from "uuid";
-import { handleCheckFineExist } from "./fine.services";
+
 const handlePaymentUpdateStatus = async (
   paymentStatus: string,
   paymentRef: string
@@ -55,7 +55,21 @@ const handleCreatePaymentForFine = async (
   fineId: number,
   paymentRef: string
 ) => {
-  const fine = await handleCheckFineExist(fineId);
+  const fine = await prisma.fine.findUnique({
+    where: { id: fineId },
+    include: {
+      user: true,
+      loan: {
+        include: {
+          bookCopy: {
+            include: { books: { select: { title: true, id: true } } },
+          },
+        },
+      },
+    },
+  });
+  if (!fine) throw new Error("Fined not found");
+
   const payment = await prisma.payment.create({
     data: {
       userId: fine.userId,
@@ -74,21 +88,46 @@ const handlePayFine = async (
   paymentStatus: string
 ) => {
   return prisma.$transaction(async (tx) => {
-    const { payment, fine } = await handleCreatePaymentForFine(
-      fineId,
-      paymentRef
-    );
-
+    const fine = await tx.payment.findFirst({
+      where: { paymentRef },
+      include: {
+        user: { select: { id: true, status: true } },
+      },
+    });
     if (paymentStatus === "PAYMENT_FAILED") {
-      return await tx.notification.create({
+      return await prisma.notification.create({
         data: {
-          userId: payment.userId,
-          type: "MEMBERSHIP_INACTIVE",
+          userId: fine.userId,
+          type: "FINED_FAILED",
           content: `Fined created fail`,
           sentAt: new Date(),
         },
       });
     }
+    const updatePayment = await tx.payment.update({
+      where: { fineId: fine.id },
+      data: {
+        status: paymentStatus,
+        paymentDate: new Date(),
+      },
+    });
+    const updateUserStatus = await tx.user.update({
+      where: { id: fine.userId },
+      data: {
+        status: "ACTIVE",
+      },
+    });
+    const notification = await tx.notification.create({
+      data: {
+        userId: fine.userId,
+        type: "PAYMENT_RECEIVED",
+        content: `Payment success ${fine.amount.toLocaleString(
+          "vi-VN"
+        )} VND for the"${fine.type}"`,
+        sentAt: new Date(),
+      },
+    });
+    return updatePayment;
   });
 };
 

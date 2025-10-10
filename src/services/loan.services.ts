@@ -181,7 +181,7 @@ const handleUpdateStatus = async (loanId: number, userId: number) => {
     (returnDate.getTime() - loan.dueDate.getTime()) / (1000 * 60 * 60 * 24)
   );
   let status = "";
-  if (daysLate > policy.maxActiveLoans) {
+  if (daysLate < policy.maxActiveLoans) {
     status = "OVERDUE";
   } else if (daysLate > 30) {
     status = "LOST";

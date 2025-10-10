@@ -1,13 +1,29 @@
 import { Request, Response } from "express";
 import {
+  handleCreatePaymentForFine,
   handlePayFine,
   handlePaymentUpdateStatus,
 } from "services/payment.services";
 
-const paymentFine = async (req: Request, res: Response) => {
+const createPaymentFine = async (req: Request, res: Response) => {
   try {
-    const { paymentRef, userId, fineId } = req.body;
-    const result = await handlePayFine(+userId, +fineId, paymentRef);
+    const { paymentRef, fineId } = req.body;
+    const result = await handleCreatePaymentForFine(+fineId, paymentRef);
+    res.status(200).json({
+      data: result,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: err.message,
+      data: null,
+    });
+  }
+};
+
+const paymentUpdateStatusForFine = async (req: Request, res: Response) => {
+  try {
+    const { paymentRef, paymentStatus, fineId } = req.body;
+    const result = await handlePayFine(+fineId, paymentRef, paymentStatus);
     res.status(200).json({
       data: result,
     });
@@ -33,4 +49,8 @@ const paymentUpdateStatusUser = async (req: Request, res: Response) => {
   }
 };
 
-export { paymentFine, paymentUpdateStatusUser };
+export {
+  paymentUpdateStatusForFine,
+  paymentUpdateStatusUser,
+  createPaymentFine,
+};

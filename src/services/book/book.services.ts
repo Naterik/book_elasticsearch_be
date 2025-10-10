@@ -1,6 +1,5 @@
 import { prisma } from "configs/client";
 import "dotenv/config";
-import { handleCreateFine } from "services/fine.services";
 
 import {
   handleCheckLoanExist,
@@ -159,54 +158,92 @@ const handleDeleteBook = async (id: number) => {
   if (!deleteBookOnGenres) throw new Error("Failed to delete related genres.");
   return await prisma.book.delete({ where: { id } });
 };
+
 const handleReturnBook = async (loanId: number, userId: number) => {
   const loan = await handleCheckLoanExist(loanId);
-  return prisma.$transaction(async (tx) => {
-    const updateStatusLoan = await handleUpdateStatus(loanId, userId);
-    const isFined =
-      updateStatusLoan?.status === "LOST" ||
-      updateStatusLoan?.status === "OVERDUE";
-    if (isFined) {
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          status: isFined ? "INACTIVE" : "SUSPENDED",
-        },
-      });
-      await handleCreateFine(updateStatusLoan.id);
-    }
 
-    const book = await tx.book.update({
-      where: {
-        id: loan.bookCopy.books.id,
-        borrowed: {
-          gt: 0,
-        },
+  const returnDate = new Date(); //
+  const late = Math.ceil(
+    (returnDate.getTime() - loan.dueDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  const daysLate = Math.max(1, late);
+  console.log("daysLate :>> ", daysLate);
+  let newLoanStatus: "RETURNED" | "OVERDUE" | "LOST";
+  if (daysLate <= 0) {
+    newLoanStatus = "RETURNED";
+  } else if (daysLate > 0 && daysLate <= 30) {
+    newLoanStatus = "OVERDUE";
+  } else {
+    newLoanStatus = "LOST";
+  }
+
+  let fineData = null;
+  if (!(newLoanStatus === "RETURNED")) {
+    let fineAmount = 0;
+    if (newLoanStatus === "LOST") {
+      fineAmount = loan.bookCopy.books.price;
+    } else if (newLoanStatus === "OVERDUE") {
+      fineAmount = Math.max(1, daysLate) * 10000;
+    }
+    fineData = {
+      amount: fineAmount,
+      reason: newLoanStatus,
+      loanId: loan.id,
+      userId: loan.userId,
+    };
+  }
+  const newBookCopyStatus = newLoanStatus === "LOST" ? "LOST" : "AVAILABLE";
+  return prisma.$transaction(async (tx) => {
+    await tx.loan.update({
+      where: { id: loanId },
+      data: {
+        status: newLoanStatus,
+        returnDate: returnDate,
       },
+    });
+    await tx.book.update({
+      where: { id: loan.bookCopy.books.id },
       data: {
         borrowed: { decrement: 1 },
       },
     });
+
     await tx.bookcopy.update({
       where: { id: loan.bookCopy.id },
       data: {
-        status: isFined ? "AVAILABLE" : "LOST",
+        status: newBookCopyStatus,
         heldByUserId: null,
       },
     });
-    const returnSuccess = await tx.notification.create({
+
+    if (fineData) {
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          status: newLoanStatus === "OVERDUE" ? "INACTIVE" : "SUSPENDED",
+        },
+      });
+
+      await tx.fine.create({
+        data: fineData,
+      });
+    }
+    const notificationContent = !fineData
+      ? "You have successfully returned the book."
+      : `You have been fined with the "${loan.bookCopy.books.title}" for ${newLoanStatus} `;
+
+    const notification = await tx.notification.create({
       data: {
         userId: loan.userId,
-        type: !isFined ? "SUCCESS_RETURNED" : "FINE_CREATED",
-        content: !isFined
-          ? "You have successfully returned the book."
-          : `You have been fined with the "${loan.bookCopy.books.title}" for ${updateStatusLoan.status} `,
+        type: !fineData ? "SUCCESS_RETURNED" : "FINE_CREATED",
+        content: notificationContent,
         sentAt: new Date(),
       },
     });
+
     return {
-      book,
-      returnSuccess,
+      message: "Book returned successfully.",
+      notification,
     };
   });
 };
