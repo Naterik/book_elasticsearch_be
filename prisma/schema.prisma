@@ -1,14 +1,174 @@
 generator client {
   provider = "prisma-client-js"
 }
-
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
+model Role {
+  @@map("roles")
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(20)
+  description String   @db.VarChar(255)
+
+  users User[]
+}
+
+model Genre {
+  @@map("genres")
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(255)
+  description String   @db.Text
+
+  books BooksOnGenres[]
+}
+
+model BooksOnGenres {
+  books      Book     @relation(fields: [bookId], references: [id])
+  bookId     Int
+  genres     Genre    @relation(fields: [genreId], references: [id])
+  genreId    Int
+  assignedAt DateTime @default(now())
+
+  @@id([bookId, genreId])
+}
+
+model Author {
+  @@map("authors")
+  id   Int     @id @default(autoincrement())
+  name String  @unique @db.VarChar(255)
+  bio  String? @db.Text
+
+  books Book[]
+}
+
+model Publisher {
+  @@map("publishers")
+  id          Int    @id @default(autoincrement())
+  name        String @unique @db.VarChar(255)
+  description String @db.Text
+
+  books Book[]
+}
+
+model Notification {
+  @@map("notifications")
+  id      Int       @id @default(autoincrement())
+  sentAt  DateTime?
+  type    String    @db.VarChar(255)
+  content String    @db.Text
+  isRead  Boolean   @default(false)
 
 
+  user   User     @relation(fields: [userId], references: [id])
+  userId Int
+}
+
+model User {
+  @@map("users")
+  id              Int       @id @default(autoincrement())
+  username        String    @unique @db.VarChar(255)
+  password        String    @db.VarChar(255)
+  fullName        String?   @db.VarChar(255)
+  address         String?   @db.VarChar(255)
+  phone           String?   @db.VarChar(255)
+  avatar          String?   @db.VarChar(255)
+  type            String    @default("SYSTEM")
+  cardNumber      String?   @unique @db.VarChar(50) 
+  membershipStart DateTime?
+  membershipEnd   DateTime?
+  status          String    @default("ACTIVE") // ACTIVE, PENDING_CARD, INACTIVE, SUSPENDED
+  googleId        String?   @unique @db.VarChar(64)
+
+  roleId          Int
+  role            Role      @relation(fields: [roleId], references: [id])
+
+  loans           Loan[]
+  reservations    Reservation[]
+  notifications   Notification[]
+  fines           Fine[]
+  payments        Payment[]
+}
+
+
+model Bookcopy {
+  @@map("book_copy")
+  id               Int       @id @default(autoincrement())
+  year_published   Int       @db.Year
+  copyNumber       String    @db.VarChar(25)
+  status           String    @db.VarChar(25) @default("AVAILABLE") // AVAILABLE, ON_LOAN, ON_HOLD, LOST
+  location         String    @db.VarChar(255)
+  
+  heldByUserId     Int?
+  holdExpiryDate   DateTime?
+
+  books            Book      @relation(fields: [bookId], references: [id])
+  bookId           Int
+
+  loans            Loan[]
+}
+
+model Loan {
+  @@map("loans")
+  id           Int       @id @default(autoincrement())
+  loanDate     DateTime  @default(now())
+  dueDate      DateTime?
+  returnDate   DateTime? 
+  renewalCount Int       @default(0)
+  status       String    @db.VarChar(255) // ON_LOAN, RETURNED, OVERDUE, LOST
+  bookCopy     Bookcopy  @relation(fields: [bookcopyId], references: [id])
+  bookcopyId   Int
+
+  user         User      @relation(fields: [userId], references: [id])
+  userId       Int
+  
+  fine         Fine? 
+}
+
+model Reservation {
+  @@map("reservations")
+  id          Int       @id @default(autoincrement())
+  requestDate DateTime?
+  status      String    @db.VarChar(255) // PENDING, NOTIFIED, COMPLETED, CANCELLED
+
+  book        Book      @relation(fields: [bookId], references: [id])
+  bookId      Int
+
+  user        User      @relation(fields: [userId], references: [id])
+  userId      Int
+}
+
+model Fine {
+  @@map("fines")
+  id         Int      @id @default(autoincrement())
+  amount     Int
+  reason     String   @db.VarChar(255) // OVERDUE, LOST, DAMAGED
+  isPaid     Boolean  @default(false)
+  
+  loan       Loan     @relation(fields: [loanId], references: [id])
+  loanId     Int      @unique
+
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
+  
+  payment    Payment?
+}
+
+model Payment {
+  @@map("payments")
+  id              Int       @id @default(autoincrement())
+  amount          Int
+  paymentDate     DateTime  @default(now())
+  type            String    @db.VarChar(50) // MEMBERSHIP_FEE, FINE_PAYMENT
+  paymentRef     String?
+  status          String    @default("UNPAID") @db.VarChar(20)
+  user            User      @relation(fields: [userId], references: [id])
+  userId          Int
+
+  fine            Fine?     @relation(fields: [fineId], references: [id])
+  fineId          Int?      @unique
+}
 model Book {
   @@map("books")
   id           Int       @id @default(autoincrement())
@@ -18,10 +178,10 @@ model Book {
   detailDesc   String    @db.MediumText
   price        Int
   quantity     Int       @default(1)
-  publishDate  DateTime?  @db.Date
-  image        String?    @db.MediumText
+  publishDate  DateTime? @db.Date
+  image        String?   @db.MediumText
   language     String?   @db.VarChar(20)
-  pages        Int  
+  pages        Int
   borrowed     Int       @default(0)
 
   authors      Author    @relation(fields: [authorId], references: [id])
@@ -34,128 +194,4 @@ model Book {
   genres       BooksOnGenres[]
   reservations Reservation[]
 }
-model Genre {
-  @@map("genres")
-  id          Int    @id @default(autoincrement())
-  name        String @unique @db.VarChar(255)
-  description String @db.Text
-
-  books BooksOnGenres[]
-}
-
-model BooksOnGenres {
-  books       Book     @relation(fields: [bookId], references: [id])
-  bookId     Int // relation scalar field (used in the `@relation` attribute above)
-  genres   Genre @relation(fields: [genreId], references: [id])
-  genreId Int // relation scalar field (used in the `@relation` attribute above)
-  assignedAt DateTime @default(now())
-
-  @@id([bookId, genreId])
-}
-model Author {
-  @@map("authors")
-  id    Int     @id @default(autoincrement())
-  name  String  @unique @db.VarChar(255)
-  bio   String? @db.Text
-
-  books Book[]
-}
-model Publisher {
-  @@map("publishers")
-  id          Int    @id @default(autoincrement())
-  name        String @unique @db.VarChar(255)
-  description String @db.Text
-
-  books Book[]
-}
-
-model Role {
-  @@map("roles")
-  id          Int    @id @default(autoincrement())
-  name        String @db.VarChar(20)
-  description String @db.VarChar(255)
-
-  users User[]
-}
-
-model User {
-  @@map("users")
-  id              Int      @id  @default(autoincrement())
-  username        String   @unique @db.VarChar(255)
-  password        String   @db.VarChar(255)
-  fullName        String?  @db.VarChar(255)
-  address         String?  @db.VarChar(255)
-  phone           String?  @db.VarChar(255)
-  avatar          String?  @db.VarChar(255)
-  type            String   @default("SYSTEM")
-  cardNumber      Int?
-  membershipStart DateTime?
-  membershipEnd   DateTime?
-  status          String   @default("ACTIVE")
-  googleId        String?  @unique @db.VarChar(64)
-
-  roleId          Int
-  role            Role     @relation(fields: [roleId], references: [id])
-
-  loans           Loan[]
-  reservations    Reservation[]
-  notifications   Notification[]
-}
-model Bookcopy {
-  @@map("book_copy")
-  id             Int    @id @default(autoincrement())
-  year_published Int    @db.Year
-  copyNumber     String   @db.VarChar(25)
-  status         String   @db.VarChar(25) @default("AVAILABLE")
-  location       String   @db.VarChar(255)
-
-  books   Book @relation(fields: [bookId], references: [id])
-  bookId  Int
-
-  loans   Loan[]
-}
-
-model Loan {
-  @@map("loans")
-  id         Int       @id @default(autoincrement())
-  loanDate   DateTime? @default(now())
-  dueDate    DateTime?  
-  returnDate DateTime?
-  status     String    @db.VarChar(255)
-  fineAmount Int?
-
-  bookCopy   Bookcopy @relation(fields: [bookcopyId], references: [id])
-  bookcopyId Int
-
-  user       User     @relation(fields: [userId], references: [id])
-  userId     Int
-}
-
-model Notification {
-  @@map("notifications")
-  id      Int       @id @default(autoincrement())
-  sentAt  DateTime?
-  type    String    @db.VarChar(255)
-  content String    @db.Text
-  isRead  Boolean   @default(false)
-
-
-  user    User      @relation(fields: [userId], references: [id])
-  userId  Int
-}
-
-model Reservation {
-  @@map("reservations")
-  id          Int       @id @default(autoincrement())
-  requestDate DateTime?
-  status      String    @db.VarChar(255)
-  
-
-  book  Book @relation(fields: [bookId], references: [id])
-  bookId Int
-
-  user  User @relation(fields: [userId], references: [id])
-  userId Int
-}
-
 

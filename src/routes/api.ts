@@ -10,27 +10,30 @@ import {
   postAuthor,
   postManyAuthors,
   putAuthor,
-} from "controllers/author.controller";
+} from "controllers/book/author.controller";
 import {
   deleteBookCopy,
   getAllBookCopy,
   postBookCopy,
   putBookCopy,
-} from "controllers/book-copy.controller";
+} from "controllers/book/book-copy.controller";
 import {
   deleteBook,
   filterBook,
   getAllBook,
+  getBookById,
   postBook,
   putBook,
-} from "controllers/book.controller";
+  returnBook,
+} from "controllers/book/book.controller";
 import { fixAllPlaceholderBooks } from "controllers/import/fix.controller";
 import {
   deleteGenre,
   getAllGenre,
+  getAllGenreDisplay,
   postGenre,
   putGenre,
-} from "controllers/genre.controller";
+} from "controllers/book/genre.controller";
 import { createAuthorFromOpenLibrary } from "controllers/import/import.authors.controller";
 import { createBooksFromOpenLibrary } from "controllers/import/import.controller";
 
@@ -39,8 +42,9 @@ import {
   getAllPublisher,
   postPublisher,
   putPublisher,
-} from "controllers/publisher.controller";
+} from "controllers/book/publisher.controller";
 import {
+  createMemberCard,
   deleteUser,
   getAllUser,
   postUser,
@@ -57,6 +61,17 @@ import {
 } from "controllers/elastic/index.elastic";
 import { countLanguage } from "controllers/elastic/aggregation.elastic";
 import { filterElastic } from "controllers/elastic/filter.elastic";
+import {
+  createLoans,
+  getAllLoans,
+  renewalLoans,
+} from "controllers/loan.controller";
+import { createReservation } from "controllers/reservation.controller";
+import {
+  createPaymentFine,
+  paymentUpdateStatusForFine,
+  paymentUpdateStatusUser,
+} from "controllers/payment.controller";
 
 const router = express.Router();
 const apiRoutes = (app: Express) => {
@@ -77,6 +92,7 @@ const apiRoutes = (app: Express) => {
   router.delete("/publishers/:id", deletePublisher);
 
   router.get("/genres", getAllGenre);
+  router.get("/genres/display", getAllGenreDisplay);
   router.post("/genres", postGenre);
   router.put("/genres", putGenre);
   router.delete("/genres/:id", deleteGenre);
@@ -84,8 +100,22 @@ const apiRoutes = (app: Express) => {
   router.get("/books", getAllBook);
   router.post("/books", fileUploadMiddleware("image", "books"), postBook);
   router.put("/books", fileUploadMiddleware("image", "books"), putBook);
+  router.get("/books/:id", getBookById);
   router.delete("/books/:id", deleteBook);
   router.get("/books/filter", filterBook);
+  router.put("/books/return", returnBook);
+
+  //member
+  router.post("/users/member", createMemberCard);
+  router.post("/users/member/update-status", paymentUpdateStatusUser);
+  router.post("/users/fine", createPaymentFine);
+  router.post("/users/fine/update-status", paymentUpdateStatusForFine);
+
+  router.get("/loans", getAllLoans);
+  router.post("/loans/create", createLoans);
+  router.put("/loans/renewal", renewalLoans);
+
+  router.post("/reservations/create", createReservation);
 
   //elastic
   router.get("/index/elastic", createIndex);

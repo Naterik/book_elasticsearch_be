@@ -1,15 +1,15 @@
 import { client } from "configs/elastic";
 import { Request, Response } from "express";
+
 const index = process.env.INDEX_N_GRAM!;
 const filterElastic = async (req: Request, res: Response) => {
   try {
     const {
       publisherId,
       search,
-      minPrice,
-      maxPrice,
+      priceRange,
       genres,
-      year,
+      yearRange,
       language,
       page,
       order,
@@ -30,49 +30,26 @@ const filterElastic = async (req: Request, res: Response) => {
       ];
     }
 
-    if (minPrice) {
+    if (priceRange) {
       filter = [
         {
           range: {
             price: {
-              gte: minPrice,
+              gte: +priceRange[0],
+              lte: +priceRange[1],
             },
           },
         },
       ];
     }
-    if (maxPrice) {
-      filter = [
-        {
-          range: {
-            price: {
-              lte: maxPrice,
-            },
-          },
-        },
-      ];
-    }
-
-    if (minPrice && maxPrice) {
-      filter = [
-        {
-          range: {
-            price: {
-              gte: minPrice,
-              lte: maxPrice,
-            },
-          },
-        },
-      ];
-    }
-    if (year) {
+    if (yearRange) {
       filter = [
         ...filter,
         {
           range: {
             publishDate: {
-              gte: `${year}-01-01`,
-              lte: `${year}-12-31`,
+              gte: `${+yearRange[0]}-01-01`,
+              lte: `${+yearRange[1]}-12-31`,
               format: "yyyy-MM-dd",
             },
           },
@@ -98,14 +75,14 @@ const filterElastic = async (req: Request, res: Response) => {
       ];
     }
     if (genres) {
-      const genreIds: any = (genres as string).split(",");
+      const genreNames: any = (genres as string).split(",");
       filter = [
         ...filter,
         {
           terms_set: {
-            "genres.genres.id": {
-              terms: genreIds.map((h) => +h),
-              minimum_should_match_script: { source: `${genreIds.length}` },
+            "genres.genres.name.keyword": {
+              terms: genreNames,
+              minimum_should_match_script: { source: `${genreNames.length}` },
             },
           },
         },
@@ -113,7 +90,15 @@ const filterElastic = async (req: Request, res: Response) => {
     }
 
     if (order) {
-      sort = [{ publishDate: { order: "desc" } }];
+      if (order === "newest") {
+        sort = [{ publishDate: { order: "desc" } }];
+      }
+      if (order === "oldest") {
+        sort = [{ publishDate: { order: "asc" } }];
+      }
+      if (order === "title") {
+        sort = [{ "title.keyword": { order: "asc" } }];
+      }
     }
 
     const query = {
@@ -125,7 +110,7 @@ const filterElastic = async (req: Request, res: Response) => {
     const pageSize = +process.env.ITEM_PER_PAGE;
     let currentPage = +page ? +page : 1;
     const skip = (currentPage - 1) * pageSize;
-    const result: any = await client.search({
+    const results: any = await client.search({
       index,
       size: pageSize,
       from: skip,
@@ -134,31 +119,33 @@ const filterElastic = async (req: Request, res: Response) => {
       track_total_hits: true,
       filter_path: ["hits.hits._source", "hits.hits._score", "hits.total"],
     });
-    const total: number = result.hits.total.value;
+    const total: number = results.hits.total.value;
     if (total === 0) {
       throw new Error("No search results found !");
     }
 
-    const totalPage = Math.ceil(total / pageSize);
-    const data = result.hits.hits.map((data) => {
+    const totalPages = Math.ceil(total / pageSize);
+    const result = results.hits.hits.map((data) => {
       return {
         score: data._score,
         ...data._source,
       };
     });
     res.status(200).json({
-      result: data,
-      pagination: {
-        currentPage,
-        totalPage,
-        pageSize,
-        totalItems: total,
+      data: {
+        result,
+        pagination: {
+          currentPage,
+          totalPages,
+          pageSize,
+          totalItems: total,
+        },
       },
     });
   } catch (e) {
     res.status(400).json({
       message: e.message,
-      data: [],
+      data: null,
     });
   }
 };

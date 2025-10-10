@@ -3,11 +3,21 @@ import { fromError } from "zod-validation-error";
 import {
   handleDeleteGenre,
   handleGetAllGenre,
+  handleGetAllGenreDisplay,
   handlePostGenre,
   handlePutGenre,
   handleTotalPagesGenre,
-} from "services/genre.services";
+} from "services/book/genre.services";
 import { Genre, TGenre } from "validation/genre.schema";
+
+const getAllGenreDisplay = async (req: Request, res: Response) => {
+  try {
+    const data = await handleGetAllGenreDisplay();
+    res.status(200).json({ data });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message, data: null });
+  }
+};
 
 const getAllGenre = async (req: Request, res: Response) => {
   try {
@@ -56,4 +66,4 @@ const deleteGenre = async (req: Request, res: Response) => {
   }
 };
 
-export { getAllGenre, postGenre, putGenre, deleteGenre };
+export { getAllGenre, postGenre, putGenre, deleteGenre, getAllGenreDisplay };

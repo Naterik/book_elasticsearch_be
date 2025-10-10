@@ -1,7 +1,7 @@
 // src/controllers/book.import.controller.ts
 import { Request, Response } from "express";
 import { prisma } from "configs/client";
-import { handlePostBook } from "services/book.services";
+import { handlePostBook } from "services/book/book.services";
 
 // ====== Cấu hình: quan hệ fix cứng để test (GIỮ NGUYÊN RANDOM) ======
 function randInt(min: number, max: number) {

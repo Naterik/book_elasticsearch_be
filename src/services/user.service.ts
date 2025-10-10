@@ -82,6 +82,7 @@ const handleCheckUsername = async (username: string) => {
     throw new Error("Username already exist !");
   }
 };
+
 export {
   handleGetAllUser,
   handleDeleteUser,

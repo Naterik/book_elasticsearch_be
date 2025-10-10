@@ -2,11 +2,12 @@ import { prisma } from "configs/client";
 import { title } from "node:process";
 const handleFilterBook = async (
   page: number,
-  minPrice: number,
-  maxPrice: number,
+  priceRange: string[],
   search: string,
   genres: string,
-  order: string
+  order: string,
+  yearRange: string[],
+  language: string
 ) => {
   let whereClause = {};
   let orderClause = {};
@@ -21,20 +22,15 @@ const handleFilterBook = async (
       orderClause = { title: "asc" };
     }
   }
-  if (minPrice || maxPrice) {
-    if (minPrice) {
-      whereClause = { price: { gte: minPrice } };
-    }
-    if (maxPrice) {
-      whereClause = {
-        price: { lte: maxPrice },
-      };
-    }
-    if (minPrice && maxPrice) {
-      whereClause = {
-        price: { gte: minPrice, lte: maxPrice },
-      };
-    }
+  if (priceRange) {
+    const number = priceRange?.map((p) => +p);
+    whereClause = {
+      ...whereClause,
+      price: {
+        gte: number[0],
+        lte: number[1],
+      },
+    };
   }
   if (search) {
     whereClause = {
@@ -47,8 +43,18 @@ const handleFilterBook = async (
     };
   }
 
+  if (language) {
+    whereClause = {
+      ...whereClause,
+      language: {
+        contains: language,
+      },
+    };
+  }
+
   if (genres) {
     const genreNames = genres.split(",");
+
     whereClause = {
       ...whereClause,
       genres: {
@@ -60,6 +66,15 @@ const handleFilterBook = async (
       },
     };
   }
+  if (yearRange) {
+    whereClause = {
+      ...whereClause,
+      publishDate: {
+        gte: new Date(`${+yearRange[0]}-01-01`),
+        lte: new Date(`${+yearRange[1]}-12-31`),
+      },
+    };
+  }
   const pageSize = +process.env.ITEM_PER_PAGE;
   const skip = (page - 1) * pageSize;
   const [result, count] = await prisma.$transaction([
@@ -68,6 +83,11 @@ const handleFilterBook = async (
       skip,
       where: whereClause,
       orderBy: orderClause,
+      include: {
+        authors: { select: { name: true } },
+        genres: { select: { genres: { select: { id: true, name: true } } } },
+        publishers: { select: { name: true } },
+      },
     }),
     prisma.book.count({ where: whereClause }),
   ]);
