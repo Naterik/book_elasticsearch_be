@@ -1,7 +1,7 @@
 import express from "express";
 const app = express();
 import "dotenv/config";
-import apiRoutes from "routes/api";
+import apiRoutes from "routes/api.routes";
 import initData from "configs/seed";
 import { loginWithGoogle } from "configs/google";
 import cors from "cors";

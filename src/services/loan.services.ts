@@ -122,11 +122,12 @@ const handleRenewalLoans = async (loanId: number, userId: number) => {
     throw new Error("User doesn't have permission to renewal !");
   return prisma.$transaction(async (tx) => {
     const checkLoan = await tx.loan.findFirst({
-      where: { id: loanId },
+      where: { id: loanId, status: "ON_LOAN" },
       include: {
         bookCopy: { include: { books: { select: { title: true } } } },
       },
     });
+    if (!checkLoan) throw new Error("User doesn't have any loan book");
     const pendingReservations = await tx.reservation.count({
       where: {
         bookId: checkLoan.bookCopy.bookId,
@@ -143,7 +144,7 @@ const handleRenewalLoans = async (loanId: number, userId: number) => {
     let newDueDate = checkLoan.dueDate;
     newDueDate.setDate(newDueDate.getDate() + 7);
 
-    const renewal = await tx.loan.update({
+    const result = await tx.loan.update({
       where: { id: loanId },
       data: {
         dueDate: newDueDate,
@@ -160,7 +161,7 @@ const handleRenewalLoans = async (loanId: number, userId: number) => {
         sentAt: new Date(),
       },
     });
-    return { renewal, notification };
+    return result;
   });
 };
 
@@ -189,7 +190,7 @@ const handleUpdateStatus = async (loanId: number, userId: number) => {
     status = "RETURNED";
   }
 
-  const updateStatusLoan = await prisma.loan.update({
+  const result = await prisma.loan.update({
     where: { id: loanId },
     data: {
       status,
@@ -197,7 +198,54 @@ const handleUpdateStatus = async (loanId: number, userId: number) => {
     },
   });
 
-  return updateStatusLoan;
+  return result;
+};
+
+const handleGetLoanById = async (id: number) => {
+  const result = await prisma.loan.findMany({
+    where: { userId: id, status: "ON_LOAN" },
+    include: {
+      bookCopy: {
+        include: {
+          books: {
+            omit: { shortDesc: true, detailDesc: true },
+            include: { authors: { select: { name: true } } },
+          },
+        },
+      },
+      user: {
+        omit: {
+          password: true,
+          googleId: true,
+          type: true,
+        },
+      },
+    },
+  });
+  return result;
+};
+const handleGetLoanReturnById = async (id: number) => {
+  const result = await prisma.loan.findMany({
+    where: { userId: id, status: "RETURNED" },
+    include: {
+      bookCopy: {
+        include: {
+          books: {
+            omit: { shortDesc: true, detailDesc: true },
+            include: { authors: { select: { name: true } } },
+          },
+        },
+      },
+      user: {
+        omit: {
+          password: true,
+          googleId: true,
+          type: true,
+        },
+      },
+    },
+  });
+  return result;
 };
 
 export {
@@ -206,4 +254,6 @@ export {
   handleRenewalLoans,
   handleUpdateStatus,
   handleCheckLoanExist,
+  handleGetLoanById,
+  handleGetLoanReturnById,
 };
