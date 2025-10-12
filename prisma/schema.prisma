@@ -55,7 +55,7 @@ model Publisher {
 model Notification {
   @@map("notifications")
   id      Int       @id @default(autoincrement())
-  sentAt  DateTime?
+  sentAt  DateTime  @default(now())
   type    String    @db.VarChar(255)
   content String    @db.Text
   isRead  Boolean   @default(false)

@@ -92,12 +92,33 @@ const handleGetReservationById = async (id: number) => {
   });
   return reservation;
 };
+const handleGetReservationByUserId = async (id: number) => {
+  const reservation = await prisma.reservation.findMany({
+    where: { userId: id },
+    include: {
+      book: {
+        omit: { shortDesc: true, detailDesc: true },
+        include: { authors: { select: { name: true } } },
+      },
+    },
+  });
+  return reservation;
+};
 
 const handleUpdateReservationStatus = async (id: number, status: string) => {
   const updatedReservation = await prisma.reservation.update({
     where: { id },
     data: {
       status,
+    },
+  });
+  return updatedReservation;
+};
+const handleCancelReservationStatus = async (id: number) => {
+  const updatedReservation = await prisma.reservation.update({
+    where: { id },
+    data: {
+      status: "CANCELED",
     },
   });
   return updatedReservation;
@@ -116,4 +137,6 @@ export {
   handleCreateReservation,
   handleUpdateReservationStatus,
   handleDeleteReservation,
+  handleGetReservationByUserId,
+  handleCancelReservationStatus,
 };

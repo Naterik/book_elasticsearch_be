@@ -112,7 +112,7 @@ const handleCreateLoan = async (userId: number, bookcopyId: number) => {
       },
     });
 
-    return { loan, notification };
+    return loan;
   });
 };
 

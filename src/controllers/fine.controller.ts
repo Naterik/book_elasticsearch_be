@@ -1,5 +1,3 @@
-// src/controllers/fined.controller.ts
-
 import { Request, Response } from "express";
 import {
   handleDeleteFined,

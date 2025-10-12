@@ -4,17 +4,27 @@ import { bcryptPassword } from "configs/password";
 const pageSize: number = +process.env.ITEM_PER_PAGE;
 const handleGetAllUser = async (page: number) => {
   const skip = (page - 1) * pageSize;
+  const total_items = await prisma.user.count();
+  const totalPages = Math.ceil(total_items / pageSize);
   const result = prisma.user.findMany({
     skip: skip,
     take: pageSize,
   });
-  return result;
+  return {
+    result,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      pageSize,
+      totalItems: total_items,
+    },
+  };
 };
 
-const handleTotalPages = async () => {
-  const total_items = await prisma.user.count();
-  const totalPage = Math.ceil(total_items / pageSize);
-  return totalPage;
+const handleGetUserById = async (id: number) => {
+  return prisma.user.findUnique({
+    where: { id },
+  });
 };
 
 const handlePostUser = async (
@@ -88,6 +98,6 @@ export {
   handleDeleteUser,
   handlePostUser,
   handlePutUser,
-  handleTotalPages,
+  handleGetUserById,
   handleCheckUsername,
 };

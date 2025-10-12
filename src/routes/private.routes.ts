@@ -38,6 +38,7 @@ import {
   createMemberCard,
   deleteUser,
   getAllUser,
+  getUserById,
   postUser,
   putUser,
 } from "controllers/user.controller";
@@ -56,6 +57,8 @@ import {
   deleteReservation,
   getAllReservations,
   getReservationById,
+  getReservationByUserId,
+  putCancelReservationStatus,
   updateReservation,
 } from "controllers/reservation.controller";
 import {
@@ -76,6 +79,7 @@ const privateRouter = express.Router();
 privateRouter.get("/account", fetchAccount);
 
 privateRouter.get("/users", getAllUser);
+privateRouter.get("/users/:id", getUserById);
 privateRouter.post("/users", fileUploadMiddleware("avatar", "users"), postUser);
 privateRouter.put("/users", fileUploadMiddleware("avatar", "users"), putUser);
 privateRouter.delete("/users/:id", deleteUser);
@@ -124,6 +128,8 @@ privateRouter.delete("/fines/:id", deleteFined);
 privateRouter.post("/reservations/create", createReservation);
 privateRouter.get("/reservations", getAllReservations);
 privateRouter.get("/reservations/:id", getReservationById);
+privateRouter.get("/reservations/users/:id", getReservationByUserId);
+privateRouter.put("/reservations/:id", putCancelReservationStatus);
 privateRouter.put("/reservations", updateReservation);
 privateRouter.delete("/reservations/:id", deleteReservation);
 

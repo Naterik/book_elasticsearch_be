@@ -48,7 +48,7 @@ const handlePaymentUpdateStatus = async (
         sentAt: new Date(),
       },
     });
-    return { updateUser, notification };
+    return updateUser;
   });
 };
 const handleCreatePaymentForFine = async (
@@ -82,11 +82,7 @@ const handleCreatePaymentForFine = async (
   });
   return { payment, fine };
 };
-const handlePayFine = async (
-  fineId: number,
-  paymentRef: string,
-  paymentStatus: string
-) => {
+const handlePayFine = async (paymentRef: string, paymentStatus: string) => {
   return prisma.$transaction(async (tx) => {
     const fine = await tx.payment.findFirst({
       where: { paymentRef },
@@ -95,7 +91,7 @@ const handlePayFine = async (
       },
     });
     if (paymentStatus === "PAYMENT_FAILED") {
-      return await prisma.notification.create({
+      await prisma.notification.create({
         data: {
           userId: fine.userId,
           type: "FINED_FAILED",
@@ -103,6 +99,7 @@ const handlePayFine = async (
           sentAt: new Date(),
         },
       });
+      return { message: "PAYMENT_FAILED" };
     }
     const updatePayment = await tx.payment.update({
       where: { fineId: fine.id },
@@ -115,6 +112,12 @@ const handlePayFine = async (
       where: { id: fine.userId },
       data: {
         status: "ACTIVE",
+      },
+    });
+    const updateFine = await tx.fine.update({
+      where: { id: fine.fineId },
+      data: {
+        isPaid: true,
       },
     });
     const notification = await tx.notification.create({

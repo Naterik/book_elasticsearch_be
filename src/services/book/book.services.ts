@@ -163,11 +163,14 @@ const handleReturnBook = async (loanId: number, userId: number) => {
   const loan = await handleCheckLoanExist(loanId);
 
   const returnDate = new Date(); //
-  const late = Math.ceil(
+  const daysLate = Math.ceil(
     (returnDate.getTime() - loan.dueDate.getTime()) / (1000 * 60 * 60 * 24)
   );
-  const daysLate = Math.max(1, late);
-  console.log("daysLate :>> ", daysLate);
+  // const late = Math.ceil(
+  //   (returnDate.getTime() - loan.dueDate.getTime()) / (1000 * 60 * 60 * 24)
+  // );
+  // const daysLate = Math.max(1, late);
+  // console.log("daysLate :>> ", daysLate);
   let newLoanStatus: "RETURNED" | "OVERDUE" | "LOST";
   if (daysLate <= 0) {
     newLoanStatus = "RETURNED";
@@ -201,7 +204,7 @@ const handleReturnBook = async (loanId: number, userId: number) => {
         returnDate: returnDate,
       },
     });
-    await tx.book.update({
+    const result = await tx.book.update({
       where: { id: loan.bookCopy.books.id },
       data: {
         borrowed: { decrement: 1 },
@@ -241,10 +244,7 @@ const handleReturnBook = async (loanId: number, userId: number) => {
       },
     });
 
-    return {
-      message: "Book returned successfully.",
-      notification,
-    };
+    return result;
   });
 };
 export {
