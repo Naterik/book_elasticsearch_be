@@ -2,9 +2,9 @@ import { Request, Response } from "express";
 import {
   handleDeleteUser,
   handleGetAllUser,
+  handleGetUserById,
   handlePostUser,
   handlePutUser,
-  handleTotalPages,
 } from "services/user.service";
 import "dotenv/config";
 import { TUser, User } from "validation/user.schema";
@@ -15,15 +15,28 @@ const getAllUser = async (req: Request, res: Response) => {
     const { page } = req.query;
     let currentPage = page ? page : 1;
     if (+currentPage <= 0) currentPage = 1;
-    const allUser = await handleGetAllUser(+currentPage);
-    const totalPage = await handleTotalPages();
+    const result = await handleGetAllUser(+currentPage);
     res.status(200).json({
-      data: allUser,
-      totalPage,
+      data: result,
     });
   } catch (err) {
     res.status(400).json({
       message: err.message,
+      data: null,
+    });
+  }
+};
+
+const getUserById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await handleGetUserById(+id);
+    res.status(200).json({
+      data: result,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: fromError(err).toString(),
       data: null,
     });
   }
@@ -118,4 +131,11 @@ const createMemberCard = async (req: Request, res: Response) => {
   }
 };
 
-export { getAllUser, deleteUser, postUser, putUser, createMemberCard };
+export {
+  getAllUser,
+  deleteUser,
+  postUser,
+  putUser,
+  createMemberCard,
+  getUserById,
+};

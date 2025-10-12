@@ -4,14 +4,6 @@ import { NextFunction, Request, Response } from "express";
 import { AccessTokenPayload } from "src/types/jwt";
 
 const verifyValidJWT = (req: Request, res: Response, next: NextFunction) => {
-  const path = req.path;
-  const whiteLists = ["/login", "/register", "/auth/google"];
-  const isWhiteList = whiteLists.some((route) => route === path);
-  if (isWhiteList) {
-    next();
-    return;
-  }
-
   try {
     const access_token = req.headers["authorization"]?.split(" ")[1];
     if (!access_token) {

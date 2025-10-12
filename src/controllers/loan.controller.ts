@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import {
   handleCreateLoan,
   handleGetAllLoans,
+  handleGetLoanById,
+  handleGetLoanReturnById,
   handleRenewalLoans,
 } from "services/loan.services";
 
@@ -51,4 +53,39 @@ const renewalLoans = async (req: Request, res: Response) => {
   }
 };
 
-export { createLoans, renewalLoans, getAllLoans };
+const getOnLoanById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await handleGetLoanById(+id);
+    res.status(200).json({
+      data: result,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: err.message,
+      data: null,
+    });
+  }
+};
+const getLoanReturnById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await handleGetLoanReturnById(+id);
+    res.status(200).json({
+      data: result,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: err.message,
+      data: null,
+    });
+  }
+};
+
+export {
+  createLoans,
+  renewalLoans,
+  getAllLoans,
+  getOnLoanById,
+  getLoanReturnById,
+};

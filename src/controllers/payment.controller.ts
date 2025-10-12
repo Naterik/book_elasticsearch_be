@@ -22,8 +22,8 @@ const createPaymentFine = async (req: Request, res: Response) => {
 
 const paymentUpdateStatusForFine = async (req: Request, res: Response) => {
   try {
-    const { paymentRef, paymentStatus, fineId } = req.body;
-    const result = await handlePayFine(+fineId, paymentRef, paymentStatus);
+    const { paymentRef, paymentStatus } = req.body;
+    const result = await handlePayFine(paymentRef, paymentStatus);
     res.status(200).json({
       data: result,
     });
