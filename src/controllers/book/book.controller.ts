@@ -4,6 +4,10 @@ import {
   handleDeleteBook,
   handleGetAllBooks,
   handleGetBookById,
+  handleGetMostBorrowedBooks,
+  handleGetNewArrivals,
+  handleGetRecommendedBooks,
+  handleGetTrendingBooks,
   handlePostBook,
   handlePutBook,
   handleReturnBook,
@@ -183,6 +187,60 @@ const returnBook = async (req: Request, res: Response) => {
   }
 };
 
+const getMostBorrowedBooks = async (req: Request, res: Response) => {
+  try {
+    const result = await handleGetMostBorrowedBooks();
+    res.status(200).json({
+      data: result,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: err.message,
+      data: null,
+    });
+  }
+};
+const getRecommendedBooks = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await handleGetRecommendedBooks(+id);
+    res.status(200).json({
+      data: result,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: err.message,
+      data: null,
+    });
+  }
+};
+const getTrendingBooks = async (req: Request, res: Response) => {
+  try {
+    const result = await handleGetTrendingBooks();
+    res.status(200).json({
+      data: result,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: err.message,
+      data: null,
+    });
+  }
+};
+const getNewArrivals = async (req: Request, res: Response) => {
+  try {
+    const result = await handleGetNewArrivals();
+    res.status(200).json({
+      data: result,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: err.message,
+      data: null,
+    });
+  }
+};
+
 export {
   getAllBook,
   postBook,
@@ -191,4 +249,8 @@ export {
   filterBook,
   getBookById,
   returnBook,
+  getMostBorrowedBooks,
+  getRecommendedBooks,
+  getTrendingBooks,
+  getNewArrivals,
 };

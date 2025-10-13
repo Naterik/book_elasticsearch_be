@@ -3,6 +3,9 @@ import {
   getAllBook,
   getBookById,
   filterBook,
+  getTrendingBooks,
+  getNewArrivals,
+  getMostBorrowedBooks,
 } from "controllers/book/book.controller";
 import { getAllGenreDisplay } from "controllers/book/genre.controller";
 import { filterElastic } from "controllers/elastic/filter.elastic";
@@ -25,8 +28,14 @@ publicRouter.post("/register", registerUser);
 
 publicRouter.get("/books", getAllBook);
 publicRouter.get("/books/filter", filterBook);
+publicRouter.get("/books/trending", getTrendingBooks);
+publicRouter.get("/books/new-arrivals", getNewArrivals);
+publicRouter.get("/books/most-borrowed", getMostBorrowedBooks);
+
 publicRouter.get("/books/:id", getBookById);
+
 publicRouter.get("/genres/display", getAllGenreDisplay);
+
 publicRouter.get("/filter/elastic", filterElastic);
 publicRouter.get("/languages/elastic", countLanguage);
 publicRouter.get("/index/elastic", createIndex);

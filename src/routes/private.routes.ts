@@ -14,6 +14,7 @@ import {
 } from "controllers/book/book-copy.controller";
 import {
   deleteBook,
+  getRecommendedBooks,
   postBook,
   putBook,
   returnBook,
@@ -101,6 +102,7 @@ privateRouter.post("/genres", postGenre);
 privateRouter.put("/genres", putGenre);
 privateRouter.delete("/genres/:id", deleteGenre);
 
+privateRouter.get("/books/recommend/:id", getRecommendedBooks);
 privateRouter.post("/books", fileUploadMiddleware("image", "books"), postBook);
 privateRouter.put("/books", fileUploadMiddleware("image", "books"), putBook);
 privateRouter.delete("/books/:id", deleteBook);

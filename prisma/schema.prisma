@@ -5,7 +5,6 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
-
 model Role {
   @@map("roles")
   id          Int      @id @default(autoincrement())
@@ -14,7 +13,6 @@ model Role {
 
   users User[]
 }
-
 model Genre {
   @@map("genres")
   id          Int      @id @default(autoincrement())
@@ -23,7 +21,6 @@ model Genre {
 
   books BooksOnGenres[]
 }
-
 model BooksOnGenres {
   books      Book     @relation(fields: [bookId], references: [id])
   bookId     Int
@@ -42,7 +39,6 @@ model Author {
 
   books Book[]
 }
-
 model Publisher {
   @@map("publishers")
   id          Int    @id @default(autoincrement())
@@ -51,7 +47,6 @@ model Publisher {
 
   books Book[]
 }
-
 model Notification {
   @@map("notifications")
   id      Int       @id @default(autoincrement())
@@ -60,11 +55,9 @@ model Notification {
   content String    @db.Text
   isRead  Boolean   @default(false)
 
-
   user   User     @relation(fields: [userId], references: [id])
   userId Int
 }
-
 model User {
   @@map("users")
   id              Int       @id @default(autoincrement())
@@ -90,8 +83,6 @@ model User {
   fines           Fine[]
   payments        Payment[]
 }
-
-
 model Bookcopy {
   @@map("book_copy")
   id               Int       @id @default(autoincrement())
@@ -108,7 +99,6 @@ model Bookcopy {
 
   loans            Loan[]
 }
-
 model Loan {
   @@map("loans")
   id           Int       @id @default(autoincrement())
@@ -125,7 +115,6 @@ model Loan {
   
   fine         Fine? 
 }
-
 model Reservation {
   @@map("reservations")
   id          Int       @id @default(autoincrement())
@@ -138,7 +127,6 @@ model Reservation {
   user        User      @relation(fields: [userId], references: [id])
   userId      Int
 }
-
 model Fine {
   @@map("fines")
   id         Int      @id @default(autoincrement())
@@ -154,7 +142,6 @@ model Fine {
   
   payment    Payment?
 }
-
 model Payment {
   @@map("payments")
   id              Int       @id @default(autoincrement())
