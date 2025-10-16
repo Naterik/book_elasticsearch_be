@@ -27,6 +27,7 @@ const verifyValidJWT = (req: Request, res: Response, next: NextFunction) => {
       fullName: decodeData.fullName,
       status: decodeData.status,
       role: decodeData.role,
+      cardNumber: decodeData.cardNumber,
     };
 
     next();

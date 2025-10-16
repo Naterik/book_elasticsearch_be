@@ -67,21 +67,52 @@ const fetchAccount = (req: Request, res: Response) => {
   }
 };
 
-const googleAccessToken = async (req: Request, res: Response) => {
+const logoutUser = (req: Request, res: Response) => {
   try {
-    const { id } = req.user as any;
-    const getToken = await handleCreateJWT(id);
-
-    console.log("getToekn :>> ", getToken);
+    res.clearCookie("access_token");
     res.status(200).json({
-      data: getToken,
+      message: "Logout successful",
+      data: null,
     });
   } catch (err) {
     res.status(400).json({
-      message: fromError(err).toString(),
+      message: err.message,
       data: null,
     });
   }
 };
 
-export { loginUser, registerUser, googleAccessToken, fetchAccount };
+const frontendURL = process.env.FRONTEND_URL || "http://localhost:3000";
+
+const googleAccessToken = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as any;
+    const getToken = await handleCreateJWT(user.id);
+    res.cookie("access_token", getToken, {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+    console.log("✅ Google OAuth Success:", {
+      userId: user.id,
+      email: user.username,
+    });
+    res.redirect(
+      `${frontendURL}/auth/callback?token=${getToken}&user=${encodeURIComponent(
+        JSON.stringify({
+          id: user.id,
+          username: user.username,
+          fullName: user.fullName,
+          email: user.email,
+          avatar: user.avatar,
+          type: user.type,
+        })
+      )}`
+    );
+  } catch (err) {
+    res.redirect(`${frontendURL}/login?error=auth_failed`);
+  }
+};
+
+export { loginUser, registerUser, googleAccessToken, fetchAccount, logoutUser };

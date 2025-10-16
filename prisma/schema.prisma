@@ -71,7 +71,7 @@ model User {
   cardNumber      String?   @unique @db.VarChar(50) 
   membershipStart DateTime?
   membershipEnd   DateTime?
-  status          String    @default("ACTIVE") // ACTIVE, PENDING_CARD, INACTIVE, SUSPENDED
+  status          String    @default("PENDING_CARD") // ACTIVE, PENDING_CARD, INACTIVE, SUSPENDED
   googleId        String?   @unique @db.VarChar(64)
 
   roleId          Int

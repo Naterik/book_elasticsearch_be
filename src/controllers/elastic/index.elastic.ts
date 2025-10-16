@@ -16,6 +16,7 @@ const createIndex = async (req: Request, res: Response) => {
 
 const createIndexWithToken = async (req: Request, res: Response) => {
   const tokenizer = process.env.TOKEN_N_GRAM!;
+  const oldIndex = process.env.INDEX_OLD!;
   const exists = await client.indices.exists({ index });
   if (exists) await client.indices.delete({ index });
   const ngramIndex = await client.indices.create({
@@ -121,11 +122,24 @@ const createIndexWithToken = async (req: Request, res: Response) => {
             keyword: { type: "keyword", ignore_above: 256 },
           },
         },
+        title_suggest: { type: "completion", preserve_separators: true },
+        author_suggest: { type: "completion", preserve_separators: true },
       },
     },
   });
 
   await client.indices.refresh({ index });
+  await client.reindex({
+    refresh: true,
+    body: {
+      source: {
+        index: oldIndex,
+      },
+      dest: {
+        index: index,
+      },
+    },
+  });
   res.status(200).json({
     data: ngramIndex,
   });

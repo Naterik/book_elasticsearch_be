@@ -1,50 +1,42 @@
-import { Strategy as GoogleStrategy, Profile } from "passport-google-oauth20";
 import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { handleLoginWithGoogle } from "services/auth.services";
 
-const clientID = process.env.GOOGLE_CLIENT_ID!;
-const clientSecret = process.env.GOOGLE_CLIENT_SECRET!;
-const callbackURL = process.env.GOOGLE_REDIRECT!;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_REDIRECT = process.env.GOOGLE_REDIRECT;
 
-type PublicUser = {
-  id: number;
-  username: string;
-  fullName: string | null;
-  membershipStart: Date | null;
-  membershipEnd: Date | null;
-  role: {
-    name: string;
-    id: number;
-    description: string;
-  };
-};
+if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT) {
+  console.error("❌ Missing Google OAuth configuration");
+  process.exit(1);
+}
+
 const loginWithGoogle = () => {
   passport.use(
     new GoogleStrategy(
-      { clientID, clientSecret, callbackURL },
-      async (
-        accessToken: string,
-        refreshToken: string,
-        profile: Profile,
-        cb
-      ) => {
+      {
+        clientID: GOOGLE_CLIENT_ID,
+        clientSecret: GOOGLE_CLIENT_SECRET,
+        callbackURL: GOOGLE_REDIRECT, // Phải khớp với Google Console
+        // Thêm options này để rõ ràng hơn
+        scope: ["profile", "email"],
+      },
+      async (accessToken, refreshToken, profile, done) => {
         try {
-          const data = {
-            googleId: profile.id,
-            fullName: profile._json.name ?? "",
-            username: profile._json.email,
-            avatar: profile._json.picture ?? "",
-            type: "GOOGLE",
-          };
-          const user: PublicUser = await handleLoginWithGoogle(data);
+          const email = profile.emails?.[0]?.value;
 
-          return cb(null, user);
-        } catch (err) {
-          return cb(null, err);
+          if (!email) {
+            return done(new Error("No email found from Google"), null);
+          }
+          const user = await handleLoginWithGoogle(email, profile);
+
+          return done(null, user);
+        } catch (error) {
+          return done(error, null);
         }
       }
     )
   );
 };
 
-export { loginWithGoogle };
+export default loginWithGoogle;

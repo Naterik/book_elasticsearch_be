@@ -6,9 +6,10 @@ const handleGetAllUser = async (page: number) => {
   const skip = (page - 1) * pageSize;
   const total_items = await prisma.user.count();
   const totalPages = Math.ceil(total_items / pageSize);
-  const result = prisma.user.findMany({
+  const result = await prisma.user.findMany({
     skip: skip,
     take: pageSize,
+    include: { role: { select: { name: true } } },
   });
   return {
     result,

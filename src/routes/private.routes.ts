@@ -49,6 +49,7 @@ import { postWorksIdOpen } from "controllers/import/import.workid";
 import {
   createLoans,
   getAllLoans,
+  getCheckBookIsLoan,
   getLoanReturnById,
   getOnLoanById,
   renewalLoans,
@@ -84,6 +85,7 @@ privateRouter.get("/users/:id", getUserById);
 privateRouter.post("/users", fileUploadMiddleware("avatar", "users"), postUser);
 privateRouter.put("/users", fileUploadMiddleware("avatar", "users"), putUser);
 privateRouter.delete("/users/:id", deleteUser);
+privateRouter.get("/users/check-loan/:id", getCheckBookIsLoan);
 
 privateRouter.get("/authors", getAllAuthor);
 privateRouter.post("/authors", postAuthor);

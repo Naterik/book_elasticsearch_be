@@ -9,10 +9,14 @@ import {
 } from "controllers/book/book.controller";
 import { getAllGenreDisplay } from "controllers/book/genre.controller";
 import { filterElastic } from "controllers/elastic/filter.elastic";
-import { countLanguage } from "controllers/elastic/aggregation.elastic";
+import {
+  countLanguage,
+  suggestElastic,
+} from "controllers/elastic/aggregation.elastic";
 import {
   googleAccessToken,
   loginUser,
+  logoutUser,
   registerUser,
 } from "controllers/auth.controller";
 import {
@@ -23,6 +27,7 @@ import passport from "passport";
 
 const publicRouter = express.Router();
 
+publicRouter.post("/logout", logoutUser);
 publicRouter.post("/login", loginUser);
 publicRouter.post("/register", registerUser);
 
@@ -40,6 +45,7 @@ publicRouter.get("/filter/elastic", filterElastic);
 publicRouter.get("/languages/elastic", countLanguage);
 publicRouter.get("/index/elastic", createIndex);
 publicRouter.get("/index/elastic/ngram", createIndexWithToken);
+publicRouter.get("/suggest/elastic", suggestElastic);
 publicRouter.get(
   "/auth/google",
   passport.authenticate("google", { scope: ["profile", "email"] })

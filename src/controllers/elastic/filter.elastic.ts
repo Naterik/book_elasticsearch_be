@@ -17,14 +17,13 @@ const filterElastic = async (req: Request, res: Response) => {
     let must = [];
     let filter = [];
     let sort = [];
-    let terms_set = {};
     if (search) {
       must = [
         {
           multi_match: {
             query: search as string | null,
             type: "best_fields",
-            fields: ["authors.name.keyword", "title^2", "detailDesc"],
+            fields: ["authors.name.keyword", "title^2"],
           },
         },
       ];

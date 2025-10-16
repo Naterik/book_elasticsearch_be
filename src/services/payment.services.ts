@@ -35,6 +35,10 @@ const handlePaymentUpdateStatus = async (
         membershipEnd,
         status: "ACTIVE",
       },
+      omit: {
+        password: true,
+        googleId: true,
+      },
     });
     const notification = await tx.notification.create({
       data: {

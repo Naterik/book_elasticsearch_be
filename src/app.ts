@@ -3,10 +3,14 @@ const app = express();
 import "dotenv/config";
 import apiRoutes from "routes/api.routes";
 import initData from "configs/seed";
-import { loginWithGoogle } from "configs/google";
+import "./config/google";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import passport from "passport";
+import loginWithGoogle from "./config/google";
+
 app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

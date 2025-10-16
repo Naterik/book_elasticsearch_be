@@ -195,7 +195,7 @@ const handleReturnBook = async (loanId: number, userId: number) => {
       userId: loan.userId,
     };
   }
-  const newBookCopyStatus = newLoanStatus === "LOST" ? "LOST" : "AVAILABLE";
+  let newBookCopyStatus = newLoanStatus === "LOST" ? "LOST" : "AVAILABLE";
   return prisma.$transaction(async (tx) => {
     await tx.loan.update({
       where: { id: loanId },
@@ -210,6 +210,45 @@ const handleReturnBook = async (loanId: number, userId: number) => {
         borrowed: { decrement: 1 },
       },
     });
+    let heldForUser = null;
+    let holdExpires: Date | null = null;
+
+    if (newLoanStatus !== "LOST") {
+      const nextReservation = await tx.reservation.findFirst({
+        where: {
+          bookId: loan.bookCopy.bookId,
+          status: "PENDING",
+        },
+        orderBy: {
+          requestDate: "asc",
+        },
+      });
+
+      if (nextReservation) {
+        newBookCopyStatus = "ON_HOLD";
+        heldForUser = nextReservation.userId;
+        holdExpires = new Date();
+        holdExpires.setDate(holdExpires.getDate() + 3);
+
+        await tx.reservation.update({
+          where: { id: nextReservation.id },
+          data: { status: "NOTIFIED" },
+        });
+
+        await tx.notification.create({
+          data: {
+            userId: nextReservation.userId,
+            type: "RESERVATION_READY",
+            content: `This book "${
+              loan.bookCopy.books.title
+            }" is now available. Please pick it up before ${holdExpires.toLocaleDateString(
+              "vi-VN"
+            )}.`,
+            sentAt: new Date(),
+          },
+        });
+      }
+    }
 
     await tx.bookcopy.update({
       where: { id: loan.bookCopy.id },

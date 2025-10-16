@@ -26,10 +26,18 @@ const handleGetAllLoans = async (currentPage: number) => {
   };
 };
 
-const handleCreateLoan = async (userId: number, bookcopyId: number) => {
+const handleCreateLoan = async (
+  userId: number,
+  bookId: number,
+  dueDate: string
+) => {
   const { user, policy } = await handleCheckMemberCard(userId);
   const now = new Date();
-  const due = new Date();
+  const due =
+    dueDate === "7"
+      ? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+      : new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+
   due.setDate(due.getDate() + policy.loanDays);
 
   return prisma.$transaction(async (tx) => {
@@ -39,8 +47,8 @@ const handleCreateLoan = async (userId: number, bookcopyId: number) => {
     if (activeLoans > policy.maxActiveLoans)
       throw new Error(`Maximum ${policy.maxActiveLoans} books allowed`);
 
-    const copy = await tx.bookcopy.findUnique({
-      where: { id: bookcopyId },
+    const copy = await tx.bookcopy.findFirst({
+      where: { bookId, status: "AVAILABLE" },
       include: { books: true },
     });
 
@@ -64,11 +72,11 @@ const handleCreateLoan = async (userId: number, bookcopyId: number) => {
       });
       if (updateLoan.count !== 1) throw new Error("Hold expired or copy taken");
     } else if (copy.status === "AVAILABLE") {
-      const ok = await tx.bookcopy.updateMany({
+      const r = await tx.bookcopy.updateMany({
         where: { id: copy.id, status: "AVAILABLE" },
         data: { status: "ON_LOAN" },
       });
-      if (ok.count !== 1) throw new Error("Copy just taken, try again");
+      if (r.count !== 1) throw new Error("Copy just taken, try again");
     } else {
       throw new Error(`Bookcopy is ${copy.status}`);
     }
@@ -84,18 +92,18 @@ const handleCreateLoan = async (userId: number, bookcopyId: number) => {
     });
 
     await tx.book.update({
-      where: { id: copy.bookId },
+      where: { id: bookId },
       data: { borrowed: { increment: 1 } },
     });
 
     if (user.cardNumber) {
       const r = await tx.reservation.findFirst({
-        where: { userId, bookId: copy.bookId, status: "NOTIFIED" },
+        where: { userId, bookId: bookId, status: "PENDING" },
       });
       if (r) {
         await tx.reservation.update({
           where: { id: r.id },
-          data: { status: "COMPLETED" },
+          data: { status: "NOTIFIED" },
         });
       }
     }
@@ -114,6 +122,23 @@ const handleCreateLoan = async (userId: number, bookcopyId: number) => {
 
     return loan;
   });
+};
+
+const handleCheckBookIsLoan = async (userId: number) => {
+  const loan = await prisma.loan.findFirst({
+    where: { userId, status: "ON_LOAN" },
+    include: {
+      bookCopy: {
+        include: {
+          books: {
+            omit: { shortDesc: true, detailDesc: true },
+            include: { authors: { select: { name: true } } },
+          },
+        },
+      },
+    },
+  });
+  return !!loan;
 };
 
 const handleRenewalLoans = async (loanId: number, userId: number) => {
@@ -224,6 +249,7 @@ const handleGetLoanById = async (id: number) => {
   });
   return result;
 };
+
 const handleGetLoanReturnById = async (id: number) => {
   const result = await prisma.loan.findMany({
     where: { userId: id, status: "RETURNED" },
@@ -256,4 +282,5 @@ export {
   handleCheckLoanExist,
   handleGetLoanById,
   handleGetLoanReturnById,
+  handleCheckBookIsLoan,
 };

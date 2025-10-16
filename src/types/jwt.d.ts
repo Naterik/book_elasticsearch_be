@@ -5,4 +5,5 @@ export interface AccessTokenPayload extends JwtPayload {
   avatar: string;
   status: string;
   role: string;
+  cardNumber: string | null;
 }

@@ -25,8 +25,8 @@ const getAllLoans = async (req: Request, res: Response) => {
 };
 const createLoans = async (req: Request, res: Response) => {
   try {
-    const { userId, bookcopyId } = req.body;
-    const result = await handleCreateLoan(+userId, +bookcopyId);
+    const { userId, bookId, dueDate } = req.body;
+    const result = await handleCreateLoan(+userId, +bookId, dueDate);
     res.status(201).json({
       data: result,
     });
@@ -82,10 +82,26 @@ const getLoanReturnById = async (req: Request, res: Response) => {
   }
 };
 
+const getCheckBookIsLoan = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await handleGetLoanById(+id);
+    res.status(200).json({
+      data: result,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: err.message,
+      data: null,
+    });
+  }
+};
+
 export {
   createLoans,
   renewalLoans,
   getAllLoans,
   getOnLoanById,
   getLoanReturnById,
+  getCheckBookIsLoan,
 };

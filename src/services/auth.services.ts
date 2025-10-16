@@ -12,13 +12,23 @@ const handleLoginUser = async (username: string, password: string) => {
       role: true,
     },
   });
+
   if (!user) {
     throw new Error("Invalid username/password!");
   }
+
+  // Check if user is a Google user trying to login with password
+  if (user.type === "GOOGLE") {
+    throw new Error(
+      "This account uses Google login. Please sign in with Google."
+    );
+  }
+
   const isMatchPassword = await comparePassword(password, user.password);
   if (!isMatchPassword) {
     throw new Error("Invalid password!");
   }
+
   const accessToken = await handleCreateJWT(+user.id);
   return {
     access_token: accessToken,
@@ -29,6 +39,7 @@ const handleLoginUser = async (username: string, password: string) => {
       avatar: user.avatar,
       status: user.status,
       role: user.role.name,
+      type: user.type,
     },
   };
 };
@@ -40,9 +51,12 @@ const handleCreateJWT = async (userId: number) => {
       role: true,
     },
   });
+
   if (!user) throw new Error("User not found");
+
   const secret = process.env.JWT_SECRET;
   const expire: any = process.env.JWT_EXPIRE;
+
   const payload: AccessTokenPayload = {
     sub: String(user.id),
     username: user.username,
@@ -50,9 +64,10 @@ const handleCreateJWT = async (userId: number) => {
     avatar: user?.avatar,
     role: user?.role.name,
     status: user?.status,
+    cardNumber: user?.cardNumber,
   };
-  const token = jwt.sign(payload, secret, { expiresIn: expire });
 
+  const token = jwt.sign(payload, secret, { expiresIn: expire });
   return token;
 };
 
@@ -64,35 +79,45 @@ const handleRegisterUser = async (
   await handleCheckUsername(username);
   const hashPassword = await bcryptPassword(password);
   const user = await prisma.user.create({
-    data: { username, fullName, password: hashPassword, roleId: 2 },
+    data: {
+      username,
+      fullName,
+      password: hashPassword,
+      roleId: 2,
+      type: "SYSTEM",
+    },
   });
   return {
     id: user.id,
     email: user.username,
     fullName: user.fullName,
+    type: user.type,
   };
 };
 
-const handleLoginWithGoogle = async (data) => {
-  const { username, fullName, avatar, type, googleId } = data;
+const handleLoginWithGoogle = async (email: string, profile: any) => {
   const user = await prisma.user.upsert({
-    where: {
-      googleId,
+    where: { username: email },
+    update: {
+      fullName: profile.displayName,
+      avatar: profile.photos?.[0]?.value,
+      type: "GOOGLE",
+      googleId: profile.id,
     },
-    update: { username, fullName, avatar, roleId: 2 },
     create: {
-      googleId,
-      username,
-      fullName,
-      avatar,
-      type,
+      googleId: profile.id,
+      username: email,
+      fullName: profile.displayName,
+      avatar: profile.photos?.[0]?.value,
+      type: "GOOGLE",
       password: "",
-      role: { connect: { id: 2 } },
+      roleId: 2,
     },
     include: {
       role: true,
     },
   });
+
   return user;
 };
 

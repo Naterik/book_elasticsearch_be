@@ -12,6 +12,20 @@ const handleCreateMemberCard = async (
     where: { id: userId, status: { in: ["INACTIVE", "SUSPENDED"] } },
   });
   if (checkUser) throw new Error("User doesn't have permission");
+  if (duration === "COD") {
+    return await prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        fullName,
+        phone,
+        address,
+        status: "PENDING_CARD",
+        roleId: 2,
+      },
+    });
+  }
   const [updateUserInfo, payment] = await prisma.$transaction([
     prisma.user.update({
       where: {
