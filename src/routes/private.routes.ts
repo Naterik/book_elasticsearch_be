@@ -48,11 +48,13 @@ import fileUploadMiddleware from "middleware/multer.middleware";
 import { postWorksIdOpen } from "controllers/import/import.workid";
 import {
   createLoans,
+  deleteLoan,
   getAllLoans,
   getCheckBookIsLoan,
   getLoanReturnById,
   getOnLoanById,
   renewalLoans,
+  updateLoan,
 } from "controllers/loan.controller";
 import {
   createReservation,
@@ -65,6 +67,9 @@ import {
 } from "controllers/reservation.controller";
 import {
   createPaymentFine,
+  deletePayment,
+  getAllPayments,
+  getPaymentById,
   paymentUpdateStatusForFine,
   paymentUpdateStatusUser,
 } from "controllers/payment.controller";
@@ -75,6 +80,7 @@ import {
   postFined,
   putFined,
 } from "controllers/fine.controller";
+import { de } from "zod/v4/locales";
 
 const privateRouter = express.Router();
 
@@ -117,25 +123,30 @@ privateRouter.post("/users/fine", createPaymentFine);
 privateRouter.post("/users/fine/update-status", paymentUpdateStatusForFine);
 
 privateRouter.get("/loans", getAllLoans);
-privateRouter.post("/loans/create", createLoans);
+privateRouter.post("/loans", createLoans);
 privateRouter.put("/loans/renewal", renewalLoans);
 privateRouter.get("/loans/:id", getOnLoanById);
 privateRouter.get("/loans/returned/:id", getLoanReturnById);
+privateRouter.put("/loans", updateLoan);
+privateRouter.delete("/loans/:id", deleteLoan);
 
 privateRouter.get("/fines", getAllFined);
 privateRouter.get("/fines/:id", getFinedById);
-
 privateRouter.post("/fines", postFined);
 privateRouter.put("/fines", putFined);
 privateRouter.delete("/fines/:id", deleteFined);
 
-privateRouter.post("/reservations/create", createReservation);
+privateRouter.post("/reservations", createReservation);
 privateRouter.get("/reservations", getAllReservations);
 privateRouter.get("/reservations/:id", getReservationById);
 privateRouter.get("/reservations/users/:id", getReservationByUserId);
 privateRouter.put("/reservations/:id", putCancelReservationStatus);
 privateRouter.put("/reservations", updateReservation);
 privateRouter.delete("/reservations/:id", deleteReservation);
+
+privateRouter.delete("/payments/:id", deletePayment);
+privateRouter.get("/payments", getAllPayments);
+privateRouter.get("/payments/:id", getPaymentById);
 
 privateRouter.get("/book-copies", getAllBookCopy);
 privateRouter.post("/book-copies", postBookCopy);

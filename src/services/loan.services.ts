@@ -274,6 +274,80 @@ const handleGetLoanReturnById = async (id: number) => {
   return result;
 };
 
+const handleUpdateLoan = async (
+  loanId: number,
+  userId: number,
+  dueDate?: Date,
+  status?: string
+) => {
+  const loan = await handleCheckLoanExist(loanId);
+
+  if (loan.userId !== userId) {
+    throw new Error("You don't have permission to update this loan");
+  }
+
+  const updateData: any = {};
+
+  if (dueDate) {
+    updateData.dueDate = new Date(dueDate);
+  }
+
+  if (status && ["ON_LOAN", "RETURNED", "OVERDUE", "LOST"].includes(status)) {
+    updateData.status = status;
+  }
+
+  const result = await prisma.loan.update({
+    where: { id: loanId },
+    data: updateData,
+    include: {
+      bookCopy: {
+        include: {
+          books: {
+            include: { authors: { select: { name: true } } },
+          },
+        },
+      },
+      user: {
+        omit: {
+          password: true,
+          googleId: true,
+          type: true,
+        },
+      },
+    },
+  });
+
+  return result;
+};
+
+const handleDeleteLoan = async (loanId: number, userId: number) => {
+  const loan = await handleCheckLoanExist(loanId);
+
+  if (loan.userId !== userId) {
+    throw new Error("You don't have permission to delete this loan");
+  }
+  if (loan.status === "ON_LOAN") {
+    throw new Error(
+      "Cannot delete an active loan. Please return the book first."
+    );
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const fines = await tx.fine.findMany({
+      where: { loanId: loanId },
+    });
+
+    if (fines.length > 0 && fines.some((f) => f.isPaid === false)) {
+      throw new Error("Cannot delete loan with unpaid fines");
+    }
+    const result = await tx.loan.delete({
+      where: { id: loanId },
+    });
+
+    return result;
+  });
+};
+
 export {
   handleGetAllLoans,
   handleCreateLoan,
@@ -283,4 +357,6 @@ export {
   handleGetLoanById,
   handleGetLoanReturnById,
   handleCheckBookIsLoan,
+  handleUpdateLoan,
+  handleDeleteLoan,
 };

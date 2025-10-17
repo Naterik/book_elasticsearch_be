@@ -1,19 +1,26 @@
 import { prisma } from "configs/client";
 import "dotenv/config";
-const pageSize: number = Number(process.env.ITEM_PER_PAGE || 10);
 
-const handleGetAllAuthor = async (page: number) => {
-  const p = Math.max(1, Number(page || 1));
-  const skip = (p - 1) * pageSize;
-  return prisma.author.findMany({
+const handleGetAllAuthor = async (currentPage: number) => {
+  const pageSize = process.env.ITEM_PER_PAGE || 10;
+  const skip = (currentPage - 1) * +pageSize;
+  const countTotalAuthors = await prisma.author.count();
+  const totalPages = Math.ceil(countTotalAuthors / +pageSize);
+  const result = await prisma.author.findMany({
     skip,
-    take: pageSize,
+    take: +pageSize,
+    orderBy: { id: "desc" },
   });
-};
 
-const handleTotalPagesAuthor = async () => {
-  const total_items = await prisma.author.count();
-  return Math.ceil(total_items / pageSize);
+  return {
+    result,
+    pagination: {
+      currentPage,
+      totalPages,
+      pageSize: +pageSize,
+      totalItems: countTotalAuthors,
+    },
+  };
 };
 
 const handleCheckAuthorName = async (name: string) => {
@@ -69,8 +76,6 @@ const handleCreateManyAuthors = async (
 
 export {
   handleGetAllAuthor,
-  handleTotalPagesAuthor,
-  handleCheckAuthorName,
   handlePostAuthor,
   handlePutAuthor,
   handleDeleteAuthor,

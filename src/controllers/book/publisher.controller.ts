@@ -4,7 +4,6 @@ import {
   handleGetAllPublisher,
   handlePostPublisher,
   handlePutPublisher,
-  handleTotalPagesPublisher,
 } from "services/book/publisher.services";
 import { Publisher, TPublisher } from "validation/publisher.schema";
 import { fromError } from "zod-validation-error";
@@ -12,13 +11,12 @@ import { fromError } from "zod-validation-error";
 const getAllPublisher = async (req: Request, res: Response) => {
   try {
     const { page } = req.query;
-    let currentPage: any = page ? page : 1;
-    if (+currentPage <= 0) currentPage = 1;
+    let currentPage: number = page ? +page : 1;
+    if (currentPage <= 0) currentPage = 1;
 
-    const result = await handleGetAllPublisher(+currentPage);
-    const totalPage = await handleTotalPagesPublisher();
+    const result = await handleGetAllPublisher(currentPage);
 
-    res.status(200).json({ data: result, totalPage });
+    res.status(200).json({ data: result });
   } catch (err: any) {
     res.status(400).json({ message: err.message, data: null });
   }

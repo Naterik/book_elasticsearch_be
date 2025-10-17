@@ -1,24 +1,30 @@
 import { prisma } from "configs/client";
 import "dotenv/config";
-const pageSize: number = Number(process.env.ITEM_PER_PAGE || 10);
 
 const handleGetAllGenreDisplay = () => {
   return prisma.genre.findMany({ select: { name: true, id: true } });
 };
 
-const handleGetAllGenre = async (page: number) => {
-  const p = Math.max(1, Number(page || 1));
-  const skip = (p - 1) * pageSize;
-  return prisma.genre.findMany({
+const handleGetAllGenre = async (currentPage: number) => {
+  const pageSize = process.env.ITEM_PER_PAGE || 10;
+  const skip = (currentPage - 1) * +pageSize;
+  const countTotalGenres = await prisma.genre.count();
+  const totalPages = Math.ceil(countTotalGenres / +pageSize);
+  const result = await prisma.genre.findMany({
     skip,
-    take: pageSize,
+    take: +pageSize,
     orderBy: { id: "desc" },
   });
-};
 
-const handleTotalPagesGenre = async () => {
-  const total_items = await prisma.genre.count();
-  return Math.ceil(total_items / pageSize);
+  return {
+    result,
+    pagination: {
+      currentPage,
+      totalPages,
+      pageSize: +pageSize,
+      totalItems: countTotalGenres,
+    },
+  };
 };
 
 const handleCheckGenreName = async (name: string) => {
@@ -57,7 +63,6 @@ const handleDeleteGenre = async (id: string) => {
 
 export {
   handleGetAllGenre,
-  handleTotalPagesGenre,
   handleCheckGenreName,
   handlePostGenre,
   handlePutGenre,

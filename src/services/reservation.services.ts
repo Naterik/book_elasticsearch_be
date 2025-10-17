@@ -114,6 +114,7 @@ const handleUpdateReservationStatus = async (id: number, status: string) => {
   });
   return updatedReservation;
 };
+//user
 const handleCancelReservationStatus = async (id: number) => {
   const updatedReservation = await prisma.reservation.update({
     where: { id },

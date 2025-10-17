@@ -1,20 +1,26 @@
 import { prisma } from "configs/client";
 import "dotenv/config";
-const pageSize: number = Number(process.env.ITEM_PER_PAGE || 10);
 
-const handleGetAllPublisher = async (page: number) => {
-  const p = Math.max(1, Number(page || 1));
-  const skip = (p - 1) * pageSize;
-  return prisma.publisher.findMany({
+const handleGetAllPublisher = async (currentPage: number) => {
+  const pageSize = process.env.ITEM_PER_PAGE || 10;
+  const skip = (currentPage - 1) * +pageSize;
+  const countTotalPublishers = await prisma.publisher.count();
+  const totalPages = Math.ceil(countTotalPublishers / +pageSize);
+  const result = await prisma.publisher.findMany({
     skip,
-    take: pageSize,
+    take: +pageSize,
     orderBy: { id: "desc" },
   });
-};
 
-const handleTotalPagesPublisher = async () => {
-  const total_items = await prisma.publisher.count();
-  return Math.ceil(total_items / pageSize);
+  return {
+    result,
+    pagination: {
+      currentPage,
+      totalPages,
+      pageSize: +pageSize,
+      totalItems: countTotalPublishers,
+    },
+  };
 };
 
 const handleCheckPublisherName = async (name: string) => {
@@ -62,7 +68,6 @@ const handleDeletePublisher = async (id: string) => {
 
 export {
   handleGetAllPublisher,
-  handleTotalPagesPublisher,
   handleCheckPublisherName,
   handlePostPublisher,
   handlePutPublisher,

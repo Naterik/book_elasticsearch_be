@@ -6,20 +6,18 @@ import {
   handleGetAllAuthor,
   handlePostAuthor,
   handlePutAuthor,
-  handleTotalPagesAuthor,
 } from "services/book/author.service";
 import { Author, TAuthor } from "validation/author.schema";
 
 const getAllAuthor = async (req: Request, res: Response) => {
   try {
     const { page } = req.query;
-    let currentPage: any = page ? page : 1;
-    if (+currentPage <= 0) currentPage = 1;
+    let currentPage: number = page ? +page : 1;
+    if (currentPage <= 0) currentPage = 1;
 
-    const result = await handleGetAllAuthor(+currentPage);
-    const totalPage = await handleTotalPagesAuthor();
+    const result = await handleGetAllAuthor(currentPage);
 
-    res.status(200).json({ data: result, totalPage });
+    res.status(200).json({ data: result });
   } catch (err: any) {
     res.status(400).json({ message: err.message, data: null });
   }
