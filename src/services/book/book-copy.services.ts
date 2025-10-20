@@ -1,5 +1,13 @@
 import { prisma } from "configs/client";
 import "dotenv/config";
+
+const handleAllBookcopy = async () => {
+  const result = await prisma.bookcopy.findMany({
+    orderBy: { id: "desc" },
+    include: { books: !0 },
+  });
+  return result;
+};
 const handleGetAllBookCopy = async (page: number) => {
   const pageSize = +process.env.PAGE_SIZE || 10;
   const skip = (page - 1) * pageSize;
@@ -72,4 +80,5 @@ export {
   handlePostBookCopy,
   handlePutBookCopy,
   handleDeleteBookCopy,
+  handleAllBookcopy,
 };

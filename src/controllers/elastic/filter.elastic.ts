@@ -17,7 +17,9 @@ const filterElastic = async (req: Request, res: Response) => {
     let must = [];
     let filter = [];
     let sort = [];
-    if (search) {
+
+    // Only add search clause if search query is provided
+    if (search && (search as string).trim().length > 0) {
       must = [
         {
           multi_match: {
@@ -102,13 +104,15 @@ const filterElastic = async (req: Request, res: Response) => {
 
     const query = {
       bool: {
-        must,
+        must: must.length > 0 ? must : [{ match_all: {} }],
         ...(filter.length > 0 ? { filter: filter } : {}),
       },
     };
+
     const pageSize = +process.env.ITEM_PER_PAGE;
     let currentPage = +page ? +page : 1;
     const skip = (currentPage - 1) * pageSize;
+
     const results: any = await client.search({
       index,
       size: pageSize,
@@ -118,9 +122,23 @@ const filterElastic = async (req: Request, res: Response) => {
       track_total_hits: true,
       filter_path: ["hits.hits._source", "hits.hits._score", "hits.total"],
     });
+
     const total: number = results.hits.total.value;
+
+    // Return empty result set with pagination if no results, instead of throwing error
     if (total === 0) {
-      throw new Error("No search results found !");
+      return res.status(200).json({
+        data: {
+          result: [],
+          pagination: {
+            currentPage,
+            totalPages: 0,
+            pageSize,
+            totalItems: 0,
+          },
+          message: "No results found for the applied filters",
+        },
+      });
     }
 
     const totalPages = Math.ceil(total / pageSize);
@@ -130,6 +148,7 @@ const filterElastic = async (req: Request, res: Response) => {
         ...data._source,
       };
     });
+
     res.status(200).json({
       data: {
         result,
@@ -149,4 +168,83 @@ const filterElastic = async (req: Request, res: Response) => {
   }
 };
 
-export { filterElastic };
+const findBookCopyLocation = async (req: Request, res: Response) => {
+  try {
+    const indexc = process.env.INDEX_C;
+    const { page, search } = req.query;
+    const pageSize = +process.env.ITEM_PER_PAGE;
+    let currentPage = +page ? +page : 1;
+    const skip = (currentPage - 1) * pageSize;
+
+    // Build query: show all if no search, otherwise search by location
+    let query: any = {};
+    if (search && (search as string).trim().length > 0) {
+      query = {
+        multi_match: {
+          query: search as string,
+          fields: ["location", "books.title", "copyNumber"],
+        },
+      };
+    } else {
+      // Show all book copies if no search query provided
+      query = {
+        match_all: {},
+      };
+    }
+
+    const results: any = await client.search({
+      index: indexc,
+      size: pageSize,
+      from: skip,
+      query,
+      track_total_hits: true,
+      filter_path: ["hits.hits._source", "hits.hits._score", "hits.total"],
+    });
+
+    const total: number = results.hits.total.value;
+
+    // Return empty result set with pagination if no results, instead of throwing error
+    if (total === 0) {
+      return res.status(200).json({
+        data: {
+          result: [],
+          pagination: {
+            currentPage,
+            totalPages: 0,
+            pageSize,
+            totalItems: 0,
+          },
+          message: "No book copies found",
+        },
+      });
+    }
+
+    const totalPages = Math.ceil(total / pageSize);
+
+    const result = results.hits.hits.map((data) => {
+      return {
+        score: data._score,
+        ...data._source,
+      };
+    });
+
+    res.status(200).json({
+      data: {
+        result,
+        pagination: {
+          currentPage,
+          totalPages,
+          pageSize,
+          totalItems: total,
+        },
+      },
+    });
+  } catch (e) {
+    res.status(400).json({
+      message: e.message,
+      data: null,
+    });
+  }
+};
+
+export { filterElastic, findBookCopyLocation };

@@ -1,5 +1,6 @@
 import { client } from "configs/elastic";
 import { Request, Response } from "express";
+import { request } from "node:http";
 const index = process.env.INDEX_N_GRAM;
 const countLanguage = async (request: Request, res: Response) => {
   const data: any = await client.search({
@@ -19,6 +20,29 @@ const countLanguage = async (request: Request, res: Response) => {
     data: data.aggregations.count_languages.buckets,
   });
 };
+
+const countGenres = async (request: Request, res: Response) => {
+  try {
+    const data: any = await client.search({
+      index,
+      size: 0,
+      aggs: {
+        count_genres: {
+          terms: {
+            field: "genres.genres.name.keyword",
+          },
+        },
+      },
+    });
+    res.status(200).json({
+      data: data.aggregations.count_genres.buckets,
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message, data: null });
+  }
+};
+
+
 
 const suggestElastic = async (req: Request, res: Response) => {
   try {
@@ -96,4 +120,4 @@ const suggestElastic = async (req: Request, res: Response) => {
   }
 };
 
-export { countLanguage, suggestElastic };
+export { countLanguage, suggestElastic, countGenres };

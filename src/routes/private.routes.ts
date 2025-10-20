@@ -80,11 +80,13 @@ import {
   postFined,
   putFined,
 } from "controllers/fine.controller";
-import { de } from "zod/v4/locales";
+import { statisticDashboard } from "controllers/dashboard.controller";
+import { findBookCopyLocation } from "controllers/elastic/filter.elastic";
 
 const privateRouter = express.Router();
 
 privateRouter.get("/account", fetchAccount);
+privateRouter.get("/dashboard/stats", statisticDashboard);
 
 privateRouter.get("/users", getAllUser);
 privateRouter.get("/users/:id", getUserById);
@@ -152,6 +154,7 @@ privateRouter.get("/book-copies", getAllBookCopy);
 privateRouter.post("/book-copies", postBookCopy);
 privateRouter.put("/book-copies", putBookCopy);
 privateRouter.delete("/book-copies/:id", deleteBookCopy);
+privateRouter.get("/book-copies/elastic", findBookCopyLocation);
 
 //openLibrary
 privateRouter.post("/authors/openlibrary", createAuthorFromOpenLibrary);

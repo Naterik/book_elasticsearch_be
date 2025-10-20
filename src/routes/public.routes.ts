@@ -9,10 +9,7 @@ import {
 } from "controllers/book/book.controller";
 import { getAllGenreDisplay } from "controllers/book/genre.controller";
 import { filterElastic } from "controllers/elastic/filter.elastic";
-import {
-  countLanguage,
-  suggestElastic,
-} from "controllers/elastic/aggregation.elastic";
+
 import {
   googleAccessToken,
   loginUser,
@@ -24,6 +21,11 @@ import {
   createIndexWithToken,
 } from "controllers/elastic/index.elastic";
 import passport from "passport";
+import {
+  countGenres,
+  countLanguage,
+  suggestElastic,
+} from "controllers/elastic/aggregation.elastic";
 
 const publicRouter = express.Router();
 
@@ -43,6 +45,7 @@ publicRouter.get("/genres/display", getAllGenreDisplay);
 
 publicRouter.get("/filter/elastic", filterElastic);
 publicRouter.get("/languages/elastic", countLanguage);
+publicRouter.get("/genres/elastic", countGenres);
 publicRouter.get("/index/elastic", createIndex);
 publicRouter.get("/index/elastic/ngram", createIndexWithToken);
 publicRouter.get("/suggest/elastic", suggestElastic);
