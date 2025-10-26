@@ -37,9 +37,6 @@ const handleCreateLoan = async (
     dueDate === "7"
       ? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
       : new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
-
-  due.setDate(due.getDate() + policy.loanDays);
-
   return prisma.$transaction(async (tx) => {
     const activeLoans = await tx.loan.count({
       where: { userId, status: { in: ["ON_LOAN", "OVERDUE"] } },

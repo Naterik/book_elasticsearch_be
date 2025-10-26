@@ -4,9 +4,9 @@ import {
   handleGetPaymentById,
   handleCreatePaymentForFine,
   handlePayFine,
-  handlePaymentUpdateStatus,
   handleUpdatePaymentStatus,
   handleDeletePayment,
+  handlePaymentUpdateStatusMember,
 } from "services/payment.services";
 
 const getAllPayments = async (req: Request, res: Response) => {
@@ -39,8 +39,8 @@ const createPaymentFine = async (req: Request, res: Response) => {
 
 const paymentUpdateStatusForFine = async (req: Request, res: Response) => {
   try {
-    const { paymentRef, paymentStatus } = req.body;
-    const result = await handlePayFine(paymentRef, paymentStatus);
+    const { paymentRef, paymentStatus, paymentType } = req.body;
+    const result = await handlePayFine(paymentRef, paymentStatus, paymentType);
     res.status(200).json({
       data: result,
     });
@@ -51,10 +51,17 @@ const paymentUpdateStatusForFine = async (req: Request, res: Response) => {
     });
   }
 };
-const paymentUpdateStatusUser = async (req: Request, res: Response) => {
+const paymentUpdateStatusUserForMember = async (
+  req: Request,
+  res: Response
+) => {
   try {
-    const { paymentStatus, paymentRef } = req.body;
-    const result = await handlePaymentUpdateStatus(paymentStatus, paymentRef);
+    const { paymentStatus, paymentRef, paymentType } = req.body;
+    const result = await handlePaymentUpdateStatusMember(
+      paymentStatus,
+      paymentRef,
+      paymentType
+    );
     res.status(200).json({
       data: result,
     });
@@ -125,7 +132,7 @@ const getPaymentById = async (req: Request, res: Response) => {
 export {
   getAllPayments,
   paymentUpdateStatusForFine,
-  paymentUpdateStatusUser,
+  paymentUpdateStatusUserForMember,
   createPaymentFine,
   updatePaymentStatus,
   deletePayment,

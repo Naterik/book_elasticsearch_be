@@ -5,7 +5,6 @@ import {
   handleCheckLoanExist,
   handleUpdateStatus,
 } from "services/loan.services";
-import { handleCheckMemberCard } from "services/member.services";
 
 const allBook = async () => {
   return await prisma.book.findMany({
@@ -197,7 +196,7 @@ const handleReturnBook = async (loanId: number, userId: number) => {
   }
   let newBookCopyStatus = newLoanStatus === "LOST" ? "LOST" : "AVAILABLE";
   return prisma.$transaction(async (tx) => {
-    await tx.loan.update({
+    const loanUpdate = await tx.loan.update({
       where: { id: loanId },
       data: {
         status: newLoanStatus,
@@ -283,7 +282,7 @@ const handleReturnBook = async (loanId: number, userId: number) => {
       },
     });
 
-    return result;
+    return loanUpdate;
   });
 };
 

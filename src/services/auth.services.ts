@@ -2,7 +2,7 @@ import { bcryptPassword, comparePassword } from "configs/password";
 import jwt from "jsonwebtoken";
 import "dotenv/config";
 import { prisma } from "configs/client";
-import { handleCheckUsername } from "./user.service";
+import { handleCheckUsername } from "./user.services";
 import { AccessTokenPayload } from "src/types/jwt";
 
 const handleLoginUser = async (username: string, password: string) => {

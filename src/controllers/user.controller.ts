@@ -5,7 +5,7 @@ import {
   handleGetUserById,
   handlePostUser,
   handlePutUser,
-} from "services/user.service";
+} from "services/user.services";
 import "dotenv/config";
 import { TUser, User } from "validation/user.schema";
 import { fromError } from "zod-validation-error";

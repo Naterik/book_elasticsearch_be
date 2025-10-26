@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import {
   handleDeleteFined,
   handleGetAllFines,
-  handleGetFinedById,
+  handleGetFinedByUserId,
   handlePostFined,
   handlePutFined,
 } from "services/fine.services";
@@ -22,10 +22,10 @@ const getAllFined = async (req: Request, res: Response) => {
   }
 };
 
-const getFinedById = async (req: Request, res: Response) => {
+const getFinedByUserId = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await handleGetFinedById(+id);
+    const result = await handleGetFinedByUserId(+id);
     res.status(200).json({ data: result });
   } catch (e: any) {
     res.status(404).json({ data: null, message: e.message });
@@ -77,4 +77,4 @@ const deleteFined = async (req: Request, res: Response) => {
   }
 };
 
-export { getAllFined, getFinedById, postFined, putFined, deleteFined };
+export { getAllFined, getFinedByUserId, postFined, putFined, deleteFined };

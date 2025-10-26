@@ -62,15 +62,9 @@ const handleCheckMemberCard = async (userId: number) => {
     user.membershipEnd > new Date() &&
     user.status === "ACTIVE";
   const policy = membershipValid
-    ? { maxActiveLoans: 5, loanDays: 14, requireNoUnpaidFine: true }
-    : { maxActiveLoans: 2, loanDays: 7, requireNoUnpaidFine: false };
-  if (policy.requireNoUnpaidFine) {
-    const unpaid = await prisma.fine.count({
-      where: { userId, isPaid: false },
-    });
-    if (unpaid > 0)
-      throw new Error("Please pay outstanding fines before borrowing");
-  }
+    ? { maxActiveLoans: 5, loanDays: 14 }
+    : { maxActiveLoans: 2, loanDays: 7 };
+
   return { user, policy };
 };
 export { handleCreateMemberCard, handleCheckMemberCard };

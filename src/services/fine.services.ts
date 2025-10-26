@@ -35,9 +35,9 @@ const handleGetAllFines = async (currentPage: number) => {
   };
 };
 
-const handleGetFinedById = async (id: number) => {
+const handleGetFinedByUserId = async (id: number) => {
   const fine = await prisma.fine.findMany({
-    where: { loanId: id },
+    where: { userId: id },
     include: {
       user: {
         omit: {
@@ -46,7 +46,21 @@ const handleGetFinedById = async (id: number) => {
           type: true,
         },
       },
-      loan: true,
+      loan: {
+        include: {
+          bookCopy: {
+            include: {
+              books: {
+                include: {
+                  authors: {
+                    omit: { bio: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
   return fine;
@@ -101,7 +115,7 @@ const handleDeleteFined = async (id: number) => {
 
 export {
   handleGetAllFines,
-  handleGetFinedById,
+  handleGetFinedByUserId,
   handlePostFined,
   handlePutFined,
   handleDeleteFined,
