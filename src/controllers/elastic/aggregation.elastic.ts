@@ -42,8 +42,6 @@ const countGenres = async (request: Request, res: Response) => {
   }
 };
 
-
-
 const suggestElastic = async (req: Request, res: Response) => {
   try {
     const { q, size = 5 } = req.query;

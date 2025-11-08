@@ -83,7 +83,9 @@ import {
 import { statisticDashboard } from "controllers/dashboard.controller";
 import { findBookCopyLocation } from "controllers/elastic/filter.elastic";
 import {
+  cleanupNotifications,
   getNotificationsByUserId,
+  getUnreadNotifications,
   putBulkNotification,
   putSingleNotification,
 } from "controllers/notification.controller";
@@ -155,8 +157,10 @@ privateRouter.put("/reservations", updateReservation);
 privateRouter.delete("/reservations/:id", deleteReservation);
 
 privateRouter.get("/notifications/:userId", getNotificationsByUserId);
+privateRouter.get("/notifications/unread/:userId", getUnreadNotifications);
 privateRouter.put("/notifications/:userId", putSingleNotification);
 privateRouter.put("/notifications/bulk/:userId", putBulkNotification);
+privateRouter.post("/notifications/cleanup", cleanupNotifications);
 
 privateRouter.delete("/payments/:id", deletePayment);
 privateRouter.get("/payments", getAllPayments);

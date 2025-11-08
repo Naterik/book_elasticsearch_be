@@ -11,5 +11,13 @@ declare global {
       role: {};
     }
   }
+  interface INotificationPayload {
+    userId: number;
+    type: "LOAN" | "RESERVATION" | "FINE" | "PAYMENT" | "SYSTEM";
+    title: string;
+    content: string;
+    priority?: "HIGH" | "NORMAL" | "LOW";
+    relatedId?: number;
+  }
 }
 export {};

@@ -49,14 +49,20 @@ model Publisher {
 }
 model Notification {
   @@map("notifications")
-  id      Int       @id @default(autoincrement())
-  sentAt  DateTime  @default(now())
-  type    String    @db.VarChar(255)
-  content String    @db.Text
-  isRead  Boolean   @default(false)
+  id        Int       @id @default(autoincrement())
+  sentAt    DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  type      String    @db.VarChar(255) // LOAN, RESERVATION, FINE, PAYMENT, SYSTEM
+  title     String    @default("Notification") @db.VarChar(255)
+  content   String    @db.Text
+  isRead    Boolean   @default(false)
+  priority  String    @default("NORMAL") @db.VarChar(50) // HIGH, NORMAL, LOW
 
-  user   User     @relation(fields: [userId], references: [id])
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int
+
+  @@index([userId, isRead])
+  @@index([sentAt])
 }
 model User {
   @@map("users")

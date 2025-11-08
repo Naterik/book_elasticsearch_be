@@ -359,7 +359,7 @@ const handleGetTrendingBooks = async () => {
   }, {} as Record<number, number>);
 
   const sortedBookIds = Object.entries(bookIdCounts)
-    .sort(([, a], [, b]) => b - a)
+    .sort(([, a], [, b]) => (b as number) - (a as number))
     .slice(0, limit)
     .map(([bookId]) => parseInt(bookId));
   const trendingBooks = await prisma.book.findMany({
