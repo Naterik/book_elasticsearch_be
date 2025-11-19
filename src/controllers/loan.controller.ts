@@ -7,6 +7,7 @@ import {
   handleRenewalLoans,
   handleUpdateLoan,
   handleDeleteLoan,
+  handleReturnBookApprove,
 } from "services/loan.services";
 
 const getAllLoans = async (req: Request, res: Response) => {
@@ -105,7 +106,6 @@ const updateLoan = async (req: Request, res: Response) => {
     const result = await handleUpdateLoan(+loanId, +userId, dueDate, status);
     res.status(200).json({
       data: result,
-      message: "Loan updated successfully",
     });
   } catch (err) {
     res.status(400).json({
@@ -118,11 +118,24 @@ const updateLoan = async (req: Request, res: Response) => {
 const deleteLoan = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { userId } = req.body;
-    const result = await handleDeleteLoan(+id, +userId);
+    const result = await handleDeleteLoan(+id);
     res.status(200).json({
       data: result,
-      message: "Loan deleted successfully",
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: err.message,
+      data: null,
+    });
+  }
+};
+
+const returnBookApprove = async (req: Request, res: Response) => {
+  try {
+    const { loanId, userId } = req.body;
+    const result = await handleReturnBookApprove(+loanId, +userId);
+    res.status(200).json({
+      data: result,
     });
   } catch (err) {
     res.status(400).json({
@@ -141,4 +154,5 @@ export {
   getCheckBookIsLoan,
   updateLoan,
   deleteLoan,
+  returnBookApprove,
 };

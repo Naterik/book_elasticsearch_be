@@ -17,7 +17,6 @@ import {
   getRecommendedBooks,
   postBook,
   putBook,
-  returnBook,
 } from "controllers/book/book.controller";
 import {
   deleteGenre,
@@ -54,6 +53,7 @@ import {
   getLoanReturnById,
   getOnLoanById,
   renewalLoans,
+  returnBookApprove,
   updateLoan,
 } from "controllers/loan.controller";
 import {
@@ -114,16 +114,15 @@ privateRouter.put("/publishers", putPublisher);
 privateRouter.delete("/publishers/:id", deletePublisher);
 
 privateRouter.get("/genres", getAllGenre);
-privateRouter.get("/genres/display", getAllGenreDisplay);
 privateRouter.post("/genres", postGenre);
 privateRouter.put("/genres", putGenre);
 privateRouter.delete("/genres/:id", deleteGenre);
+privateRouter.get("/genres/display", getAllGenreDisplay);
 
 privateRouter.get("/books/recommend/:id", getRecommendedBooks);
 privateRouter.post("/books", fileUploadMiddleware("image", "books"), postBook);
 privateRouter.put("/books", fileUploadMiddleware("image", "books"), putBook);
 privateRouter.delete("/books/:id", deleteBook);
-privateRouter.put("/books/return", returnBook);
 
 //member
 privateRouter.post("/users/member", createMemberCard);
@@ -141,6 +140,7 @@ privateRouter.get("/loans/:id", getOnLoanById);
 privateRouter.get("/loans/returned/:id", getLoanReturnById);
 privateRouter.put("/loans", updateLoan);
 privateRouter.delete("/loans/:id", deleteLoan);
+privateRouter.put("/loans/return-book", returnBookApprove);
 
 privateRouter.get("/fines", getAllFined);
 privateRouter.get("/fines/:id", getFinedByUserId);

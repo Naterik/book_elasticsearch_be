@@ -18,7 +18,6 @@ const filterElastic = async (req: Request, res: Response) => {
     let filter = [];
     let sort = [];
 
-    // Only add search clause if search query is provided
     if (search && (search as string).trim().length > 0) {
       must = [
         {
@@ -125,7 +124,6 @@ const filterElastic = async (req: Request, res: Response) => {
 
     const total: number = results.hits.total.value;
 
-    // Return empty result set with pagination if no results, instead of throwing error
     if (total === 0) {
       return res.status(200).json({
         data: {

@@ -1,6 +1,5 @@
 import { client } from "configs/elastic";
 import { Request, Response } from "express";
-import { request } from "node:http";
 const index = process.env.INDEX_N_GRAM;
 const countLanguage = async (request: Request, res: Response) => {
   const data: any = await client.search({
@@ -60,7 +59,7 @@ const suggestElastic = async (req: Request, res: Response) => {
             field: "title_suggest",
             size: limit,
             skip_duplicates: true,
-            fuzzy: { fuzziness: "AUTO" },
+            fuzzy: { fuzziness: "AUTO" }, // gợi ý nếu bấm search sai
           },
         },
         author_suggest: {
@@ -81,37 +80,7 @@ const suggestElastic = async (req: Request, res: Response) => {
     const authors = (results.suggest?.author_suggest?.[0]?.options || []).map(
       (o: any) => ({ text: o.text })
     );
-    //  if (!titles.length && !authors.length) {
-    //   const resp: any = await client.search({
-    //     index,
-    //     size: limit * 2,
-    //     _source: ["title", "authors.name"],
-    //     query: {
-    //       bool: {
-    //         should: [
-    //           { match_phrase_prefix: { title: { query: prefix } } },
-    //           { match_phrase_prefix: { "authors.name": { query: prefix } } }
-    //         ]
-    //       }
-    //     }
-    //   });
 
-    //   const seenT = new Set<string>();
-    //   const seenA = new Set<string>();
-    //   for (const h of resp.hits.hits) {
-    //     const s = h._source;
-    //     if (s?.title && !seenT.has(s.title) && titles.length < limit) {
-    //       seenT.add(s.title);
-    //       titles.push({ text: s.title });
-    //     }
-    //     const a = s?.authors?.name;
-    //     if (a && !seenA.has(a) && authors.length < limit) {
-    //       seenA.add(a);
-    //       authors.push({ text: a });
-    //     }
-    //     if (titles.length >= limit && authors.length >= limit) break;
-    //   }
-    // }
     return res.status(200).json({ data: { titles, authors } });
   } catch (e: any) {
     return res.status(400).json({ message: e.message, data: null });
@@ -119,3 +88,34 @@ const suggestElastic = async (req: Request, res: Response) => {
 };
 
 export { countLanguage, suggestElastic, countGenres };
+//  if (!titles.length && !authors.length) {
+//   const resp: any = await client.search({
+//     index,
+//     size: limit * 2,
+//     _source: ["title", "authors.name"],
+//     query: {
+//       bool: {
+//         should: [
+//           { match_phrase_prefix: { title: { query: prefix } } },
+//           { match_phrase_prefix: { "authors.name": { query: prefix } } }
+//         ]
+//       }
+//     }
+//   });
+
+//   const seenT = new Set<string>();
+//   const seenA = new Set<string>();
+//   for (const h of resp.hits.hits) {
+//     const s = h._source;
+//     if (s?.title && !seenT.has(s.title) && titles.length < limit) {
+//       seenT.add(s.title);
+//       titles.push({ text: s.title });
+//     }
+//     const a = s?.authors?.name;
+//     if (a && !seenA.has(a) && authors.length < limit) {
+//       seenA.add(a);
+//       authors.push({ text: a });
+//     }
+//     if (titles.length >= limit && authors.length >= limit) break;
+//   }
+// }

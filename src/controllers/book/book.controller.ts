@@ -10,7 +10,6 @@ import {
   handleGetTrendingBooks,
   handlePostBook,
   handlePutBook,
-  handleReturnBook,
 } from "services/book/book.services";
 
 import { Book, TBook } from "validation/books.schema";
@@ -172,21 +171,6 @@ const filterBook = async (req: Request, res: Response) => {
   }
 };
 
-const returnBook = async (req: Request, res: Response) => {
-  try {
-    const { loanId, userId } = req.body;
-    const result = await handleReturnBook(+loanId, +userId);
-    res.status(200).json({
-      data: result,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: err.message,
-      data: null,
-    });
-  }
-};
-
 const getMostBorrowedBooks = async (req: Request, res: Response) => {
   try {
     const result = await handleGetMostBorrowedBooks();
@@ -248,7 +232,6 @@ export {
   deleteBook,
   filterBook,
   getBookById,
-  returnBook,
   getMostBorrowedBooks,
   getRecommendedBooks,
   getTrendingBooks,

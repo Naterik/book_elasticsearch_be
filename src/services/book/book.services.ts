@@ -1,6 +1,5 @@
 import { prisma } from "configs/client";
 import "dotenv/config";
-
 import {
   handleCheckLoanExist,
   handleUpdateStatus,
@@ -156,134 +155,6 @@ const handleDeleteBook = async (id: number) => {
   });
   if (!deleteBookOnGenres) throw new Error("Failed to delete related genres.");
   return await prisma.book.delete({ where: { id } });
-};
-
-const handleReturnBook = async (loanId: number, userId: number) => {
-  const loan = await handleCheckLoanExist(loanId);
-
-  const returnDate = new Date(); //
-  const daysLate = Math.ceil(
-    (returnDate.getTime() - loan.dueDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  // const late = Math.ceil(
-  //   (returnDate.getTime() - loan.dueDate.getTime()) / (1000 * 60 * 60 * 24)
-  // );
-  // const daysLate = Math.max(1, late);
-  // console.log("daysLate :>> ", daysLate);
-  let newLoanStatus: "RETURNED" | "OVERDUE" | "LOST";
-  if (daysLate <= 0) {
-    newLoanStatus = "RETURNED";
-  } else if (daysLate > 0 && daysLate <= 30) {
-    newLoanStatus = "OVERDUE";
-  } else {
-    newLoanStatus = "LOST";
-  }
-
-  let fineData = null;
-  if (!(newLoanStatus === "RETURNED")) {
-    let fineAmount = 0;
-    if (newLoanStatus === "LOST") {
-      fineAmount = loan.bookCopy.books.price;
-    } else if (newLoanStatus === "OVERDUE") {
-      fineAmount = Math.max(1, daysLate) * 10000;
-    }
-    fineData = {
-      amount: fineAmount,
-      reason: newLoanStatus,
-      loanId: loan.id,
-      userId: loan.userId,
-    };
-  }
-  let newBookCopyStatus = newLoanStatus === "LOST" ? "LOST" : "AVAILABLE";
-  return prisma.$transaction(async (tx) => {
-    const loanUpdate = await tx.loan.update({
-      where: { id: loanId },
-      data: {
-        status: newLoanStatus,
-        returnDate: returnDate,
-      },
-    });
-    const result = await tx.book.update({
-      where: { id: loan.bookCopy.books.id },
-      data: {
-        borrowed: { decrement: 1 },
-      },
-    });
-    let heldForUser = null;
-    let holdExpires: Date | null = null;
-
-    if (newLoanStatus !== "LOST") {
-      const nextReservation = await tx.reservation.findFirst({
-        where: {
-          bookId: loan.bookCopy.bookId,
-          status: "PENDING",
-        },
-        orderBy: {
-          requestDate: "asc",
-        },
-      });
-
-      if (nextReservation) {
-        newBookCopyStatus = "ON_HOLD";
-        heldForUser = nextReservation.userId;
-        holdExpires = new Date();
-        holdExpires.setDate(holdExpires.getDate() + 3);
-
-        await tx.reservation.update({
-          where: { id: nextReservation.id },
-          data: { status: "NOTIFIED" },
-        });
-
-        await tx.notification.create({
-          data: {
-            userId: nextReservation.userId,
-            type: "RESERVATION_READY",
-            content: `This book "${
-              loan.bookCopy.books.title
-            }" is now available. Please pick it up before ${holdExpires.toLocaleDateString(
-              "vi-VN"
-            )}.`,
-            sentAt: new Date(),
-          },
-        });
-      }
-    }
-
-    await tx.bookcopy.update({
-      where: { id: loan.bookCopy.id },
-      data: {
-        status: newBookCopyStatus,
-        heldByUserId: null,
-      },
-    });
-
-    if (fineData) {
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          status: newLoanStatus === "OVERDUE" ? "INACTIVE" : "SUSPENDED",
-        },
-      });
-
-      await tx.fine.create({
-        data: fineData,
-      });
-    }
-    const notificationContent = !fineData
-      ? "You have successfully returned the book."
-      : `You have been fined with the "${loan.bookCopy.books.title}" for ${newLoanStatus} `;
-
-    const notification = await tx.notification.create({
-      data: {
-        userId: loan.userId,
-        type: !fineData ? "SUCCESS_RETURNED" : "FINE_CREATED",
-        content: notificationContent,
-        sentAt: new Date(),
-      },
-    });
-
-    return loanUpdate;
-  });
 };
 
 const limitPerSection: number = +process.env.ITEM_PER_SECTION
@@ -477,7 +348,6 @@ export {
   handleDeleteBook,
   allBook,
   handleGetBookById,
-  handleReturnBook,
   handleGetMostBorrowedBooks,
   handleGetNewArrivals,
   handleGetRecommendedBooks,
