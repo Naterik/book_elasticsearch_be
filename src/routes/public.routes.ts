@@ -17,8 +17,8 @@ import {
   registerUser,
 } from "controllers/auth.controller";
 import {
-  createIndex,
-  createIndexWithToken,
+  createBookCopiesIndex,
+  createBooksIndex,
 } from "controllers/elastic/index.elastic";
 import passport from "passport";
 import {
@@ -46,8 +46,8 @@ publicRouter.get("/genres/display", getAllGenreDisplay);
 publicRouter.get("/filter/elastic", filterElastic);
 publicRouter.get("/languages/elastic", countLanguage);
 publicRouter.get("/genres/elastic", countGenres);
-publicRouter.get("/index/elastic", createIndex);
-publicRouter.get("/index/elastic/ngram", createIndexWithToken);
+publicRouter.get("/index/elastic/book-copies", createBookCopiesIndex);
+publicRouter.get("/index/elastic/books", createBooksIndex);
 publicRouter.get("/suggest/elastic", suggestElastic);
 publicRouter.get(
   "/auth/google",

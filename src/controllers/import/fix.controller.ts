@@ -36,8 +36,8 @@ export const fixAllPlaceholderBooks = async (req: Request, res: Response) => {
       where: {
         OR: [
           { price: 0 },
-          { detailDesc: { contains: "N/A" } },
-          { shortDesc: { contains: "N/A" } },
+          { detailDesc: { contains: "No description available" } },
+          { shortDesc: { contains: "No description available" } },
         ],
       },
       select: { id: true, price: true, detailDesc: true, shortDesc: true },

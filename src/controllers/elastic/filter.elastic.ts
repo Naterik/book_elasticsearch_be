@@ -1,7 +1,7 @@
 import { client } from "configs/elastic";
 import { Request, Response } from "express";
 
-const index = process.env.INDEX_N_GRAM!;
+const index = process.env.INDEX_N_GRAM_BOOK!;
 const filterElastic = async (req: Request, res: Response) => {
   try {
     const {

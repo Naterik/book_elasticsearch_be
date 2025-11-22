@@ -1,26 +1,47 @@
 import { client } from "configs/elastic";
 import { Request, Response } from "express";
 import { handleAllBookcopy } from "services/book/book-copy.services";
-import { allBook, handleGetAllBooks } from "services/book/book.services";
+import { allBook } from "services/book/book.services";
 
-const index = process.env.INDEX_N_GRAM!;
-const indexc = process.env.INDEX_C!;
-
-// Create index for book_copies with ngram tokenizer
-const createIndex = async (req: Request, res: Response) => {
+const booksIndex = process.env.INDEX_N_GRAM_BOOK!;
+const bookCopiesIndex = process.env.INDEX_BOOKCOPY!;
+const createBookCopiesIndex = async (req: Request, res: Response) => {
   try {
     console.log("Creating book_copies index with ngram tokenizer...");
 
-    // Check if index exists and delete it
-    const exists = await client.indices.exists({ index: indexc });
+    const exists = await client.indices.exists({ index: bookCopiesIndex });
     if (exists) {
-      await client.indices.delete({ index: indexc });
-      console.log(`Deleted existing index: ${indexc}`);
+      console.log(
+        `Index ${bookCopiesIndex} already exists, keeping existing data...`
+      );
+
+      const bookCopies = await handleAllBookcopy();
+      console.log(`Fetched ${bookCopies.length} book copies for update`);
+
+      if (bookCopies.length > 0) {
+        const operations = bookCopies.flatMap((doc) => [
+          { index: { _index: bookCopiesIndex, _id: String(doc.id) } },
+          doc,
+        ]);
+
+        const bulkResponse = await client.bulk({
+          refresh: true,
+          operations,
+        });
+
+        return res.status(200).json({
+          message:
+            "Book copies index updated successfully (existing data preserved)",
+          index: bookCopiesIndex,
+          documentsUpdated: bookCopies.length,
+          bulkResponse,
+        });
+      }
     }
 
     // Create new index with ngram settings
-    const createIndexResponse = await client.indices.create({
-      index: indexc,
+    await client.indices.create({
+      index: bookCopiesIndex,
       settings: {
         number_of_shards: 1,
         number_of_replicas: 0,
@@ -75,7 +96,6 @@ const createIndex = async (req: Request, res: Response) => {
           isbn: { type: "keyword" },
           acquiredAt: { type: "date" },
           year_published: { type: "long" },
-          // Nested book details
           books: {
             properties: {
               id: { type: "long" },
@@ -132,7 +152,6 @@ const createIndex = async (req: Request, res: Response) => {
               publisherId: { type: "long" },
             },
           },
-          // Author details
           author: {
             type: "text",
             fields: {
@@ -145,7 +164,7 @@ const createIndex = async (req: Request, res: Response) => {
       },
     });
 
-    console.log("Index created successfully");
+    console.log("Book copies index created successfully");
 
     // Fetch and index all book copies
     const bookCopies = await handleAllBookcopy();
@@ -154,7 +173,7 @@ const createIndex = async (req: Request, res: Response) => {
     // Bulk index the documents
     if (bookCopies.length > 0) {
       const operations = bookCopies.flatMap((doc) => [
-        { index: { _index: indexc } },
+        { index: { _index: bookCopiesIndex, _id: String(doc.id) } },
         doc,
       ]);
 
@@ -167,102 +186,125 @@ const createIndex = async (req: Request, res: Response) => {
         `Bulk indexed ${bookCopies.length} documents, errors: ${bulkResponse.errors}`
       );
 
-      res.status(200).json({
-        message: "Index created and populated successfully",
-        index: indexc,
+      return res.status(200).json({
+        message: "Book copies index created and populated successfully",
+        index: bookCopiesIndex,
         documentsIndexed: bookCopies.length,
         bulkResponse,
       });
     } else {
-      res.status(200).json({
-        message: "Index created successfully but no documents to index",
-        index: indexc,
+      return res.status(200).json({
+        message:
+          "Book copies index created successfully but no documents to index",
+        index: bookCopiesIndex,
       });
     }
   } catch (error: any) {
-    console.error("Error creating index:", error);
+    console.error("Error creating book copies index:", error);
     res.status(500).json({
-      error: "Failed to create index",
+      error: "Failed to create book copies index",
       message: error.message,
     });
   }
 };
 
-const createIndexWithToken = async (req: Request, res: Response) => {
+const createBooksIndex = async (req: Request, res: Response) => {
   try {
-    const tokenizer = process.env.TOKEN_N_GRAM!;
-    const oldIndex = process.env.INDEX_OLD!;
-
-    console.log("Creating books index with edge ngram tokenizer...");
-
-    // Check if index exists and delete it
-    const exists = await client.indices.exists({ index });
+    const booksIndex = process.env.INDEX_N_GRAM_BOOK || "books_index";
+    const exists = await client.indices.exists({ index: booksIndex });
     if (exists) {
-      await client.indices.delete({ index });
-      console.log(`Deleted existing index: ${index}`);
+      await client.indices.delete({ index: booksIndex });
+      console.log(
+        `Deleted existing index: ${booksIndex} to apply new settings.`
+      );
     }
 
-    // Create new index with edge ngram settings for books
-    const ngramIndex = await client.indices.create({
-      index,
+    await client.indices.create({
+      index: booksIndex,
+
       settings: {
         number_of_shards: 1,
+
         number_of_replicas: 0,
+
         "index.max_ngram_diff": 50,
+
         analysis: {
           analyzer: {
             autocomplete_index: {
               type: "custom",
+
               tokenizer: "edge_ngram_tokenizer",
+
               filter: ["lowercase", "stop"],
             },
+
             autocomplete_search: {
               type: "custom",
+
               tokenizer: "standard",
+
               filter: ["lowercase"],
             },
           },
+
           tokenizer: {
             edge_ngram_tokenizer: {
               type: "edge_ngram",
+
               min_gram: 2,
+
               max_gram: 20,
+
               token_chars: ["letter", "digit", "punctuation"],
             },
           },
         },
       },
+
       mappings: {
         properties: {
           authorId: { type: "long" },
+
           authors: {
             properties: {
               name: {
                 type: "text",
+
                 analyzer: "autocomplete_index",
+
                 search_analyzer: "autocomplete_search",
+
                 fields: {
                   keyword: { type: "keyword", ignore_above: 256 },
                 },
               },
             },
           },
+
           borrowed: { type: "long" },
+
           detailDesc: {
             type: "text",
+
             fields: {
               keyword: { type: "keyword", ignore_above: 256 },
             },
           },
+
           genres: {
             properties: {
               genres: {
                 properties: {
                   id: { type: "long" },
+
                   name: {
                     type: "text",
+
                     analyzer: "autocomplete_index",
+
                     search_analyzer: "autocomplete_search",
+
                     fields: {
                       keyword: { type: "keyword", ignore_above: 256 },
                     },
@@ -271,96 +313,128 @@ const createIndexWithToken = async (req: Request, res: Response) => {
               },
             },
           },
+
           id: { type: "long" },
+
           image: { type: "text" },
+
           isbn: {
             type: "text",
+
             analyzer: "autocomplete_index",
+
             search_analyzer: "autocomplete_search",
+
             fields: {
               keyword: { type: "keyword", ignore_above: 256 },
             },
           },
+
           language: {
             type: "keyword",
+
             ignore_above: 256,
           },
+
           pages: { type: "long" },
+
           price: { type: "long" },
+
           publishDate: { type: "date" },
+
           publisherId: { type: "long" },
+
           publishers: {
             properties: {
               name: {
                 type: "text",
+
                 analyzer: "autocomplete_index",
+
                 search_analyzer: "autocomplete_search",
+
                 fields: {
                   keyword: { type: "keyword", ignore_above: 256 },
                 },
               },
             },
           },
+
           quantity: { type: "long" },
+
           shortDesc: {
             type: "text",
+
             fields: {
               keyword: { type: "keyword", ignore_above: 256 },
             },
           },
+
           title: {
             type: "text",
+
             analyzer: "autocomplete_index",
+
             search_analyzer: "autocomplete_search",
+
             fields: {
               keyword: { type: "keyword", ignore_above: 256 },
             },
           },
-          title_suggest: { type: "completion", preserve_separators: true },
-          author_suggest: { type: "completion", preserve_separators: true },
+
+          suggest: {
+            type: "completion",
+
+            preserve_separators: true,
+          },
         },
       },
     });
 
-    console.log("Books index created successfully");
-    await client.indices.refresh({ index });
+    console.log("Books index structure created successfully");
+    const books = await allBook();
+    console.log(`Fetched ${books.length} books`);
 
-    // Reindex from old index if it exists
-    console.log(`Reindexing from ${oldIndex} to ${index}`);
-    try {
-      const oldIndexExists = await client.indices.exists({ index: oldIndex });
-      if (oldIndexExists) {
-        await client.reindex({
-          refresh: true,
-          body: {
-            source: {
-              index: oldIndex,
-            },
-            dest: {
-              index: index,
-            },
+    if (books.length > 0) {
+      const operations = books.flatMap((doc) => {
+        const suggestInput = [doc.title, doc.authors?.name].filter(
+          (item) => item
+        );
+        return [
+          { index: { _index: booksIndex, _id: String(doc.id) } },
+          {
+            ...doc,
+            suggest: suggestInput,
           },
-        });
-        console.log("Reindexing completed successfully");
-      } else {
-        console.log(`Old index ${oldIndex} does not exist, skipping reindex`);
-      }
-    } catch (reindexError) {
-      console.warn("Reindex operation had an issue:", reindexError);
-    }
+        ];
+      });
 
-    res.status(200).json({
-      message: "Books index created with ngram tokenizer successfully",
-      index,
-      data: ngramIndex,
-    });
+      const bulkResponse = await client.bulk({
+        refresh: true,
+        operations,
+      });
+
+      if (bulkResponse.errors) {
+        console.error("Bulk indexing had errors");
+      }
+
+      return res.status(200).json({
+        index: booksIndex,
+        documentsIndexed: books.length,
+        bulkResponse,
+      });
+    } else {
+      return res.status(200).json({
+        index: booksIndex,
+      });
+    }
   } catch (error: any) {
     console.error("Error creating books index:", error);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to create books index",
       message: error.message,
     });
   }
 };
 
-export { createIndex, createIndexWithToken };
+export { createBookCopiesIndex, createBooksIndex };

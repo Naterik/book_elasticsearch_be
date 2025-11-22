@@ -1,6 +1,5 @@
 import type { Request, Response } from "express";
 
-// Tuỳ chỉnh: bạn có thể rút gọn / thay đổi danh sách subject tuỳ nhu cầu
 const DEFAULT_SUBJECTS = [
   "fiction",
   "classics",

@@ -1,329 +1,321 @@
 // src/controllers/book.import.controller.ts
 import { Request, Response } from "express";
 import { prisma } from "configs/client";
-import { handlePostBook } from "services/book/book.services";
 
-// ====== Cấu hình: quan hệ fix cứng để test (GIỮ NGUYÊN RANDOM) ======
-function randInt(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-const getRandomIDs = () => {
-  let array: string[] = [];
-  const randomLength = randInt(1, 5);
-  for (let i = 0; i < randomLength; i++) {
-    let arrayItem = randInt(i, 49);
-    array.push(`${arrayItem}`);
-    if (array.length === randomLength) return array;
-  }
-  return array;
-};
-
-const DEFAULT_AUTHOR_ID = randInt(4, 100);
-const DEFAULT_PUBLISHER_ID = randInt(4, 38);
-const DEFAULT_GENRE_IDS = getRandomIDs();
-
-// ================= Helpers =================
-const EDITIONS_LIMIT = 200;
-const EDITIONS_MAX_PAGES = 5; // tối đa 1000 editions/works
-const DEFAULT_CONCURRENCY = 12; // có thể truyền qua body.maxConcurrency
-const MAX_CONCURRENCY = 24;
+// ================= CONFIGURATION =================
+const MAX_CONCURRENCY = 5;
 const RETRIES = 3;
-const RETRY_BASE_MS = 700;
-const quantity = randInt(4, 50);
+const RETRY_BASE_MS = 1000;
+
+// ================= HELPERS: FETCHING =================
 async function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
 async function getJSON<T = any>(url: string, attempt = 1): Promise<T> {
-  const r = await fetch(url, {
-    headers: { "User-Agent": "LMS/1.0", Accept: "application/json" },
-  });
-  if (!r.ok) {
-    if ((r.status === 429 || r.status >= 500) && attempt < RETRIES) {
-      const backoff = RETRY_BASE_MS * Math.pow(2, attempt - 1);
-      await sleep(backoff);
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+    const r = await fetch(url, {
+      headers: { "User-Agent": "LMS-Importer/1.0", Accept: "application/json" },
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (!r.ok) {
+      if ((r.status === 429 || r.status >= 500) && attempt < RETRIES) {
+        const backoff = RETRY_BASE_MS * Math.pow(2, attempt - 1);
+        await sleep(backoff);
+        return getJSON<T>(url, attempt + 1);
+      }
+      throw new Error(`OpenLibrary Status ${r.status}`);
+    }
+    return (await r.json()) as T;
+  } catch (err) {
+    if (attempt < RETRIES) {
+      await sleep(RETRY_BASE_MS);
       return getJSON<T>(url, attempt + 1);
     }
-    throw new Error(`OpenLibrary error ${r.status}: ${url}`);
+    throw err;
   }
-  return (await r.json()) as T;
 }
 
-function pickText(x: any): string | undefined {
-  if (!x) return undefined;
-  if (typeof x === "string") return x.trim();
-  if (typeof x?.value === "string") return x.value.trim();
-  return undefined;
-}
+// ================= HELPERS: DATABASE (UPSERT LOGIC) =================
 
-// cắt ngắn 1/5 text, giữ biên từ, min/max để hợp với cột shortDesc (<= 255)
-function shortOneFifth(s: string, minChars = 80, maxChars = 255): string {
-  const len = s?.length || 0;
-  if (!len) return "N/A";
-  const target = Math.ceil(len / 5);
-  const n = Math.max(minChars, Math.min(target, maxChars));
-  let out = s.slice(0, n);
-  const cut = out.lastIndexOf(" ");
-  if (cut > Math.floor(n * 0.6)) out = out.slice(0, cut);
-  if (out.length < s.length) out = out.trimEnd() + "…";
-  return out;
-}
+// 1. Xử lý Tác giả
+async function ensureAuthor(authorKey?: string): Promise<number> {
+  let name = "Unknown Author";
+  let bio = "";
 
-function normalizeLangKey(v?: string): string | undefined {
-  if (!v) return undefined; // "/languages/eng" -> "eng"
-  const i = v.lastIndexOf("/");
-  return i >= 0 ? v.slice(i + 1).trim() : v.trim();
-}
-
-function parseIntMaybe(s?: any): number | undefined {
-  if (typeof s === "number") return s;
-  if (!s || typeof s !== "string") return undefined;
-  const m = s.match(/\d+/);
-  return m ? parseInt(m[0], 10) : undefined;
-}
-
-function tryParseDate(d?: string): Date | undefined {
-  if (!d) return undefined;
-  const onlyYear = /^\d{4}$/.test(d.trim());
-  if (onlyYear) return new Date(`${d}-01-01T00:00:00Z`);
-  const ms = Date.parse(d);
-  return Number.isNaN(ms) ? undefined : new Date(ms);
-}
-
-function coverFromIds(coverIds?: number[], size: "S" | "M" | "L" = "L") {
-  if (!coverIds || coverIds.length === 0) return undefined;
-  return `https://covers.openlibrary.org/b/id/${coverIds[0]}-${size}.jpg`;
-}
-
-function coverFromIsbn(isbn?: string, size: "S" | "M" | "L" = "L") {
-  if (!isbn) return undefined;
-  return `https://covers.openlibrary.org/isbn/${isbn}-${size}.jpg`;
-}
-
-type EditionEntry = {
-  key: string; // "/books/OLxxxxM"
-  title?: string;
-  number_of_pages?: number;
-  pagination?: string;
-  isbn_13?: string[];
-  isbn_10?: string[];
-  languages?: { key: string }[];
-  publish_date?: string;
-  publishers?: string[];
-  covers?: number[];
-  description?: string | { value?: string };
-};
-
-// Ưu tiên edition có ISBN-13, có pages/language, rồi fallback ISBN-10
-function chooseBestEdition(
-  entries: EditionEntry[] = []
-): EditionEntry | undefined {
-  if (!entries.length) return undefined;
-  const score = (e: EditionEntry) => {
-    let s = 0;
-    if (e.isbn_13?.length) s += 10;
-    if (e.isbn_10?.length) s += 5;
-    if (typeof e.number_of_pages === "number") s += 2;
-    if (e.languages?.length) s += 2;
-    if (e.publishers?.length) s += 1;
-    if (e.covers?.length) s += 1;
-    return s;
-  };
-  return [...entries].sort((a, b) => score(b) - score(a))[0];
-}
-
-// Lấy nhiều editions theo trang để tăng xác suất tìm ISBN
-async function fetchAllEditions(workId: string): Promise<EditionEntry[]> {
-  const all: EditionEntry[] = [];
-  for (let page = 0; page < EDITIONS_MAX_PAGES; page++) {
-    const offset = page * EDITIONS_LIMIT;
-    const eds = await getJSON<{ entries?: EditionEntry[] }>(
-      `https://openlibrary.org/works/${workId}/editions.json?limit=${EDITIONS_LIMIT}&offset=${offset}`
-    );
-    const entries = eds?.entries || [];
-    if (!entries.length) break;
-    all.push(...entries);
-    // nếu đã có kha khá editions và đã gặp vài cái có isbn_13 -> dừng sớm
-    if (all.length >= 400 && all.some((e) => e.isbn_13?.length)) break;
-  }
-  return all;
-}
-
-// Promise pool giới hạn concurrency
-async function mapLimit<T, U>(
-  arr: T[],
-  limit: number,
-  mapper: (item: T, index: number) => Promise<U>
-): Promise<U[]> {
-  const ret: U[] = [];
-  let i = 0;
-  const run = async () => {
-    while (true) {
-      const cur = i++;
-      if (cur >= arr.length) break;
-      ret[cur] = await mapper(arr[cur], cur);
+  if (authorKey) {
+    try {
+      const olId = authorKey.split("/").pop();
+      const data = await getJSON(
+        `https://openlibrary.org/authors/${olId}.json`
+      );
+      name = data.name || name;
+      bio = typeof data.bio === "string" ? data.bio : data.bio?.value || "";
+      if (bio.length > 60000) bio = bio.substring(0, 60000) + "...";
+    } catch (e) {
+      // console.warn(`Failed to fetch author ${authorKey}, using default.`);
     }
-  };
-  const workers = Array.from({ length: Math.min(limit, arr.length) }, run);
-  await Promise.all(workers);
-  return ret;
-}
-const PRICE_MIN = 100_000;
-const PRICE_MAX = 1_500_000;
+  }
 
-// ================= Controller =================
+  const record = await prisma.author.upsert({
+    where: { name: name },
+    update: {},
+    create: {
+      name: name,
+      bio: bio || null,
+    },
+  });
+  return record.id;
+}
+
+// 2. Xử lý Nhà xuất bản
+async function ensurePublisher(pubName?: string): Promise<number> {
+  const name = pubName ? pubName.trim() : "Unknown Publisher";
+
+  const record = await prisma.publisher.upsert({
+    where: { name: name },
+    update: {},
+    create: {
+      name: name,
+      description: "Imported from OpenLibrary",
+    },
+  });
+  return record.id;
+}
+
+// 3. Xử lý Thể loại
+async function ensureGenres(subjects: string[]): Promise<number[]> {
+  if (!subjects || subjects.length === 0) return [];
+
+  const candidates = subjects.slice(0, 3);
+  const ids: number[] = [];
+
+  for (const sub of candidates) {
+    const name = sub.trim();
+    if (!name) continue;
+
+    try {
+      const record = await prisma.genre.upsert({
+        where: { name: name },
+        update: {},
+        create: {
+          name: name,
+          description: `Books related to ${name}`,
+        },
+      });
+      ids.push(record.id);
+    } catch (e) {
+      // Ignore errors
+    }
+  }
+  return ids;
+}
+
+// ================= HELPERS: DATA CLEANING =================
+function pickText(x: any): string {
+  if (typeof x === "string") return x;
+  if (typeof x?.value === "string") return x.value;
+  return "";
+}
+
+function ensureShortDesc(text: string | null | undefined): string {
+  if (!text || !text.trim()) return "N/A";
+
+  const cleanText = text.trim();
+  if (cleanText.length <= 255) {
+    return cleanText;
+  }
+
+  const HARD_LIMIT = 252;
+  let truncated = cleanText.slice(0, HARD_LIMIT);
+  const lastSpaceIndex = truncated.lastIndexOf(" ");
+
+  if (lastSpaceIndex > 0) {
+    truncated = truncated.slice(0, lastSpaceIndex);
+  }
+
+  return truncated + "...";
+}
+
+// ================= MAIN CONTROLLER =================
 export const createBooksFromOpenLibrary = async (
   req: Request,
   res: Response
 ) => {
   try {
     const body = req.body ?? {};
-    if (!Array.isArray(body.works) || body.works.length === 0) {
-      throw new Error(
-        `Body phải có "works": string[] (ví dụ: { "works": ["OL66554W"] }).`
-      );
+    const worksInput: string[] = Array.isArray(body.works) ? body.works : [];
+
+    if (worksInput.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Vui lòng cung cấp mảng 'works' (VD: ['OL123W'])" });
     }
 
-    // Chuẩn hóa input & loại trùng
-    const works: any = [
-      ...new Set(body.works.map((s: any) => String(s).trim()).filter(Boolean)),
-    ];
+    const results: any[] = [];
 
-    // Nếu muốn đảm bảo 1 lần phải xử lý ≥100 IDs, hãy truyền vào ít nhất 100 workId ở body.
-    // Ở đây controller đã song song hóa để đáp ứng tốt lượng lớn.
-    const defaultPrice: number = randInt(PRICE_MIN, PRICE_MAX);
-    const defaultQuantity: number = quantity;
-    const maxConcurrency: number = Math.max(
-      1,
-      Math.min(MAX_CONCURRENCY, +body.maxConcurrency || DEFAULT_CONCURRENCY)
-    );
-
-    const results = await mapLimit(works, maxConcurrency, async (workId) => {
+    // Hàm xử lý từng WorkID
+    const processWork = async (workId: string) => {
       try {
-        // 1) Work
-        const work = await getJSON<any>(
-          `https://openlibrary.org/works/${workId}.json`
-        );
-        const workTitle: string | undefined = work?.title?.trim();
-        const workDesc: string | undefined = pickText(work?.description);
-        const detailDesc: string =
-          workDesc && workDesc.length ? workDesc : "N/A";
-        const shortDesc: string =
-          detailDesc === "N/A" ? "N/A" : shortOneFifth(detailDesc);
+        // --- BƯỚC 1: FETCH ---
+        const workUrl = `https://openlibrary.org/works/${workId}.json`;
+        const workData = await getJSON(workUrl);
 
-        // 2) Editions (phân trang, limit=200)
-        const allEds = await fetchAllEditions(workId as any);
-        const best = chooseBestEdition(allEds);
-        if (!best)
-          throw new Error(`Không tìm thấy edition phù hợp cho work ${workId}.`);
+        const edsUrl = `https://openlibrary.org/works/${workId}/editions.json?limit=1`;
+        const edsData = await getJSON(edsUrl);
+        const edition = edsData.entries?.[0];
 
-        const isbn = best.isbn_13?.[0] ?? best.isbn_10?.[0];
-        if (!isbn) throw new Error(`Edition không có ISBN cho work ${workId}.`);
+        if (!edition) throw new Error("No edition found");
 
-        // 3) Tránh trùng
-        const existed = await prisma.book.findUnique({ where: { isbn } });
-        if (existed) {
+        // --- BƯỚC 2: PREPARE DATA ---
+        const title = edition.title || workData.title || "Untitled";
+        const isbn = (
+          edition.isbn_13?.[0] ||
+          edition.isbn_10?.[0] ||
+          `OL-${workId}`
+        ).trim();
+
+        // Chuẩn bị response structure cho phần source
+        const sourceInfo = {
+          work_olid: workId,
+          edition_olid: edition.key?.split("/").pop(),
+          openlibrary_work_url: workUrl,
+        };
+
+        // Check existing
+        const existing = await prisma.book.findUnique({ where: { isbn } });
+        if (existing) {
           return {
             status: "fulfilled" as const,
             value: {
-              source: {
-                work_olid: workId,
-                edition_olid: best.key?.split("/").pop(),
-                openlibrary_work_url: `https://openlibrary.org/works/${workId}`,
-              },
-              data: existed,
-              note: "Đã tồn tại (ISBN trùng).",
+              source: sourceInfo,
+              data: existing,
+              note: "Already exists (Skipped creation)",
             },
           };
         }
 
-        const pages =
-          typeof best.number_of_pages === "number"
-            ? best.number_of_pages
-            : parseIntMaybe(best.pagination) ?? 0;
+        const descRaw =
+          pickText(workData.description) ||
+          pickText(edition.description) ||
+          "No description available.";
+        const detailDesc = descRaw;
+        const shortDesc = ensureShortDesc(detailDesc);
 
-        const language =
-          normalizeLangKey(best.languages?.[0]?.key) ||
-          (Array.isArray(work?.languages)
-            ? normalizeLangKey(work.languages[0]?.key)
-            : undefined) ||
-          "und";
+        const pages = edition.number_of_pages || 0;
+        const publishDate = edition.publish_date
+          ? new Date(edition.publish_date)
+          : null;
+        const validDate =
+          !publishDate || isNaN(publishDate.getTime())
+            ? new Date()
+            : publishDate;
 
-        const publishDate =
-          tryParseDate(best.publish_date) ||
-          (typeof work?.first_publish_date === "string"
-            ? tryParseDate(work.first_publish_date)
-            : undefined) ||
-          new Date("1970-01-01T00:00:00Z");
+        const coverId = edition.covers?.[0] || workData.covers?.[0];
+        const image = coverId
+          ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`
+          : null;
 
-        const title: string = (best.title || workTitle || "Untitled").trim();
+        // --- BƯỚC 3: RELATIONS ---
+        const authorKey = workData.authors?.[0]?.author?.key;
+        const authorId = await ensureAuthor(authorKey);
 
-        const image =
-          coverFromIds(best.covers) ||
-          coverFromIds(work?.covers) ||
-          coverFromIsbn(isbn) ||
-          "";
+        const publisherName = edition.publishers?.[0];
+        const publisherId = await ensurePublisher(publisherName);
 
-        // 4) Tạo Book (GIỮ NGUYÊN CÁCH RANDOM QUAN HỆ)
-        const created = await handlePostBook(
-          isbn,
-          title,
-          shortDesc,
-          detailDesc,
-          defaultPrice,
-          defaultQuantity,
-          pages,
-          publishDate,
-          language,
-          DEFAULT_AUTHOR_ID, // random đã có sẵn
-          DEFAULT_PUBLISHER_ID, // random đã có sẵn
-          DEFAULT_GENRE_IDS, // random đã có sẵn
-          image
-        );
+        const subjects = workData.subjects || [];
+        const genreIds = await ensureGenres(subjects);
 
+        // --- BƯỚC 4: CREATE DB ---
+        const price = Math.floor(Math.random() * (500000 - 50000 + 1)) + 50000;
+        const quantity = 5;
+
+        const newBook = await prisma.$transaction(async (tx) => {
+          const book = await tx.book.create({
+            data: {
+              isbn,
+              title,
+              shortDesc,
+              detailDesc,
+              price,
+              quantity,
+              publishDate: validDate,
+              image,
+              language: "eng",
+              pages,
+              authors: { connect: { id: authorId } },
+              publishers: { connect: { id: publisherId } },
+              genres: {
+                create: genreIds.map((gid) => ({
+                  genreId: gid,
+                })),
+              },
+            },
+          });
+
+          const copiesData = Array.from({ length: quantity }).map((_, i) => ({
+            bookId: book.id,
+            year_published: validDate.getFullYear(),
+            copyNumber: `CP-${book.id}-${i + 1}`,
+            status: "AVAILABLE",
+            location: "Shelf A1",
+          }));
+
+          await tx.bookcopy.createMany({ data: copiesData });
+          return book;
+        });
+
+        // --- SUCCESS RETURN ---
         return {
           status: "fulfilled" as const,
           value: {
-            source: {
-              work_olid: workId,
-              edition_olid: best.key?.split("/").pop(),
-              openlibrary_work_url: `https://openlibrary.org/works/${workId}`,
-            },
-            data: created,
+            source: sourceInfo,
+            data: newBook,
           },
         };
-      } catch (reason: any) {
+      } catch (err: any) {
+        // --- ERROR RETURN ---
         return {
           status: "rejected" as const,
-          reason: reason?.message || String(reason),
+          reason: err.message || "Unknown error",
+          work_olid: workId,
         };
       }
-    });
+    };
 
-    const data = results
-      .map((r) => (r.status === "fulfilled" ? (r as any).value : null))
-      .filter(Boolean);
-    const failed = results
-      .map((r, i) =>
-        r.status === "rejected"
-          ? { work_olid: works[i], error: (r as any).reason }
-          : null
-      )
-      .filter(Boolean);
+    // Chạy batch/chunk để giới hạn concurrency
+    for (let i = 0; i < worksInput.length; i += MAX_CONCURRENCY) {
+      const chunk = worksInput.slice(i, i + MAX_CONCURRENCY);
+      const promises = chunk.map((wid) => processWork(wid));
+      const chunkResults = await Promise.all(promises);
+      results.push(...chunkResults);
+    }
 
-    return res.status(201).json({
-      data,
-      failed,
+    // --- THAY ĐỔI CHÍNH Ở ĐÂY ---
+    const successCount = results.filter((r) => r.status === "fulfilled").length;
+    const failedCount = results.filter((r) => r.status === "rejected").length;
+
+    // Chỉ lấy những kết quả thành công và unwrap (lấy phần value bên trong)
+    // để API trả về gọn gàng hơn
+    const successData = results
+      .filter((r) => r.status === "fulfilled")
+      .map((r: any) => r.value);
+
+    return res.status(200).json({
       stats: {
-        requested: works.length,
-        created: data.length,
-        failed: failed.length,
-        concurrency: maxConcurrency,
+        total: worksInput.length,
+        success: successCount,
+        failed: failedCount,
       },
+      data: successData, // Chỉ trả về dữ liệu thành công
     });
   } catch (err: any) {
-    return res
-      .status(400)
-      .json({ message: err?.message || String(err), data: null });
+    console.error(err);
+    return res.status(500).json({ error: err.message });
   }
 };
