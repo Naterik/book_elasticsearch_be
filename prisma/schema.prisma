@@ -83,12 +83,26 @@ model User {
   roleId          Int
   role            Role      @relation(fields: [roleId], references: [id])
 
+ 
   loans           Loan[]
   reservations    Reservation[]
   notifications   Notification[]
   fines           Fine[]
   payments        Payment[]
+   historysearch Historysearch[]
 }
+
+model Historysearch {
+  @@map("history_searches")
+  id        Int      @id @default(autoincrement())
+  userId    Int     
+  term      String   
+  updatedAt DateTime @updatedAt 
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, term])
+}
+
 model Bookcopy {
   @@map("book_copy")
   id               Int       @id @default(autoincrement())
@@ -183,7 +197,7 @@ model Book {
   publishers   Publisher @relation(fields: [publisherId], references: [id])
   publisherId  Int
 
-  bookCopys    Bookcopy[]
+  bookCopies    Bookcopy[]
   genres       BooksOnGenres[]
   reservations Reservation[]
 }

@@ -20,6 +20,7 @@ import {
   createBookCopiesIndex,
   createBooksIndex,
 } from "controllers/elastic/index.elastic";
+import { getTrendingSearches } from "controllers/search.controller";
 import passport from "passport";
 import {
   countGenres,
@@ -42,6 +43,8 @@ publicRouter.get("/books/most-borrowed", getMostBorrowedBooks);
 publicRouter.get("/books/:id", getBookById);
 
 publicRouter.get("/genres/display", getAllGenreDisplay);
+
+publicRouter.get("/search/trending", getTrendingSearches);
 
 publicRouter.get("/filter/elastic", filterElastic);
 publicRouter.get("/languages/elastic", countLanguage);

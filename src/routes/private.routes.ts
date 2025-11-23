@@ -89,6 +89,12 @@ import {
   putBulkNotification,
   putSingleNotification,
 } from "controllers/notification.controller";
+import {
+  clearAllUserSearches,
+  deleteUserSearch,
+  getUserRecentSearches,
+  saveSearch,
+} from "controllers/search.controller";
 
 const privateRouter = express.Router();
 
@@ -171,6 +177,12 @@ privateRouter.post("/book-copies", postBookCopy);
 privateRouter.put("/book-copies", putBookCopy);
 privateRouter.delete("/book-copies/:id", deleteBookCopy);
 privateRouter.get("/book-copies/elastic", findBookCopyLocation);
+
+// Search history routes
+privateRouter.post("/history-search/getAll", getUserRecentSearches);
+privateRouter.post("/history-search", saveSearch);
+privateRouter.delete("/history-search/:searchId", deleteUserSearch);
+privateRouter.delete("/history-search", clearAllUserSearches);
 
 //openLibrary
 privateRouter.post("/authors/openlibrary", createAuthorFromOpenLibrary);
