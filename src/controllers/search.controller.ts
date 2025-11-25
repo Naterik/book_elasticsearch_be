@@ -1,15 +1,17 @@
 import { Request, Response } from "express";
 import {
-  handleGetTrendingSearches,
-  handleGetRecentSearches,
+  getAllTrendingSearches,
+  getUserRecentSearches,
   handleDeleteSearch,
   handleClearAllSearches,
-  handleSaveSearch,
+  createUserRecentSearch,
+  mergeUserRecentSearches,
 } from "services/search.services";
+import { string } from "zod";
 
 const getTrendingSearches = async (req: Request, res: Response) => {
   try {
-    const trendingSearches = await handleGetTrendingSearches();
+    const trendingSearches = await getAllTrendingSearches();
     res.status(200).json({
       data: trendingSearches,
       count: trendingSearches.length,
@@ -23,10 +25,10 @@ const getTrendingSearches = async (req: Request, res: Response) => {
   }
 };
 
-const getUserRecentSearches = async (req: Request, res: Response) => {
+const getUserHistorySearches = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.body;
-    const recentSearches = await handleGetRecentSearches(+userId);
+    const { userId } = req.params;
+    const recentSearches = await getUserRecentSearches(+userId);
 
     res.status(200).json({
       data: recentSearches,
@@ -37,6 +39,39 @@ const getUserRecentSearches = async (req: Request, res: Response) => {
       data: null,
       message:
         err?.message || "An error occurred while fetching recent searches",
+    });
+  }
+};
+
+const postMergeUserRecentSearches = async (req: Request, res: Response) => {
+  try {
+    const { userId, terms } = req.body;
+    console.log("term :>> ", terms);
+    const mergedSearches = await mergeUserRecentSearches(+userId, terms);
+    res.status(200).json({
+      data: mergedSearches,
+    });
+  } catch (err: any) {
+    res.status(400).json({
+      data: null,
+      message:
+        err?.message || "An error occurred while merging recent searches",
+    });
+  }
+};
+
+const postUserRecentSearch = async (req: Request, res: Response) => {
+  try {
+    const { term, userId } = req.body;
+    const searchHistory = await createUserRecentSearch(userId, term);
+
+    res.status(200).json({
+      data: searchHistory,
+    });
+  } catch (err: any) {
+    res.status(400).json({
+      data: null,
+      message: err?.message || "An error occurred while saving search",
     });
   }
 };
@@ -57,26 +92,17 @@ const deleteUserSearch = async (req: Request, res: Response) => {
   }
 };
 
-const saveSearch = async (req: Request, res: Response) => {
+const deleteAllUserSearches = async (req: Request, res: Response) => {
   try {
-    const { term, userId } = req.body;
-    const searchHistory = await handleSaveSearch(+userId, term);
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        data: null,
+        message: "Unauthorized: User ID not found",
+      });
+    }
 
-    res.status(200).json({
-      data: searchHistory,
-    });
-  } catch (err: any) {
-    res.status(400).json({
-      data: null,
-      message: err?.message || "An error occurred while saving search",
-    });
-  }
-};
-
-const clearAllUserSearches = async (req: Request, res: Response) => {
-  try {
-    const { userId } = req.body;
-    const result = await handleClearAllSearches(+userId);
+    const result = await handleClearAllSearches(userId);
     res.status(200).json({
       data: result,
     });
@@ -92,6 +118,8 @@ export {
   getTrendingSearches,
   getUserRecentSearches,
   deleteUserSearch,
-  clearAllUserSearches,
-  saveSearch,
+  deleteAllUserSearches,
+  postUserRecentSearch,
+  getUserHistorySearches,
+  postMergeUserRecentSearches,
 };

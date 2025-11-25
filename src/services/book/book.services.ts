@@ -1,9 +1,5 @@
 import { prisma } from "configs/client";
 import "dotenv/config";
-import {
-  handleCheckLoanExist,
-  handleUpdateStatus,
-} from "services/loan.services";
 
 const allBook = async () => {
   return await prisma.book.findMany({

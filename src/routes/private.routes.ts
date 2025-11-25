@@ -90,10 +90,11 @@ import {
   putSingleNotification,
 } from "controllers/notification.controller";
 import {
-  clearAllUserSearches,
+  deleteAllUserSearches,
   deleteUserSearch,
-  getUserRecentSearches,
-  saveSearch,
+  getUserHistorySearches,
+  postMergeUserRecentSearches,
+  postUserRecentSearch,
 } from "controllers/search.controller";
 
 const privateRouter = express.Router();
@@ -179,10 +180,11 @@ privateRouter.delete("/book-copies/:id", deleteBookCopy);
 privateRouter.get("/book-copies/elastic", findBookCopyLocation);
 
 // Search history routes
-privateRouter.post("/history-search/getAll", getUserRecentSearches);
-privateRouter.post("/history-search", saveSearch);
-privateRouter.delete("/history-search/:searchId", deleteUserSearch);
-privateRouter.delete("/history-search", clearAllUserSearches);
+privateRouter.get("/history-searches/full/:userId", getUserHistorySearches);
+privateRouter.post("/history-searches/recent", postUserRecentSearch);
+privateRouter.post("/history-searches/merge", postMergeUserRecentSearches);
+privateRouter.delete("/history-searches/:searchId", deleteUserSearch);
+privateRouter.delete("/history-searches", deleteAllUserSearches);
 
 //openLibrary
 privateRouter.post("/authors/openlibrary", createAuthorFromOpenLibrary);

@@ -75,7 +75,7 @@ const filterElastic = async (req: Request, res: Response) => {
       ];
     }
     if (genres) {
-      const genreNames: any = (genres as string).split(",");
+      const genreNames: Array<string> = (genres as string).split(",");
       filter = [
         ...filter,
         {

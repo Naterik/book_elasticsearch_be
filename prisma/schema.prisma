@@ -101,6 +101,7 @@ model Historysearch {
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([userId, term])
+  @@fulltext([term])
 }
 
 model Bookcopy {

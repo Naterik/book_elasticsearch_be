@@ -2,7 +2,8 @@ import { prisma } from "configs/client";
 import "dotenv/config";
 
 const recentLimt = +process.env.LIMIT_RECENT_SEARCH;
-const handleGetRecentSearches = async (userId: number) => {
+const trendingLimit = +process.env.ITEM_PER_SECTION;
+const getUserRecentSearches = async (userId: number) => {
   const searches = await prisma.historysearch.findMany({
     where: { userId },
     orderBy: { updatedAt: "desc" },
@@ -13,7 +14,7 @@ const handleGetRecentSearches = async (userId: number) => {
   return searches;
 };
 
-const handleGetTrendingSearches = async () => {
+const getAllTrendingSearches = async () => {
   const trendingSearches = await prisma.historysearch.groupBy({
     by: ["term"],
     _count: {
@@ -24,7 +25,7 @@ const handleGetTrendingSearches = async () => {
         id: "desc",
       },
     },
-    // take: recentLimt,
+    take: trendingLimit,
   });
 
   return trendingSearches.map((search) => ({
@@ -33,7 +34,7 @@ const handleGetTrendingSearches = async () => {
   }));
 };
 
-const handleSaveSearch = async (userId: number, term: string) => {
+const createUserRecentSearch = async (userId: number, term: string) => {
   const historysearch = await prisma.historysearch.upsert({
     where: {
       userId_term: {
@@ -54,14 +55,32 @@ const handleSaveSearch = async (userId: number, term: string) => {
   return historysearch;
 };
 
+const mergeUserRecentSearches = async (userId: number, terms: string[]) => {
+  const upsertBatch = terms.map((term) =>
+    prisma.historysearch.upsert({
+      where: {
+        userId_term: {
+          userId,
+          term,
+        },
+      },
+      create: {
+        userId,
+        term,
+      },
+      update: {
+        updatedAt: new Date(),
+      },
+    })
+  );
+  const result = await prisma.$transaction(upsertBatch);
+  return result;
+};
+
 const handleDeleteSearch = async (searchId: number) => {
   const search = await prisma.historysearch.findUnique({
     where: { id: searchId },
   });
-
-  if (!search) {
-    throw new Error("Search history not found");
-  }
 
   const deleteSearch = await prisma.historysearch.delete({
     where: { id: searchId, userId: search.userId },
@@ -78,9 +97,10 @@ const handleClearAllSearches = async (userId: number) => {
 };
 
 export {
-  handleGetRecentSearches,
-  handleGetTrendingSearches,
-  handleSaveSearch,
+  getUserRecentSearches,
+  getAllTrendingSearches,
+  createUserRecentSearch,
   handleDeleteSearch,
   handleClearAllSearches,
+  mergeUserRecentSearches,
 };
