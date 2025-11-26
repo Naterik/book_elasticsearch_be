@@ -2,10 +2,10 @@ import { Request, Response } from "express";
 import { Auth, TAuth } from "validation/auth.schema";
 import { fromError } from "zod-validation-error";
 import {
-  handleCreateJWT,
-  handleLoginUser,
-  handleRegisterUser,
-} from "services/auth.services";
+  createJWT,
+  loginUserService,
+  registerUserService,
+} from "services/auth.service";
 
 const loginUser = async (req: Request, res: Response) => {
   try {
@@ -14,7 +14,7 @@ const loginUser = async (req: Request, res: Response) => {
       confirmPassword: true,
       fullName: true,
     }).parse(req.body);
-    const checkLogin = await handleLoginUser(username, password);
+    const checkLogin = await loginUserService(username, password);
 
     res.cookie("access_token", checkLogin.access_token, {
       httpOnly: true,
@@ -37,7 +37,7 @@ const registerUser = async (req: Request, res: Response) => {
   try {
     const { username, fullName, password, confirmPassword } = req.body as TAuth;
     Auth.parse(req.body);
-    const checkRegister = await handleRegisterUser(
+    const checkRegister = await registerUserService(
       username,
       fullName,
       password
@@ -87,7 +87,7 @@ const frontendURL = process.env.FRONTEND_URL || "http://localhost:3000";
 const googleAccessToken = async (req: Request, res: Response) => {
   try {
     const user = req.user as any;
-    const getToken = await handleCreateJWT(user.id);
+    const getToken = await createJWT(user.id);
     res.cookie("access_token", getToken, {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,

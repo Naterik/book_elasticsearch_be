@@ -2,10 +2,10 @@ import { bcryptPassword, comparePassword } from "configs/password";
 import jwt from "jsonwebtoken";
 import "dotenv/config";
 import { prisma } from "configs/client";
-import { handleCheckUsername } from "./user.services";
+import { checkUsernameExists } from "./user.service";
 import { AccessTokenPayload } from "src/types/jwt";
 
-const handleLoginUser = async (username: string, password: string) => {
+const loginUser = async (username: string, password: string) => {
   const user = await prisma.user.findUnique({
     where: { username },
     include: {
@@ -29,7 +29,7 @@ const handleLoginUser = async (username: string, password: string) => {
     throw new Error("Invalid password!");
   }
 
-  const accessToken = await handleCreateJWT(+user.id);
+  const accessToken = await createJWT(+user.id);
   return {
     access_token: accessToken,
     user: {
@@ -44,7 +44,7 @@ const handleLoginUser = async (username: string, password: string) => {
   };
 };
 
-const handleCreateJWT = async (userId: number) => {
+const createJWT = async (userId: number) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
@@ -71,12 +71,12 @@ const handleCreateJWT = async (userId: number) => {
   return token;
 };
 
-const handleRegisterUser = async (
+const registerUser = async (
   username: string,
   fullName: string,
   password: string
 ) => {
-  await handleCheckUsername(username);
+  await checkUsernameExists(username);
   const hashPassword = await bcryptPassword(password);
   const user = await prisma.user.create({
     data: {
@@ -95,7 +95,7 @@ const handleRegisterUser = async (
   };
 };
 
-const handleLoginWithGoogle = async (email: string, profile: any) => {
+const loginWithGoogle = async (email: string, profile: any) => {
   const user = await prisma.user.upsert({
     where: { username: email },
     update: {
@@ -122,8 +122,8 @@ const handleLoginWithGoogle = async (email: string, profile: any) => {
 };
 
 export {
-  handleLoginUser,
-  handleRegisterUser,
-  handleLoginWithGoogle,
-  handleCreateJWT,
+  loginUser as loginUserService,
+  registerUser as registerUserService,
+  loginWithGoogle,
+  createJWT,
 };

@@ -2,7 +2,7 @@ import { prisma } from "configs/client";
 import { bcryptPassword } from "configs/password";
 
 const pageSize: number = +process.env.ITEM_PER_PAGE;
-const handleGetAllUser = async (page: number) => {
+const getAllUsers = async (page: number) => {
   const skip = (page - 1) * pageSize;
   const total_items = await prisma.user.count();
   const totalPages = Math.ceil(total_items / pageSize);
@@ -22,13 +22,13 @@ const handleGetAllUser = async (page: number) => {
   };
 };
 
-const handleGetUserById = async (id: number) => {
+const getUserById = async (id: number) => {
   return prisma.user.findUnique({
     where: { id },
   });
 };
 
-const handlePostUser = async (
+const createUser = async (
   username: string,
   password: string,
   fullName: string,
@@ -52,7 +52,7 @@ const handlePostUser = async (
   return result;
 };
 
-const handlePutUser = async (
+const updateUser = async (
   id: string,
   username: string,
   fullName: string,
@@ -75,7 +75,7 @@ const handlePutUser = async (
   return result;
 };
 
-const handleDeleteUser = async (id: string) => {
+const deleteUser = async (id: string) => {
   const result = await prisma.user.delete({
     where: {
       id: +id,
@@ -84,7 +84,7 @@ const handleDeleteUser = async (id: string) => {
   return result;
 };
 
-const handleCheckUsername = async (username: string) => {
+const checkUsernameExists = async (username: string) => {
   const checkUsername = await prisma.user.findUnique({
     where: { username },
     select: { username: true },
@@ -95,10 +95,10 @@ const handleCheckUsername = async (username: string) => {
 };
 
 export {
-  handleGetAllUser,
-  handleDeleteUser,
-  handlePostUser,
-  handlePutUser,
-  handleGetUserById,
-  handleCheckUsername,
+  getAllUsers,
+  deleteUser as deleteUserService,
+  createUser as createUserService,
+  updateUser as updateUserService,
+  getUserById as getUserByIdService,
+  checkUsernameExists,
 };

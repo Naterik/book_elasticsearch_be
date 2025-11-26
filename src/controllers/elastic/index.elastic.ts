@@ -1,7 +1,7 @@
 import { client } from "configs/elastic";
 import { Request, Response } from "express";
-import { handleAllBookcopy } from "services/book/book-copy.services";
-import { allBook } from "services/book/book.services";
+import { getAllBookCopies } from "services/book/book-copy.service";
+import { getAllBooks } from "services/book/book.service";
 
 const booksIndex = process.env.INDEX_N_GRAM_BOOK!;
 const bookCopiesIndex = process.env.INDEX_BOOKCOPY!;
@@ -15,7 +15,7 @@ const createBookCopiesIndex = async (req: Request, res: Response) => {
         `Index ${bookCopiesIndex} already exists, keeping existing data...`
       );
 
-      const bookCopies = await handleAllBookcopy();
+      const bookCopies = await getAllBookCopies();
       console.log(`Fetched ${bookCopies.length} book copies for update`);
 
       if (bookCopies.length > 0) {
@@ -167,7 +167,7 @@ const createBookCopiesIndex = async (req: Request, res: Response) => {
     console.log("Book copies index created successfully");
 
     // Fetch and index all book copies
-    const bookCopies = await handleAllBookcopy();
+    const bookCopies = await getAllBookCopies();
     console.log(`Fetched ${bookCopies.length} book copies`);
 
     // Bulk index the documents
@@ -392,7 +392,7 @@ const createBooksIndex = async (req: Request, res: Response) => {
     });
 
     console.log("Books index structure created successfully");
-    const books = await allBook();
+    const books = await getAllBooks();
     console.log(`Fetched ${books.length} books`);
 
     if (books.length > 0) {

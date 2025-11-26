@@ -2,9 +2,9 @@ import { Server as HTTPServer } from "http";
 import { Server as SocketIOServer, Socket } from "socket.io";
 import jwt from "jsonwebtoken";
 import {
-  handlePutSingleNotification,
-  handlePutBulkNotification,
-} from "services/notification.realtime.services";
+  updateSingleNotification,
+  updateAllNotifications,
+} from "services/notification.realtime.service";
 
 export class WebSocketManager {
   private io: SocketIOServer;
@@ -137,7 +137,7 @@ export class WebSocketManager {
 
   private async handleMarkAsRead(userId: number, notificationId: number) {
     try {
-      await handlePutSingleNotification(notificationId, userId);
+      await updateSingleNotification(notificationId, userId);
       console.log(
         `📖 Marked notification ${notificationId} as read for user ${userId}`
       );
@@ -148,7 +148,7 @@ export class WebSocketManager {
 
   private async handleMarkAllAsRead(userId: number) {
     try {
-      await handlePutBulkNotification(userId);
+      await updateAllNotifications(userId);
       console.log(`📖 Marked all notifications as read for user ${userId}`);
     } catch (error) {
       console.error("Error marking all notifications as read:", error);

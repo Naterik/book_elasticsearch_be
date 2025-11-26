@@ -1,6 +1,6 @@
 import { prisma } from "configs/client";
 import "dotenv/config";
-const handleGetAllFines = async (currentPage: number) => {
+const getAllFines = async (currentPage: number) => {
   const limit = +process.env.ITEM_PER_PAGE;
   const offset = (currentPage - 1) * limit;
 
@@ -33,7 +33,7 @@ const handleGetAllFines = async (currentPage: number) => {
   };
 };
 
-const handleGetFinedByUserId = async (id: number) => {
+const getFinesByUserId = async (id: number) => {
   const fine = await prisma.fine.findMany({
     where: { userId: id },
     include: {
@@ -64,7 +64,7 @@ const handleGetFinedByUserId = async (id: number) => {
   return fine;
 };
 
-const handlePostFined = async (
+const createFine = async (
   amount: number,
   reason: string,
   isPaid: boolean,
@@ -83,7 +83,7 @@ const handlePostFined = async (
   return newFine;
 };
 
-const handlePutFined = async (
+const updateFine = async (
   id: number,
   amount: number,
   reason: string,
@@ -104,17 +104,11 @@ const handlePutFined = async (
   return updatedFine;
 };
 
-const handleDeleteFined = async (id: number) => {
+const deleteFine = async (id: number) => {
   const deletedFine = await prisma.fine.delete({
     where: { id },
   });
   return deletedFine;
 };
 
-export {
-  handleGetAllFines,
-  handleGetFinedByUserId,
-  handlePostFined,
-  handlePutFined,
-  handleDeleteFined,
-};
+export { getAllFines, getFinesByUserId, createFine, updateFine, deleteFine };

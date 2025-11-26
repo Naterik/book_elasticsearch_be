@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 import {
-  handleAllBookcopy,
-  handleDeleteBookCopy,
-  handleGetAllBookCopy,
-  handlePostBookCopy,
-  handlePutBookCopy,
-} from "services/book/book-copy.services";
+  getAllBookCopies,
+  deleteBookCopyService,
+  getBookCopies,
+  createBookCopy,
+  updateBookCopy,
+} from "services/book/book-copy.service";
 import { BookCopy } from "validation/book-copy.schema";
 import { fromError } from "zod-validation-error";
 
@@ -14,7 +14,7 @@ const getAllBookCopy = async (req: Request, res: Response) => {
     const { page } = req.query;
     let currentPage = page ? +page : 1;
     if (currentPage <= 0) currentPage = 1;
-    const result = await handleGetAllBookCopy(+page);
+    const result = await getBookCopies(+page);
     res.status(200).json({ data: result });
   } catch (error) {
     res.status(400).json({ message: error.message, data: null });
@@ -24,7 +24,7 @@ const postBookCopy = async (req: Request, res: Response) => {
   try {
     const { year_published, copyNumber, bookId, status, location } = req.body;
     BookCopy.omit({ id: true }).parse(req.body);
-    const result = await handlePostBookCopy(
+    const result = await createBookCopy(
       +year_published,
       copyNumber,
       +bookId,
@@ -42,7 +42,7 @@ const putBookCopy = async (req: Request, res: Response) => {
     const { id, year_published, copyNumber, bookId, status, location } =
       req.body;
     BookCopy.parse(req.body);
-    const result = await handlePutBookCopy(
+    const result = await updateBookCopy(
       +id,
       +year_published,
       copyNumber,
@@ -59,7 +59,7 @@ const putBookCopy = async (req: Request, res: Response) => {
 const deleteBookCopy = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await handleDeleteBookCopy(+id);
+    const result = await deleteBookCopyService(+id);
     res.status(200).json({ data: result });
   } catch (error) {
     res.status(400).json({ message: error.message, data: null });

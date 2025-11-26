@@ -1,14 +1,14 @@
 import { prisma } from "configs/client";
 import "dotenv/config";
 
-const handleAllBookcopy = async () => {
+const getAllBookCopies = async () => {
   const result = await prisma.bookcopy.findMany({
     orderBy: { id: "desc" },
     include: { books: !0 },
   });
   return result;
 };
-const handleGetAllBookCopy = async (page: number) => {
+const getBookCopies = async (page: number) => {
   const pageSize = +process.env.PAGE_SIZE || 10;
   const skip = (page - 1) * pageSize;
   const countTotalItems = await prisma.bookcopy.count();
@@ -29,7 +29,7 @@ const handleGetAllBookCopy = async (page: number) => {
     },
   };
 };
-const handlePostBookCopy = async (
+const createBookCopy = async (
   year_published: number,
   copyNumber: string,
   bookId: number,
@@ -48,7 +48,7 @@ const handlePostBookCopy = async (
   });
   return result;
 };
-const handlePutBookCopy = async (
+const updateBookCopy = async (
   id: number,
   year_published: number,
   copyNumber: string,
@@ -69,16 +69,16 @@ const handlePutBookCopy = async (
   });
   return result;
 };
-const handleDeleteBookCopy = async (id: number) => {
+const deleteBookCopy = async (id: number) => {
   const result = await prisma.bookcopy.delete({
     where: { id },
   });
   return result;
 };
 export {
-  handleGetAllBookCopy,
-  handlePostBookCopy,
-  handlePutBookCopy,
-  handleDeleteBookCopy,
-  handleAllBookcopy,
+  getBookCopies,
+  createBookCopy,
+  updateBookCopy,
+  deleteBookCopy as deleteBookCopyService,
+  getAllBookCopies,
 };

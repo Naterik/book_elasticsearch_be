@@ -1,7 +1,7 @@
 import { prisma } from "configs/client";
 import "dotenv/config";
 
-const allBook = async () => {
+const getAllBooks = async () => {
   return await prisma.book.findMany({
     include: {
       authors: { select: { name: true } },
@@ -10,7 +10,7 @@ const allBook = async () => {
     },
   });
 };
-const handleGetAllBooks = async (currentPage: number) => {
+const getBooks = async (currentPage: number) => {
   const pageSize = process.env.ITEM_PER_PAGE || 10;
   const skip = (currentPage - 1) * +pageSize;
   const countTotalBooks = await prisma.book.count();
@@ -37,7 +37,7 @@ const handleGetAllBooks = async (currentPage: number) => {
   };
 };
 
-const handlePostBook = async (
+const createBook = async (
   isbn: string,
   title: string,
   shortDesc: string,
@@ -83,7 +83,7 @@ const handlePostBook = async (
   });
   return result;
 };
-const handlePutBook = async (
+const updateBook = async (
   id: number,
   isbn: string,
   title: string,
@@ -133,7 +133,7 @@ const handlePutBook = async (
   return result;
 };
 
-const handleGetBookById = async (id: number) => {
+const getBookById = async (id: number) => {
   const result = prisma.book.findUnique({
     where: { id: +id },
     include: {
@@ -145,7 +145,7 @@ const handleGetBookById = async (id: number) => {
   return result;
 };
 
-const handleDeleteBook = async (id: number) => {
+const deleteBook = async (id: number) => {
   const deleteBookOnGenres = await prisma.booksOnGenres.deleteMany({
     where: { bookId: id },
   });
@@ -156,7 +156,7 @@ const handleDeleteBook = async (id: number) => {
 const limitPerSection: number = +process.env.ITEM_PER_SECTION
   ? +process.env.ITEM_PER_SECTION
   : 10;
-const handleGetMostBorrowedBooks = async () => {
+const getMostBorrowedBooks = async () => {
   const limit = limitPerSection;
   const result = await prisma.book.findMany({
     orderBy: { borrowed: "desc" },
@@ -171,7 +171,7 @@ const handleGetMostBorrowedBooks = async () => {
   return result;
 };
 
-const handleGetNewArrivals = async () => {
+const getNewArrivals = async () => {
   const limit = limitPerSection;
   const result = await prisma.book.findMany({
     orderBy: { publishDate: "desc" },
@@ -186,7 +186,7 @@ const handleGetNewArrivals = async () => {
   return result;
 };
 
-const handleGetTrendingBooks = async () => {
+const getTrendingBooks = async () => {
   const limit = limitPerSection;
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -248,7 +248,7 @@ const handleGetTrendingBooks = async () => {
   return orderedBooks;
 };
 
-const handleGetRecommendedBooks = async (userId: number) => {
+const getRecommendedBooks = async (userId: number) => {
   const limit = limitPerSection;
   const userLoans = await prisma.loan.findMany({
     where: {
@@ -293,7 +293,7 @@ const handleGetRecommendedBooks = async (userId: number) => {
     .map(([genreId]) => genreId);
 
   if (topGenres.length === 0) {
-    return handleGetTrendingBooks();
+    return getTrendingBooks();
   }
   const recommendedBooks = await prisma.book.findMany({
     where: {
@@ -338,14 +338,14 @@ const handleGetRecommendedBooks = async (userId: number) => {
   return recommendedBooks;
 };
 export {
-  handleGetAllBooks,
-  handlePostBook,
-  handlePutBook,
-  handleDeleteBook,
-  allBook,
-  handleGetBookById,
-  handleGetMostBorrowedBooks,
-  handleGetNewArrivals,
-  handleGetRecommendedBooks,
-  handleGetTrendingBooks,
+  getBooks,
+  createBook as createBookService,
+  updateBook as updateBookService,
+  deleteBook as deleteBookService,
+  getAllBooks,
+  getBookById as getBookByIdService,
+  getMostBorrowedBooks as getMostBorrowedBooksService,
+  getNewArrivals as getNewArrivalsService,
+  getRecommendedBooks as getRecommendedBooksService,
+  getTrendingBooks as getTrendingBooksService,
 };

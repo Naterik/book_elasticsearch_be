@@ -1,16 +1,17 @@
 import { Request, Response } from "express";
-import { handleFilterBook } from "services/book/book.filter.services";
+import { filterBooks } from "services/book/book.filter.service";
 import {
-  handleDeleteBook,
-  handleGetAllBooks,
-  handleGetBookById,
-  handleGetMostBorrowedBooks,
-  handleGetNewArrivals,
-  handleGetRecommendedBooks,
-  handleGetTrendingBooks,
-  handlePostBook,
-  handlePutBook,
-} from "services/book/book.services";
+  deleteBookService,
+  getBooks,
+  getBookByIdService,
+  getMostBorrowedBooksService,
+  getNewArrivalsService,
+  getRecommendedBooksService,
+  getTrendingBooksService,
+  createBookService,
+  updateBookService,
+  getAllBooks,
+} from "services/book/book.service";
 
 import { Book, TBook } from "validation/books.schema";
 import { fromError } from "zod-validation-error";
@@ -20,7 +21,7 @@ const getAllBook = async (req: Request, res: Response) => {
     const { page } = req.query;
     let currentPage: number = page ? +page : 1;
     if (currentPage <= 0) currentPage = 1;
-    const result = await handleGetAllBooks(+currentPage);
+    const result = await getBooks(+currentPage);
     res.status(200).json({ data: result });
   } catch (error: any) {
     res.status(400).json({ error: fromError(error).toString(), data: null });
@@ -45,7 +46,7 @@ const postBook = async (req: Request, res: Response) => {
     } = req.body as TBook;
     Book.omit({ id: true }).parse(req.body);
     const image = req?.file?.filename ?? null;
-    const result = await handlePostBook(
+    const result = await createBookService(
       isbn,
       title,
       shortDesc,
@@ -87,7 +88,7 @@ const putBook = async (req: Request, res: Response) => {
     Book.parse(req.body);
     const image = req?.file?.filename ?? null;
 
-    const result = await handlePutBook(
+    const result = await updateBookService(
       +id,
       isbn,
       title,
@@ -112,7 +113,7 @@ const putBook = async (req: Request, res: Response) => {
 const deleteBook = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await handleDeleteBook(+id);
+    const result = await deleteBookService(+id);
     res.status(200).json({ data: result });
   } catch (error: any) {
     res.status(400).json({ error: fromError(error).toString(), data: null });
@@ -122,7 +123,7 @@ const deleteBook = async (req: Request, res: Response) => {
 const getBookById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await handleGetBookById(+id);
+    const result = await getBookByIdService(+id);
     res.status(200).json({
       data: result,
     });
@@ -153,7 +154,7 @@ const filterBook = async (req: Request, res: Response) => {
       yearRange: string[];
       language: string;
     };
-    const result = await handleFilterBook(
+    const result = await filterBooks(
       +page,
       priceRange,
       search,
@@ -173,7 +174,7 @@ const filterBook = async (req: Request, res: Response) => {
 
 const getMostBorrowedBooks = async (req: Request, res: Response) => {
   try {
-    const result = await handleGetMostBorrowedBooks();
+    const result = await getMostBorrowedBooksService();
     res.status(200).json({
       data: result,
     });
@@ -187,7 +188,7 @@ const getMostBorrowedBooks = async (req: Request, res: Response) => {
 const getRecommendedBooks = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await handleGetRecommendedBooks(+id);
+    const result = await getRecommendedBooksService(+id);
     res.status(200).json({
       data: result,
     });
@@ -200,7 +201,7 @@ const getRecommendedBooks = async (req: Request, res: Response) => {
 };
 const getTrendingBooks = async (req: Request, res: Response) => {
   try {
-    const result = await handleGetTrendingBooks();
+    const result = await getTrendingBooksService();
     res.status(200).json({
       data: result,
     });
@@ -213,7 +214,7 @@ const getTrendingBooks = async (req: Request, res: Response) => {
 };
 const getNewArrivals = async (req: Request, res: Response) => {
   try {
-    const result = await handleGetNewArrivals();
+    const result = await getNewArrivalsService();
     res.status(200).json({
       data: result,
     });

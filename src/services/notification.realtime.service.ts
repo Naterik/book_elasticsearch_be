@@ -12,7 +12,7 @@ interface INotificationPayload {
   priority?: "LOW" | "NORMAL" | "HIGH";
 }
 
-export const createNotificationRealtime = async (
+export const addNotificationRealtime = async (
   payload: INotificationPayload
 ): Promise<any> => {
   try {
@@ -55,7 +55,7 @@ export const createNotificationRealtime = async (
  * Tạo thông báo cho nhiều users
  * Ví dụ: Thông báo sách trở về có sẵn cho tất cả users đã reserve
  */
-export const createNotificationForMultipleUsers = async (
+export const addNotificationForMultipleUsers = async (
   userIds: number[],
   payload: Omit<INotificationPayload, "userId">
 ): Promise<any> => {
@@ -104,7 +104,7 @@ export const createNotificationForMultipleUsers = async (
 /**
  * Lấy tất cả thông báo của user
  */
-export const handleGetNotifications = async (userId: number) => {
+export const getNotifications = async (userId: number) => {
   const notifications = await prisma.notification.findMany({
     where: { userId },
     orderBy: { sentAt: "desc" },
@@ -116,7 +116,7 @@ export const handleGetNotifications = async (userId: number) => {
 /**
  * Lấy thông báo chưa đọc
  */
-export const handleGetUnreadNotifications = async (userId: number) => {
+export const getUnreadNotifications = async (userId: number) => {
   const notifications = await prisma.notification.findMany({
     where: { userId, isRead: false },
     orderBy: [{ priority: "asc" }, { sentAt: "desc" }],
@@ -127,10 +127,7 @@ export const handleGetUnreadNotifications = async (userId: number) => {
 /**
  * Đánh dấu thông báo đơn lẻ đã đọc
  */
-export const handlePutSingleNotification = async (
-  id: number,
-  userId: number
-) => {
+export const updateSingleNotification = async (id: number, userId: number) => {
   const notification = await prisma.notification.update({
     where: { id },
     data: { isRead: true },
@@ -150,7 +147,7 @@ export const handlePutSingleNotification = async (
 /**
  * Đánh dấu tất cả thông báo đã đọc
  */
-export const handlePutBulkNotification = async (userId: number) => {
+export const updateAllNotifications = async (userId: number) => {
   const result = await prisma.notification.updateMany({
     where: { userId },
     data: { isRead: true },

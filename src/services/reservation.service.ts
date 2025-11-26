@@ -1,8 +1,8 @@
 import { prisma } from "configs/client";
-import { handleCheckMemberCard } from "./member.services";
+import { checkMemberCard } from "./member.service";
 
-const handleCreateReservation = async (bookId: number, userId: number) => {
-  const { user } = await handleCheckMemberCard(userId);
+const createReservation = async (bookId: number, userId: number) => {
+  const { user } = await checkMemberCard(userId);
   if (!user.cardNumber)
     throw new Error("User doesn't have permission to renewal !");
   return prisma.$transaction(async (tx) => {
@@ -34,7 +34,7 @@ const handleCreateReservation = async (bookId: number, userId: number) => {
   });
 };
 
-const handleGetAllReservations = async (currentPage: number) => {
+const getAllReservations = async (currentPage: number) => {
   const limit = +process.env.ITEM_PER_PAGE;
   const offset = (currentPage - 1) * limit;
 
@@ -73,7 +73,7 @@ const handleGetAllReservations = async (currentPage: number) => {
   };
 };
 
-const handleGetReservationById = async (id: number) => {
+const getReservationById = async (id: number) => {
   const reservation = await prisma.reservation.findUniqueOrThrow({
     where: { id },
     include: {
@@ -105,7 +105,7 @@ const handleGetReservationByUserId = async (id: number) => {
   return reservation;
 };
 
-const handleUpdateReservationStatus = async (id: number, status: string) => {
+const updateReservationStatus = async (id: number, status: string) => {
   const updatedReservation = await prisma.reservation.update({
     where: { id },
     data: {
@@ -115,7 +115,7 @@ const handleUpdateReservationStatus = async (id: number, status: string) => {
   return updatedReservation;
 };
 //user
-const handleCancelReservationStatus = async (id: number) => {
+const cancelReservationStatus = async (id: number) => {
   const updatedReservation = await prisma.reservation.update({
     where: { id },
     data: {
@@ -125,7 +125,7 @@ const handleCancelReservationStatus = async (id: number) => {
   return updatedReservation;
 };
 
-const handleDeleteReservation = async (id: number) => {
+const deleteReservation = async (id: number) => {
   const deletedReservation = await prisma.reservation.delete({
     where: { id },
   });
@@ -133,11 +133,11 @@ const handleDeleteReservation = async (id: number) => {
 };
 
 export {
-  handleGetAllReservations,
-  handleGetReservationById,
-  handleCreateReservation,
-  handleUpdateReservationStatus,
-  handleDeleteReservation,
-  handleGetReservationByUserId,
-  handleCancelReservationStatus,
+  getAllReservations as getAllReservationsService,
+  getReservationById as getReservationByIdService,
+  createReservation as createReservationService,
+  updateReservationStatus,
+  deleteReservation as deleteReservationService,
+  handleGetReservationByUserId as getReservationsByUserId,
+  cancelReservationStatus,
 };

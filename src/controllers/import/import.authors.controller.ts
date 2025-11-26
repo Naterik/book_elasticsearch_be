@@ -1,6 +1,6 @@
 // src/controllers/author.import.controller.ts
 import { Request, Response } from "express";
-import { handlePostAuthor } from "services/book/author.service";
+import { createAuthor } from "services/book/author.service";
 
 async function getJSON(url: string) {
   const r = await fetch(url, { headers: { "User-Agent": "LMS/1.0" } });
@@ -46,7 +46,7 @@ export const createAuthorFromOpenLibrary = async (
       const bio: string | undefined = pickBio(ol?.bio);
       if (!name)
         throw new Error(`Open Library author has no name (olid=${olid})`);
-      const author = await handlePostAuthor(name, bio);
+      const author = await createAuthor(name, bio);
       return {
         source: {
           olid,

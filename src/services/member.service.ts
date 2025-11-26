@@ -1,6 +1,6 @@
 import { prisma } from "configs/client";
 
-const handleCreateMemberCard = async (
+const createMemberCard = async (
   fullName: string,
   phone: string,
   address: string,
@@ -50,7 +50,7 @@ const handleCreateMemberCard = async (
   ]);
   return payment;
 };
-const handleCheckMemberCard = async (userId: number) => {
+const checkMemberCard = async (userId: number) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new Error("User not found");
   if (user.status === "SUSPENDED")
@@ -67,4 +67,4 @@ const handleCheckMemberCard = async (userId: number) => {
 
   return { user, policy };
 };
-export { handleCreateMemberCard, handleCheckMemberCard };
+export { createMemberCard as createMemberCardService, checkMemberCard };

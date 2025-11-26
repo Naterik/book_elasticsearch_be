@@ -1,21 +1,21 @@
 import { Request, Response } from "express";
 import {
-  handleCreateLoan,
-  handleGetAllLoans,
-  handleGetLoanById,
-  handleGetLoanReturnById,
-  handleRenewalLoans,
-  handleUpdateLoan,
-  handleDeleteLoan,
-  handleReturnBookApprove,
-} from "services/loan.services";
+  createLoanService,
+  getAllLoansService,
+  getLoanById,
+  getLoanReturnByIdService,
+  renewalLoan,
+  updateLoanService,
+  deleteLoanService,
+  approveReturnBook,
+} from "services/loan.service";
 
 const getAllLoans = async (req: Request, res: Response) => {
   try {
     const { page } = req.query;
     let currentPage: number = page ? +page : 1;
     if (currentPage <= 0) currentPage = 1;
-    const result = await handleGetAllLoans(+currentPage);
+    const result = await getAllLoansService(+currentPage);
     res.status(200).json({
       data: result,
     });
@@ -29,7 +29,7 @@ const getAllLoans = async (req: Request, res: Response) => {
 const createLoans = async (req: Request, res: Response) => {
   try {
     const { userId, bookId, dueDate } = req.body;
-    const result = await handleCreateLoan(+userId, +bookId, dueDate);
+    const result = await createLoanService(+userId, +bookId, dueDate);
     res.status(201).json({
       data: result,
     });
@@ -44,7 +44,7 @@ const createLoans = async (req: Request, res: Response) => {
 const renewalLoans = async (req: Request, res: Response) => {
   try {
     const { loanId, userId } = req.body;
-    const result = await handleRenewalLoans(+loanId, +userId);
+    const result = await renewalLoan(+loanId, +userId);
     res.status(200).json({
       data: result,
     });
@@ -59,7 +59,7 @@ const renewalLoans = async (req: Request, res: Response) => {
 const getOnLoanById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await handleGetLoanById(+id);
+    const result = await getLoanById(+id);
     res.status(200).json({
       data: result,
     });
@@ -73,7 +73,7 @@ const getOnLoanById = async (req: Request, res: Response) => {
 const getLoanReturnById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await handleGetLoanReturnById(+id);
+    const result = await getLoanReturnByIdService(+id);
     res.status(200).json({
       data: result,
     });
@@ -88,7 +88,7 @@ const getLoanReturnById = async (req: Request, res: Response) => {
 const getCheckBookIsLoan = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await handleGetLoanById(+id);
+    const result = await getLoanById(+id);
     res.status(200).json({
       data: result,
     });
@@ -103,7 +103,7 @@ const getCheckBookIsLoan = async (req: Request, res: Response) => {
 const updateLoan = async (req: Request, res: Response) => {
   try {
     const { loanId, userId, dueDate, status } = req.body;
-    const result = await handleUpdateLoan(+loanId, +userId, dueDate, status);
+    const result = await updateLoanService(+loanId, +userId, dueDate, status);
     res.status(200).json({
       data: result,
     });
@@ -118,7 +118,7 @@ const updateLoan = async (req: Request, res: Response) => {
 const deleteLoan = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await handleDeleteLoan(+id);
+    const result = await deleteLoanService(+id);
     res.status(200).json({
       data: result,
     });
@@ -133,7 +133,7 @@ const deleteLoan = async (req: Request, res: Response) => {
 const returnBookApprove = async (req: Request, res: Response) => {
   try {
     const { loanId, userId } = req.body;
-    const result = await handleReturnBookApprove(+loanId, +userId);
+    const result = await approveReturnBook(+loanId, +userId);
     res.status(200).json({
       data: result,
     });

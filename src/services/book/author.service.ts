@@ -1,7 +1,7 @@
 import { prisma } from "configs/client";
 import "dotenv/config";
 
-const handleGetAllAuthor = async (currentPage: number) => {
+const getAllAuthors = async (currentPage: number) => {
   const pageSize = process.env.ITEM_PER_PAGE || 10;
   const skip = (currentPage - 1) * +pageSize;
   const countTotalAuthors = await prisma.author.count();
@@ -23,7 +23,7 @@ const handleGetAllAuthor = async (currentPage: number) => {
   };
 };
 
-const handleCheckAuthorName = async (name: string) => {
+const checkAuthorNameExists = async (name: string) => {
   if (!name?.trim()) throw new Error("Author name is required");
   const exists = await prisma.author.findFirst({
     where: { name },
@@ -32,16 +32,16 @@ const handleCheckAuthorName = async (name: string) => {
   if (exists) throw new Error("Author name already exists!");
 };
 
-const handlePostAuthor = async (name: string, bio?: string) => {
-  await handleCheckAuthorName(name);
+const createAuthor = async (name: string, bio?: string) => {
+  await checkAuthorNameExists(name);
   return prisma.author.create({
     data: { name, bio: bio ?? null },
   });
 };
 
-const handlePutAuthor = async (id: string, name: string, bio?: string) => {
+const updateAuthor = async (id: string, name: string, bio?: string) => {
   if (name) {
-    await handleCheckAuthorName(name);
+    await checkAuthorNameExists(name);
   }
 
   return prisma.author.update({
@@ -53,7 +53,7 @@ const handlePutAuthor = async (id: string, name: string, bio?: string) => {
   });
 };
 
-const handleDeleteAuthor = async (id: string) => {
+const deleteAuthor = async (id: string) => {
   const used = await prisma.book.count({ where: { authorId: +id } });
   if (used > 0) {
     throw new Error(
@@ -64,7 +64,7 @@ const handleDeleteAuthor = async (id: string) => {
   return prisma.author.delete({ where: { id: +id } });
 };
 
-const handleCreateManyAuthors = async (
+const createMultipleAuthors = async (
   authors: { name: string; bio?: string }[]
 ) => {
   const createAuthors = await prisma.author.createMany({
@@ -75,9 +75,9 @@ const handleCreateManyAuthors = async (
 };
 
 export {
-  handleGetAllAuthor,
-  handlePostAuthor,
-  handlePutAuthor,
-  handleDeleteAuthor,
-  handleCreateManyAuthors,
+  getAllAuthors,
+  createAuthor,
+  updateAuthor,
+  deleteAuthor as deleteAuthorService,
+  createMultipleAuthors,
 };

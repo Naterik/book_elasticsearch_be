@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
 import {
-  handleGetAllPayments,
-  handleGetPaymentById,
-  handleCreatePaymentForFine,
-  handlePayFine,
-  handleUpdatePaymentStatus,
-  handleDeletePayment,
-  handlePaymentUpdateStatusMember,
-} from "services/payment.services";
+  getAllPaymentsService,
+  getPaymentByIdService,
+  createPaymentForFine,
+  payFine,
+  updatePaymentStatusService,
+  deletePaymentService,
+  updateMembershipPaymentStatus,
+} from "services/payment.service";
 
 const getAllPayments = async (req: Request, res: Response) => {
   try {
@@ -15,7 +15,7 @@ const getAllPayments = async (req: Request, res: Response) => {
     let currentPage: number = page ? +page : 1;
     if (currentPage <= 0) currentPage = 1;
 
-    const result = await handleGetAllPayments(currentPage);
+    const result = await getAllPaymentsService(currentPage);
     res.status(200).json({ data: result });
   } catch (err: any) {
     res.status(400).json({ message: err.message, data: null });
@@ -25,7 +25,7 @@ const getAllPayments = async (req: Request, res: Response) => {
 const createPaymentFine = async (req: Request, res: Response) => {
   try {
     const { paymentRef, fineId } = req.body;
-    const result = await handleCreatePaymentForFine(+fineId, paymentRef);
+    const result = await createPaymentForFine(+fineId, paymentRef);
     res.status(200).json({
       data: result,
     });
@@ -40,7 +40,7 @@ const createPaymentFine = async (req: Request, res: Response) => {
 const paymentUpdateStatusForFine = async (req: Request, res: Response) => {
   try {
     const { paymentRef, paymentStatus, paymentType } = req.body;
-    const result = await handlePayFine(paymentRef, paymentStatus, paymentType);
+    const result = await payFine(paymentRef, paymentStatus, paymentType);
     res.status(200).json({
       data: result,
     });
@@ -57,7 +57,7 @@ const paymentUpdateStatusUserForMember = async (
 ) => {
   try {
     const { paymentStatus, paymentRef, paymentType } = req.body;
-    const result = await handlePaymentUpdateStatusMember(
+    const result = await updateMembershipPaymentStatus(
       paymentStatus,
       paymentRef,
       paymentType
@@ -85,7 +85,7 @@ const updatePaymentStatus = async (req: Request, res: Response) => {
       });
     }
 
-    const result = await handleUpdatePaymentStatus(+id, status);
+    const result = await updatePaymentStatusService(+id, status);
     res.status(200).json({
       data: result,
       message: "Payment status updated successfully",
@@ -101,7 +101,7 @@ const updatePaymentStatus = async (req: Request, res: Response) => {
 const deletePayment = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await handleDeletePayment(+id);
+    const result = await deletePaymentService(+id);
     res.status(200).json({
       data: result,
       message: "Payment deleted successfully",
@@ -117,7 +117,7 @@ const deletePayment = async (req: Request, res: Response) => {
 const getPaymentById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await handleGetPaymentById(+id);
+    const result = await getPaymentByIdService(+id);
     res.status(200).json({
       data: result,
     });

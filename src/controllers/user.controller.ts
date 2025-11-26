@@ -1,21 +1,21 @@
 import { Request, Response } from "express";
 import {
-  handleDeleteUser,
-  handleGetAllUser,
-  handleGetUserById,
-  handlePostUser,
-  handlePutUser,
-} from "services/user.services";
+  deleteUserService,
+  getAllUsers,
+  getUserByIdService,
+  createUserService,
+  updateUserService,
+} from "services/user.service";
 import "dotenv/config";
 import { TUser, User } from "validation/user.schema";
 import { fromError } from "zod-validation-error";
-import { handleCreateMemberCard } from "services/member.services";
+import { createMemberCardService } from "services/member.service";
 const getAllUser = async (req: Request, res: Response) => {
   try {
     const { page } = req.query;
     let currentPage = page ? page : 1;
     if (+currentPage <= 0) currentPage = 1;
-    const result = await handleGetAllUser(+currentPage);
+    const result = await getAllUsers(+currentPage);
     res.status(200).json({
       data: result,
     });
@@ -30,7 +30,7 @@ const getAllUser = async (req: Request, res: Response) => {
 const getUserById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await handleGetUserById(+id);
+    const result = await getUserByIdService(+id);
     res.status(200).json({
       data: result,
     });
@@ -48,7 +48,7 @@ const postUser = async (req: Request, res: Response) => {
       req.body as TUser;
     User.omit({ id: true }).parse(req.body);
     const avatar = req?.file?.filename;
-    const result = await handlePostUser(
+    const result = await createUserService(
       username,
       password,
       fullName,
@@ -74,7 +74,7 @@ const putUser = async (req: Request, res: Response) => {
       req.body as TUser;
     User.parse(req.body);
     const avatar = req?.file?.filename ?? null;
-    const result = await handlePutUser(
+    const result = await updateUserService(
       id,
       username,
       fullName,
@@ -97,7 +97,7 @@ const putUser = async (req: Request, res: Response) => {
 const deleteUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await handleDeleteUser(id);
+    const result = await deleteUserService(id);
     res.status(200).json({
       data: result,
     });
@@ -112,7 +112,7 @@ const deleteUser = async (req: Request, res: Response) => {
 const createMemberCard = async (req: Request, res: Response) => {
   try {
     const { fullName, phone, address, userId, duration, paymentRef } = req.body;
-    const result = await handleCreateMemberCard(
+    const result = await createMemberCardService(
       fullName,
       phone,
       address,

@@ -1,8 +1,8 @@
 import { prisma } from "configs/client";
-import { handleCheckMemberCard } from "./member.services";
+import { checkMemberCard } from "./member.service";
 import "dotenv/config";
 
-const handleGetAllLoans = async (currentPage: number) => {
+const getAllLoans = async (currentPage: number) => {
   const pageSize = +process.env.ITEM_PER_PAGE;
   const skip = (currentPage - 1) * pageSize;
   const total = await prisma.loan.count({});
@@ -27,12 +27,8 @@ const handleGetAllLoans = async (currentPage: number) => {
   };
 };
 
-const handleCreateLoan = async (
-  userId: number,
-  bookId: number,
-  dueDate: string
-) => {
-  const { user, policy } = await handleCheckMemberCard(userId);
+const createLoan = async (userId: number, bookId: number, dueDate: string) => {
+  const { user, policy } = await checkMemberCard(userId);
   const now = new Date();
   const due =
     dueDate === "7"
@@ -122,7 +118,7 @@ const handleCreateLoan = async (
   });
 };
 
-const handleCheckBookIsLoan = async (userId: number) => {
+const checkBookIsLoaned = async (userId: number) => {
   const loan = await prisma.loan.findFirst({
     where: { userId, status: "ON_LOAN" },
     include: {
@@ -139,8 +135,8 @@ const handleCheckBookIsLoan = async (userId: number) => {
   return !!loan;
 };
 
-const handleRenewalLoans = async (loanId: number, userId: number) => {
-  const { user } = await handleCheckMemberCard(userId);
+const renewalLoan = async (loanId: number, userId: number) => {
+  const { user } = await checkMemberCard(userId);
   if (!user.cardNumber)
     throw new Error("User doesn't have permission to renewal !");
   return prisma.$transaction(async (tx) => {
@@ -188,7 +184,7 @@ const handleRenewalLoans = async (loanId: number, userId: number) => {
   });
 };
 
-const handleCheckLoanExist = async (loanId: number) => {
+const checkLoanExists = async (loanId: number) => {
   const loan = await prisma.loan.findFirst({
     where: { id: loanId },
     include: { bookCopy: { include: { books: true } } },
@@ -197,10 +193,10 @@ const handleCheckLoanExist = async (loanId: number) => {
   return loan;
 };
 
-const handleUpdateStatus = async (loanId: number, userId: number) => {
-  const { policy } = await handleCheckMemberCard(userId);
+const updateLoanStatus = async (loanId: number, userId: number) => {
+  const { policy } = await checkMemberCard(userId);
   const returnDate = new Date();
-  const loan = await handleCheckLoanExist(loanId);
+  const loan = await checkLoanExists(loanId);
   const daysLate = Math.ceil(
     (returnDate.getTime() - loan.dueDate.getTime()) / (1000 * 60 * 60 * 24)
   );
@@ -224,7 +220,7 @@ const handleUpdateStatus = async (loanId: number, userId: number) => {
   return result;
 };
 
-const handleGetLoanById = async (id: number) => {
+const getLoanById = async (id: number) => {
   const result = await prisma.loan.findMany({
     where: { userId: id, status: "ON_LOAN" },
     include: {
@@ -248,7 +244,7 @@ const handleGetLoanById = async (id: number) => {
   return result;
 };
 
-const handleGetLoanReturnById = async (id: number) => {
+const getLoanReturnById = async (id: number) => {
   const result = await prisma.loan.findMany({
     where: { userId: id, status: "RETURNED" },
     include: {
@@ -272,13 +268,13 @@ const handleGetLoanReturnById = async (id: number) => {
   return result;
 };
 
-const handleUpdateLoan = async (
+const updateLoan = async (
   loanId: number,
   userId: number,
   dueDate?: Date,
   status?: string
 ) => {
-  const loan = await handleCheckLoanExist(loanId);
+  const loan = await checkLoanExists(loanId);
 
   if (loan.userId !== userId) {
     throw new Error("You don't have permission to update this loan");
@@ -318,8 +314,8 @@ const handleUpdateLoan = async (
   return result;
 };
 
-const handleDeleteLoan = async (loanId: number) => {
-  const loan = await handleCheckLoanExist(loanId);
+const deleteLoan = async (loanId: number) => {
+  const loan = await checkLoanExists(loanId);
   if (loan.status === "ON_LOAN") {
     throw new Error(
       "Cannot delete an active loan. Please return the book first."
@@ -342,8 +338,8 @@ const handleDeleteLoan = async (loanId: number) => {
   });
 };
 
-const handleReturnBookApprove = async (loanId: number, userId: number) => {
-  const loan = await handleCheckLoanExist(loanId);
+const approveReturnBook = async (loanId: number, userId: number) => {
+  const loan = await checkLoanExists(loanId);
   const returnDate = new Date(); //
   const daysLate = Math.ceil(
     (returnDate.getTime() - loan.dueDate.getTime()) / (1000 * 60 * 60 * 24)
@@ -470,15 +466,15 @@ const handleReturnBookApprove = async (loanId: number, userId: number) => {
 };
 
 export {
-  handleGetAllLoans,
-  handleCreateLoan,
-  handleRenewalLoans,
-  handleUpdateStatus,
-  handleCheckLoanExist,
-  handleGetLoanById,
-  handleGetLoanReturnById,
-  handleCheckBookIsLoan,
-  handleUpdateLoan,
-  handleDeleteLoan,
-  handleReturnBookApprove,
+  getAllLoans as getAllLoansService,
+  createLoan as createLoanService,
+  renewalLoan,
+  updateLoanStatus,
+  checkLoanExists,
+  getLoanById,
+  getLoanReturnById as getLoanReturnByIdService,
+  checkBookIsLoaned,
+  updateLoan as updateLoanService,
+  deleteLoan as deleteLoanService,
+  approveReturnBook,
 };

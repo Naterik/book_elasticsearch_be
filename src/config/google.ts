@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { handleLoginWithGoogle } from "services/auth.services";
+import { loginWithGoogle as loginUserWithGoogle } from "services/auth.service";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -28,7 +28,7 @@ const loginWithGoogle = () => {
           if (!email) {
             return done(new Error("No email found from Google"), null);
           }
-          const user = await handleLoginWithGoogle(email, profile);
+          const user = await loginUserWithGoogle(email, profile);
 
           return done(null, user);
         } catch (error) {

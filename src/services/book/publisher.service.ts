@@ -1,7 +1,7 @@
 import { prisma } from "configs/client";
 import "dotenv/config";
 
-const handleGetAllPublisher = async (currentPage: number) => {
+const getAllPublishers = async (currentPage: number) => {
   const pageSize = process.env.ITEM_PER_PAGE || 10;
   const skip = (currentPage - 1) * +pageSize;
   const countTotalPublishers = await prisma.publisher.count();
@@ -23,7 +23,7 @@ const handleGetAllPublisher = async (currentPage: number) => {
   };
 };
 
-const handleCheckPublisherName = async (name: string) => {
+const checkPublisherNameExists = async (name: string) => {
   if (!name?.trim()) throw new Error("Publisher name is required");
   const exists = await prisma.publisher.findFirst({
     where: { name },
@@ -32,19 +32,19 @@ const handleCheckPublisherName = async (name: string) => {
   if (exists) throw new Error("Publisher name already exists!");
 };
 
-const handlePostPublisher = async (name: string, description?: string) => {
-  await handleCheckPublisherName(name);
+const createPublisher = async (name: string, description?: string) => {
+  await checkPublisherNameExists(name);
   return prisma.publisher.create({
     data: { name, description: description ?? "" },
   });
 };
 
-const handlePutPublisher = async (
+const updatePublisher = async (
   id: string,
   name: string,
   description?: string
 ) => {
-  await handleCheckPublisherName(name);
+  await checkPublisherNameExists(name);
 
   return prisma.publisher.update({
     where: { id: +id },
@@ -55,7 +55,7 @@ const handlePutPublisher = async (
   });
 };
 
-const handleDeletePublisher = async (id: string) => {
+const deletePublisher = async (id: string) => {
   const used = await prisma.book.count({ where: { publisherId: +id } });
   if (used > 0) {
     throw new Error(
@@ -67,9 +67,9 @@ const handleDeletePublisher = async (id: string) => {
 };
 
 export {
-  handleGetAllPublisher,
-  handleCheckPublisherName,
-  handlePostPublisher,
-  handlePutPublisher,
-  handleDeletePublisher,
+  getAllPublishers,
+  checkPublisherNameExists,
+  createPublisher,
+  updatePublisher,
+  deletePublisher as deletePublisherService,
 };

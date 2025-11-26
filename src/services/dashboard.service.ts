@@ -1,6 +1,6 @@
 import { prisma } from "configs/client";
 
-const handleStatisticDashboard = async () => {
+const getStatisticDashboard = async () => {
   const totalBooks = await prisma.book.count();
   const totalUsers = await prisma.user.count();
   const activeLoans = await prisma.loan.count();
@@ -15,4 +15,4 @@ const handleStatisticDashboard = async () => {
     totalSuccessfulPayments,
   };
 };
-export { handleStatisticDashboard };
+export { getStatisticDashboard };

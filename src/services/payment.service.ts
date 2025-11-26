@@ -1,8 +1,9 @@
 import { prisma } from "configs/client";
 import { v4 as uuidv4 } from "uuid";
 import "dotenv/config";
+import { TIMEOUT } from "node:dns";
 
-const handleGetAllPayments = async (currentPage: number) => {
+const getAllPayments = async (currentPage: number) => {
   const pageSize = process.env.ITEM_PER_PAGE || 10;
   const skip = (currentPage - 1) * +pageSize;
   const countTotalPayments = await prisma.payment.count();
@@ -48,7 +49,7 @@ const handleGetAllPayments = async (currentPage: number) => {
   };
 };
 
-const handlePaymentUpdateStatusMember = async (
+const updateMembershipPaymentStatus = async (
   paymentStatus: string,
   paymentRef: string,
   paymentType: string = "membership"
@@ -137,63 +138,66 @@ const handleCreatePaymentForFine = async (
   return { payment, fine };
 };
 
-const handlePayFine = async (
+const payFine = async (
   paymentRef: string,
   paymentStatus: string,
   paymentType: string = "fine"
 ) => {
-  return prisma.$transaction(async (tx) => {
-    const fine = await tx.payment.findFirst({
-      where: { paymentRef },
-      include: {
-        user: { select: { id: true, status: true } },
-      },
-    });
-    if (paymentStatus === "PAYMENT_FAILED") {
-      await prisma.notification.create({
+  return prisma.$transaction(
+    async (tx) => {
+      const fine = await tx.payment.findFirst({
+        where: { paymentRef },
+        include: {
+          user: { select: { id: true, status: true } },
+        },
+      });
+      if (paymentStatus === "PAYMENT_FAILED") {
+        await prisma.notification.create({
+          data: {
+            userId: fine.userId,
+            type: "FINED_FAILED",
+            content: `Fined created fail`,
+            sentAt: new Date(),
+          },
+        });
+        return { message: "PAYMENT_FAILED" };
+      }
+      const updatePayment = await tx.payment.update({
+        where: { fineId: fine.fineId },
+        data: {
+          status: paymentStatus,
+          paymentDate: new Date(),
+        },
+      });
+      const updateUserStatus = await tx.user.update({
+        where: { id: fine.userId },
+        data: {
+          status: "ACTIVE",
+        },
+      });
+      const updateFine = await tx.fine.update({
+        where: { id: fine.fineId },
+        data: {
+          isPaid: true,
+        },
+      });
+      const notification = await tx.notification.create({
         data: {
           userId: fine.userId,
-          type: "FINED_FAILED",
-          content: `Fined created fail`,
+          type: "PAYMENT_RECEIVED",
+          content: `Payment success ${fine.amount.toLocaleString(
+            "vi-VN"
+          )} VND for the"${fine.type}"`,
           sentAt: new Date(),
         },
       });
-      return { message: "PAYMENT_FAILED" };
-    }
-    const updatePayment = await tx.payment.update({
-      where: { fineId: fine.fineId },
-      data: {
-        status: paymentStatus,
-        paymentDate: new Date(),
-      },
-    });
-    const updateUserStatus = await tx.user.update({
-      where: { id: fine.userId },
-      data: {
-        status: "ACTIVE",
-      },
-    });
-    const updateFine = await tx.fine.update({
-      where: { id: fine.fineId },
-      data: {
-        isPaid: true,
-      },
-    });
-    const notification = await tx.notification.create({
-      data: {
-        userId: fine.userId,
-        type: "PAYMENT_RECEIVED",
-        content: `Payment success ${fine.amount.toLocaleString(
-          "vi-VN"
-        )} VND for the"${fine.type}"`,
-        sentAt: new Date(),
-      },
-    });
-    return updatePayment;
-  });
+      return updatePayment;
+    },
+    { timeout: 10000 }
+  );
 };
 
-const handleUpdatePaymentStatus = async (paymentId: number, status: string) => {
+const updatePaymentStatus = async (paymentId: number, status: string) => {
   // Validate status
   const validStatuses = ["PENDING", "COMPLETED", "PAYMENT_FAILED", "REFUNDED"];
   if (!validStatuses.includes(status)) {
@@ -350,11 +354,11 @@ const handleGetPaymentById = async (paymentId: number) => {
 };
 
 export {
-  handleGetAllPayments,
-  handlePaymentUpdateStatusMember,
-  handlePayFine,
-  handleCreatePaymentForFine,
-  handleUpdatePaymentStatus,
-  handleDeletePayment,
-  handleGetPaymentById,
+  getAllPayments as getAllPaymentsService,
+  updateMembershipPaymentStatus,
+  payFine,
+  handleCreatePaymentForFine as createPaymentForFine,
+  updatePaymentStatus as updatePaymentStatusService,
+  handleDeletePayment as deletePaymentService,
+  handleGetPaymentById as getPaymentByIdService,
 };

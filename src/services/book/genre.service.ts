@@ -1,11 +1,11 @@
 import { prisma } from "configs/client";
 import "dotenv/config";
 
-const handleGetAllGenreDisplay = () => {
+const getGenresForDisplay = () => {
   return prisma.genre.findMany({ select: { name: true, id: true } });
 };
 
-const handleGetAllGenre = async (currentPage: number) => {
+const getAllGenres = async (currentPage: number) => {
   const pageSize = process.env.ITEM_PER_PAGE || 10;
   const skip = (currentPage - 1) * +pageSize;
   const countTotalGenres = await prisma.genre.count();
@@ -27,7 +27,7 @@ const handleGetAllGenre = async (currentPage: number) => {
   };
 };
 
-const handleCheckGenreName = async (name: string) => {
+const checkGenreNameExists = async (name: string) => {
   if (!name?.trim()) throw new Error("Genre name is required");
   const exists = await prisma.genre.findFirst({
     where: { name },
@@ -36,18 +36,14 @@ const handleCheckGenreName = async (name: string) => {
   if (exists) throw new Error("Genre name already exists!");
 };
 
-const handlePostGenre = async (name: string, description: string) => {
-  await handleCheckGenreName(name);
+const createGenre = async (name: string, description: string) => {
+  await checkGenreNameExists(name);
   return prisma.genre.create({
     data: { name: name.trim(), description: description ?? "" },
   });
 };
 
-const handlePutGenre = async (
-  id: string,
-  name: string,
-  description?: string
-) => {
+const updateGenre = async (id: string, name: string, description?: string) => {
   return prisma.genre.update({
     where: { id: +id },
     data: {
@@ -57,15 +53,15 @@ const handlePutGenre = async (
   });
 };
 
-const handleDeleteGenre = async (id: string) => {
+const deleteGenre = async (id: string) => {
   return prisma.genre.delete({ where: { id: +id } });
 };
 
 export {
-  handleGetAllGenre,
-  handleCheckGenreName,
-  handlePostGenre,
-  handlePutGenre,
-  handleDeleteGenre,
-  handleGetAllGenreDisplay,
+  getAllGenres,
+  checkGenreNameExists,
+  createGenre,
+  updateGenre,
+  deleteGenre as deleteGenreService,
+  getGenresForDisplay,
 };

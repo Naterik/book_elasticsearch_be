@@ -1,17 +1,16 @@
 import { Request, Response } from "express";
 import {
-  getAllTrendingSearches,
-  getUserRecentSearches,
-  handleDeleteSearch,
-  handleClearAllSearches,
-  createUserRecentSearch,
-  mergeUserRecentSearches,
-} from "services/search.services";
-import { string } from "zod";
+  getRecentSearchesByUserId,
+  deleteSearch,
+  clearAllSearches,
+  addRecentSearch,
+  mergeRecentSearches,
+  getTrendingSearchesService,
+} from "services/search.service";
 
 const getTrendingSearches = async (req: Request, res: Response) => {
   try {
-    const trendingSearches = await getAllTrendingSearches();
+    const trendingSearches = await getTrendingSearchesService();
     res.status(200).json({
       data: trendingSearches,
       count: trendingSearches.length,
@@ -28,7 +27,7 @@ const getTrendingSearches = async (req: Request, res: Response) => {
 const getUserHistorySearches = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
-    const recentSearches = await getUserRecentSearches(+userId);
+    const recentSearches = await getRecentSearchesByUserId(+userId);
 
     res.status(200).json({
       data: recentSearches,
@@ -47,7 +46,7 @@ const postMergeUserRecentSearches = async (req: Request, res: Response) => {
   try {
     const { userId, terms } = req.body;
     console.log("term :>> ", terms);
-    const mergedSearches = await mergeUserRecentSearches(+userId, terms);
+    const mergedSearches = await mergeRecentSearches(+userId, terms);
     res.status(200).json({
       data: mergedSearches,
     });
@@ -63,7 +62,7 @@ const postMergeUserRecentSearches = async (req: Request, res: Response) => {
 const postUserRecentSearch = async (req: Request, res: Response) => {
   try {
     const { term, userId } = req.body;
-    const searchHistory = await createUserRecentSearch(userId, term);
+    const searchHistory = await addRecentSearch(userId, term);
 
     res.status(200).json({
       data: searchHistory,
@@ -79,7 +78,7 @@ const postUserRecentSearch = async (req: Request, res: Response) => {
 const deleteUserSearch = async (req: Request, res: Response) => {
   try {
     const { searchId } = req.params;
-    const result = await handleDeleteSearch(+searchId);
+    const result = await deleteSearch(+searchId);
 
     res.status(200).json({
       data: result,
@@ -102,7 +101,7 @@ const deleteAllUserSearches = async (req: Request, res: Response) => {
       });
     }
 
-    const result = await handleClearAllSearches(userId);
+    const result = await clearAllSearches(userId);
     res.status(200).json({
       data: result,
     });
@@ -116,7 +115,6 @@ const deleteAllUserSearches = async (req: Request, res: Response) => {
 
 export {
   getTrendingSearches,
-  getUserRecentSearches,
   deleteUserSearch,
   deleteAllUserSearches,
   postUserRecentSearch,

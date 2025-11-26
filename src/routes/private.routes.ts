@@ -179,7 +179,6 @@ privateRouter.put("/book-copies", putBookCopy);
 privateRouter.delete("/book-copies/:id", deleteBookCopy);
 privateRouter.get("/book-copies/elastic", findBookCopyLocation);
 
-// Search history routes
 privateRouter.get("/history-searches/full/:userId", getUserHistorySearches);
 privateRouter.post("/history-searches/recent", postUserRecentSearch);
 privateRouter.post("/history-searches/merge", postMergeUserRecentSearches);

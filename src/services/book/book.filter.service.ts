@@ -1,6 +1,6 @@
 import { prisma } from "configs/client";
 import { title } from "node:process";
-const handleFilterBook = async (
+const filterBooks = async (
   page: number,
   priceRange: string[],
   search: string,
@@ -106,4 +106,4 @@ const handleFilterBook = async (
   };
 };
 
-export { handleFilterBook };
+export { filterBooks };
