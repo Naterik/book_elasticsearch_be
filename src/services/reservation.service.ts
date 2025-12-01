@@ -45,7 +45,6 @@ const getAllReservations = async (currentPage: number) => {
       user: {
         omit: {
           password: true,
-          googleId: true,
           type: true,
         },
       },
@@ -80,7 +79,6 @@ const getReservationById = async (id: number) => {
       user: {
         omit: {
           password: true,
-          googleId: true,
           type: true,
         },
       },

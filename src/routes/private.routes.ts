@@ -26,7 +26,11 @@ import {
   putGenre,
 } from "controllers/book/genre.controller";
 import { createAuthorFromOpenLibrary } from "controllers/import/import.authors.controller";
-import { createBooksFromOpenLibrary } from "controllers/import/import.controller";
+import {
+  createBooksFromOpenLibrary,
+  autoImportBooksFromGenres,
+  autoImportBooksFromGenresList,
+} from "controllers/import/import.controller";
 
 import {
   deletePublisher,
@@ -80,7 +84,6 @@ import {
   postFined,
   putFined,
 } from "controllers/fine.controller";
-import { statisticDashboard } from "controllers/dashboard.controller";
 import { findBookCopyLocation } from "controllers/elastic/filter.elastic";
 import {
   cleanupNotifications,
@@ -97,10 +100,34 @@ import {
   postUserRecentSearch,
 } from "controllers/search.controller";
 
+import {
+  getChartForBookCopiesStatus,
+  getChartForGenrePreference,
+  getChartForLoanTrendsAndUserGrowth,
+  getChartForRevenue,
+  getChartForSearchTerms,
+  getSummary,
+} from "controllers/dashboard.controller";
+
 const privateRouter = express.Router();
 
 privateRouter.get("/account", fetchAccount);
-privateRouter.get("/dashboard/stats", statisticDashboard);
+
+privateRouter.get("/dashboard/summary", getSummary);
+privateRouter.get(
+  "/dashboard/chart/book-copies-status",
+  getChartForBookCopiesStatus
+);
+privateRouter.get(
+  "/dashboard/chart/loan-trends-user-growth",
+  getChartForLoanTrendsAndUserGrowth
+);
+privateRouter.get(
+  "/dashboard/chart/genre-preference",
+  getChartForGenrePreference
+);
+privateRouter.get("/dashboard/chart/revenue", getChartForRevenue);
+privateRouter.get("/dashboard/chart/search-terms", getChartForSearchTerms);
 
 privateRouter.get("/users", getAllUser);
 privateRouter.get("/users/:id", getUserById);
@@ -188,6 +215,11 @@ privateRouter.delete("/history-searches", deleteAllUserSearches);
 //openLibrary
 privateRouter.post("/authors/openlibrary", createAuthorFromOpenLibrary);
 privateRouter.post("/books/open", createBooksFromOpenLibrary);
+privateRouter.post("/books/auto-import/genres", autoImportBooksFromGenres);
+privateRouter.post(
+  "/books/auto-import/genres-list",
+  autoImportBooksFromGenresList
+);
 privateRouter.post("/worksid/open", postWorksIdOpen);
 //auth
 

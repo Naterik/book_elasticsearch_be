@@ -16,7 +16,6 @@ const getAllPayments = async (currentPage: number) => {
       user: {
         omit: {
           password: true,
-          googleId: true,
           type: true,
         },
       },
@@ -86,7 +85,6 @@ const updateMembershipPaymentStatus = async (
       },
       omit: {
         password: true,
-        googleId: true,
       },
     });
     const notification = await tx.notification.create({
@@ -229,7 +227,6 @@ const updatePaymentStatus = async (paymentId: number, status: string) => {
         user: {
           omit: {
             password: true,
-            googleId: true,
             type: true,
           },
         },
@@ -324,7 +321,6 @@ const handleGetPaymentById = async (paymentId: number) => {
       user: {
         omit: {
           password: true,
-          googleId: true,
           type: true,
         },
       },

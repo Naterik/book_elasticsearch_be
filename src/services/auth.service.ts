@@ -5,7 +5,7 @@ import { prisma } from "configs/client";
 import { checkUsernameExists } from "./user.service";
 import { AccessTokenPayload } from "src/types/jwt";
 
-const loginUser = async (username: string, password: string) => {
+const loginUserService = async (username: string, password: string) => {
   const user = await prisma.user.findUnique({
     where: { username },
     include: {
@@ -71,7 +71,7 @@ const createJWT = async (userId: number) => {
   return token;
 };
 
-const registerUser = async (
+const registerUserService = async (
   username: string,
   fullName: string,
   password: string
@@ -102,10 +102,8 @@ const loginWithGoogle = async (email: string, profile: any) => {
       fullName: profile.displayName,
       avatar: profile.photos?.[0]?.value,
       type: "GOOGLE",
-      googleId: profile.id,
     },
     create: {
-      googleId: profile.id,
       username: email,
       fullName: profile.displayName,
       avatar: profile.photos?.[0]?.value,
@@ -121,9 +119,4 @@ const loginWithGoogle = async (email: string, profile: any) => {
   return user;
 };
 
-export {
-  loginUser as loginUserService,
-  registerUser as registerUserService,
-  loginWithGoogle,
-  createJWT,
-};
+export { loginUserService, registerUserService, loginWithGoogle, createJWT };

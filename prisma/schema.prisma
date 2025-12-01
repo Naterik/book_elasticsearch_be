@@ -75,10 +75,11 @@ model User {
   avatar          String?   @db.VarChar(255)
   type            String    @default("SYSTEM")
   cardNumber      String?   @unique @db.VarChar(50) 
-  membershipStart DateTime?
+  membershipStart DateTime? 
   membershipEnd   DateTime?
   status          String    @default("PENDING_CARD") // ACTIVE, PENDING_CARD, INACTIVE, SUSPENDED
-  googleId        String?   @unique @db.VarChar(64)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
 
   roleId          Int
   role            Role      @relation(fields: [roleId], references: [id])

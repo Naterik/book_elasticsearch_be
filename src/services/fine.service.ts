@@ -11,7 +11,6 @@ const getAllFines = async (currentPage: number) => {
       user: {
         omit: {
           password: true,
-          googleId: true,
           type: true,
         },
       },
@@ -40,7 +39,6 @@ const getFinesByUserId = async (id: number) => {
       user: {
         omit: {
           password: true,
-          googleId: true,
           type: true,
         },
       },

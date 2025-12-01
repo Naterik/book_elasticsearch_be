@@ -1,179 +1,228 @@
 import { prisma } from "configs/client";
+import dayjs, { type ManipulateType } from "dayjs";
+import duration from "dayjs/plugin/duration";
+dayjs.extend(duration);
 
 const getDashboardSummary = async () => {
-  const today = new Date();
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const [monthlyRevenue, activeLoans, overdueLoans, pendingReservations] =
+    await Promise.all([
+      prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: {
+          paymentDate: {
+            gte: dayjs().startOf("month").toDate(),
+            lte: dayjs().endOf("month").toDate(),
+          },
+        },
+      }),
+      prisma.loan.count({
+        where: {
+          status: "ON_LOAN",
+        },
+      }),
+      prisma.loan.count({
+        where: {
+          status: "OVERDUE",
+        },
+      }),
+      prisma.reservation.count({
+        where: {
+          status: "PENDING",
+        },
+      }),
+    ]);
 
-  const [
-    totalBooks,
-    totalCopies,
-    totalUsers,
+  return {
+    monthlyRevenue,
     activeLoans,
     overdueLoans,
     pendingReservations,
-    pendingCardApprovals,
-    revenueResult,
-    topBorrowedBooks,
-  ] = await Promise.all([
-    // 1. KPI: Tổng quan
-    prisma.book.count(),
-    prisma.bookcopy.count(),
-    prisma.user.count(),
-    prisma.loan.count({ where: { status: "ON_LOAN" } }),
-    // Sách quá hạn
-    prisma.loan.count({
-      where: {
-        OR: [
-          { status: "OVERDUE" },
-          { status: "ON_LOAN", dueDate: { lt: today } },
-        ],
-      },
-    }),
-    prisma.reservation.count({ where: { status: "PENDING" } }),
-
-    // 2. Action: Cần xử lý
-    prisma.user.count({ where: { status: "PENDING_CARD" } }),
-
-    // 3. Revenue: Doanh thu tháng này
-    prisma.payment.aggregate({
-      _sum: { amount: true },
-      where: {
-        status: "PAYMENT_SUCCESS",
-        paymentDate: { gte: startOfMonth },
-      },
-    }),
-
-    // 4. Insight: Top sách được mượn nhiều nhất (Load luôn ở summary cho đẹp)
-    prisma.book.findMany({
-      select: {
-        id: true,
-        title: true,
-        borrowed: true,
-        image: true,
-        authors: { select: { name: true } },
-      },
-      orderBy: { borrowed: "desc" },
-      take: 5,
-    }),
-  ]);
-
-  return {
-    overview: {
-      totalBooks,
-      totalCopies,
-      totalUsers,
-      activeLoans,
-      overdueLoans,
-      pendingReservations,
-      monthlyRevenue: revenueResult._sum.amount || 0,
-    },
-    actions: {
-      pendingCardApprovals,
-    },
-    topBooks: topBorrowedBooks.map((book) => ({
-      id: book.id,
-      title: book.title,
-      author: book.authors.name,
-      borrowed: book.borrowed,
-      image: book.image,
-    })),
   };
 };
 
-const getDashboardCharts = async (period: string = "week") => {
-  const today = new Date();
-  const startDate = new Date(today);
-  startDate.setHours(0, 0, 0, 0); // Reset time to start of day
+const getRadarChartForBookCopiesStatus = async () => {
+  const bookCopiesStatus = await prisma.bookcopy.groupBy({
+    by: ["status"],
+    _count: {
+      status: true,
+    },
+  });
+  console.log("object :>> ", bookCopiesStatus);
+  return bookCopiesStatus;
+};
 
-  let groupBy: "day" | "month" = "day";
+const getAreaChartForLoanTrendsAndUserGrowth = async (
+  timeframe: "7d" | "1m" | "3m" | "6m" | "1y" = "1m"
+) => {
+  let startDate = dayjs();
+  let format = "YYYY-MM-DD";
 
-  switch (period) {
-    case "year":
-      startDate.setFullYear(today.getFullYear() - 1);
-      groupBy = "month";
+  switch (timeframe) {
+    case "7d":
+      startDate = startDate.subtract(7, "day");
       break;
-    case "month":
-      startDate.setDate(today.getDate() - 30);
-      groupBy = "day";
+    case "1m":
+      startDate = startDate.subtract(1, "month");
       break;
-    case "week":
-    default:
-      startDate.setDate(today.getDate() - 7);
-      groupBy = "day";
+    case "3m":
+      startDate = startDate.subtract(3, "month");
+      break;
+    case "6m":
+      startDate = startDate.subtract(6, "month");
+      break;
+    case "1y":
+      startDate = startDate.subtract(1, "year");
       break;
   }
 
-  const [recentLoans, genreStats] = await Promise.all([
-    // 1. Chart: Mượn sách theo thời gian
-    prisma.loan.findMany({
-      where: { loanDate: { gte: startDate } },
-      select: { loanDate: true },
-    }),
+  const start = startDate.startOf("day").toDate();
 
-    // 2. Chart: Top thể loại sách
-    prisma.genre.findMany({
-      select: {
-        name: true,
-        _count: { select: { books: true } },
+  const [loanTrends, userGrowth] = await Promise.all([
+    prisma.loan.groupBy({
+      by: ["loanDate"],
+      _count: { loanDate: true },
+      where: {
+        loanDate: { gte: start },
       },
-      orderBy: { books: { _count: "desc" } },
-      take: 5,
+      orderBy: { loanDate: "asc" },
+    }),
+    prisma.user.groupBy({
+      by: ["createdAt"],
+      _count: { createdAt: true },
+      where: {
+        createdAt: { gte: start },
+      },
+      orderBy: { createdAt: "asc" },
     }),
   ]);
-
-  // Xử lý dữ liệu biểu đồ
-  const loansMap = new Map<string, number>();
-
-  if (groupBy === "day") {
-    // Fill days
-    const loopDate = new Date(startDate);
-    while (loopDate <= today) {
-      const dateStr = loopDate.toISOString().split("T")[0]; // YYYY-MM-DD
-      loansMap.set(dateStr, 0);
-      loopDate.setDate(loopDate.getDate() + 1);
-    }
-
-    recentLoans.forEach((loan) => {
-      const dateStr = loan.loanDate.toISOString().split("T")[0];
-      if (loansMap.has(dateStr)) {
-        loansMap.set(dateStr, (loansMap.get(dateStr) || 0) + 1);
-      }
-    });
-  } else {
-    // Fill months for year view (Last 12 months)
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-        2,
-        "0"
-      )}`;
-      loansMap.set(monthStr, 0);
-    }
-
-    recentLoans.forEach((loan) => {
-      const d = loan.loanDate;
-      const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-        2,
-        "0"
-      )}`;
-      if (loansMap.has(monthStr)) {
-        loansMap.set(monthStr, (loansMap.get(monthStr) || 0) + 1);
-      }
-    });
+  const mergedData = new Map();
+  let currentDate = startDate;
+  const now = dayjs();
+  while (currentDate.isBefore(now) || currentDate.isSame(now, "day")) {
+    const dateStr = currentDate.format(format);
+    mergedData.set(dateStr, { date: dateStr, loan: 0, user: 0 });
+    currentDate = currentDate.add(1, "day");
   }
 
-  const loansTrend = Array.from(loansMap.entries()).map(([date, count]) => ({
-    date,
-    count,
-  }));
+  loanTrends.forEach((item) => {
+    const dateStr = dayjs(item.loanDate).format(format);
+    if (mergedData.has(dateStr)) {
+      mergedData.get(dateStr).loan += item._count.loanDate;
+    }
+  });
 
-  return {
-    loansTrend,
-    topGenres: genreStats.map((g) => ({
+  userGrowth.forEach((item) => {
+    if (item.createdAt) {
+      const dateStr = dayjs(item.createdAt).format(format);
+      if (mergedData.has(dateStr)) {
+        mergedData.get(dateStr).user += item._count.createdAt;
+      }
+    }
+  });
+
+  return Array.from(mergedData.values());
+};
+
+const getDonutChartForGenrePreference = async () => {
+  // Lấy tất cả thể loại và sách của chúng
+  const genres = await prisma.genre.findMany({
+    select: {
+      name: true,
+      books: {
+        select: {
+          books: {
+            select: {
+              borrowed: true, // Lấy số lượt mượn của từng cuốn sách
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // Tính tổng lượt mượn cho mỗi thể loại
+  const sortedData = genres
+    .map((g) => ({
       name: g.name,
-      count: g._count.books,
-    })),
-  };
+      value: g.books.reduce((sum, item) => sum + item.books.borrowed, 0),
+    }))
+    .filter((item) => item.value > 0) // Chỉ lấy thể loại có lượt mượn
+    .sort((a, b) => b.value - a.value); // Sắp xếp giảm dần
+
+  // Lấy Top 9
+  const top9 = sortedData.slice(0, 9);
+
+  // Tính tổng phần còn lại (Others)
+  const othersValue = sortedData
+    .slice(9)
+    .reduce((sum, item) => sum + item.value, 0);
+
+  if (othersValue > 0) {
+    top9.push({ name: "Different", value: othersValue });
+  }
+
+  return top9;
 };
 
-export { getDashboardSummary, getDashboardCharts };
+const getStackedBarChartForRevenue = async () => {
+  const startDate = dayjs().subtract(6, "month").startOf("month").toDate();
+
+  const payments = await prisma.payment.findMany({
+    where: {
+      paymentDate: { gte: startDate },
+    },
+    select: {
+      paymentDate: true,
+      type: true,
+      amount: true,
+    },
+  });
+
+  // Group theo tháng và loại
+  const grouped = new Map();
+
+  payments.forEach((p) => {
+    const month = dayjs(p.paymentDate).format("YYYY-MM");
+    if (!grouped.has(month)) {
+      grouped.set(month, {
+        name: month,
+        MEMBERSHIP_FEE: 0,
+        FINE_PAYMENT: 0,
+      });
+    }
+    const entry = grouped.get(month);
+    if (p.type === "MEMBERSHIP_FEE") entry.MEMBERSHIP_FEE += p.amount;
+    else if (p.type === "FINE_PAYMENT") entry.FINE_PAYMENT += p.amount;
+  });
+
+  return Array.from(grouped.values()).sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+};
+
+const getHorizontalBarChartForSearchTerms = async () => {
+  const topSearches = await prisma.historysearch.groupBy({
+    by: ["term"],
+    _count: { term: true },
+    orderBy: {
+      _count: {
+        term: "desc",
+      },
+    },
+    take: 10,
+  });
+
+  return topSearches.map((item) => ({
+    name: item.term,
+    value: item._count.term,
+  }));
+};
+
+export {
+  getDashboardSummary,
+  getRadarChartForBookCopiesStatus,
+  getAreaChartForLoanTrendsAndUserGrowth,
+  getDonutChartForGenrePreference,
+  getStackedBarChartForRevenue,
+  getHorizontalBarChartForSearchTerms,
+};

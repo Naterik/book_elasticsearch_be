@@ -56,26 +56,26 @@ const addRecentSearch = async (userId: number, term: string) => {
 };
 
 const mergeRecentSearches = async (userId: number, terms: string[]) => {
-  const uniqueTerms = [...new Set(terms)]; //skip the duplicates
-  const result = await Promise.all(
-    uniqueTerms.map((term) =>
-      prisma.historysearch.upsert({
-        where: {
-          userId_term: {
-            userId,
-            term,
-          },
-        },
-        create: {
+  const uniqueTerms = [...new Set(terms)];
+  const result = [];
+  for (const term of uniqueTerms) {
+    const upserted = await prisma.historysearch.upsert({
+      where: {
+        userId_term: {
           userId,
           term,
         },
-        update: {
-          updatedAt: new Date(),
-        },
-      })
-    )
-  );
+      },
+      create: {
+        userId,
+        term,
+      },
+      update: {
+        updatedAt: new Date(),
+      },
+    });
+    result.push(upserted);
+  }
   return result;
 };
 
@@ -84,11 +84,15 @@ const deleteSearch = async (searchId: number) => {
     where: { id: searchId },
   });
 
-  const deleteSearch = await prisma.historysearch.delete({
-    where: { id: searchId, userId: search.userId },
+  if (!search) {
+    throw new Error("Search history not found");
+  }
+
+  const deletedSearch = await prisma.historysearch.delete({
+    where: { id: searchId },
   });
 
-  return deleteSearch;
+  return deletedSearch;
 };
 
 const clearAllSearches = async (userId: number) => {

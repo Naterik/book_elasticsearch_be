@@ -11,7 +11,6 @@ const handleGetAllFines = async (currentPage: number) => {
       user: {
         omit: {
           password: true,
-          googleId: true,
           type: true,
         },
       },
@@ -40,7 +39,6 @@ const handleGetFinedByUserId = async (id: number) => {
       user: {
         omit: {
           password: true,
-          googleId: true,
           type: true,
         },
       },

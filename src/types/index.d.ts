@@ -19,5 +19,7 @@ declare global {
     priority?: "HIGH" | "NORMAL" | "LOW";
     relatedId?: number;
   }
+
+  type Timeframe = "7d" | "1m" | "3m" | "6m" | "1y";
 }
 export {};

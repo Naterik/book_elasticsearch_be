@@ -235,7 +235,6 @@ const getLoanById = async (id: number) => {
       user: {
         omit: {
           password: true,
-          googleId: true,
           type: true,
         },
       },
@@ -259,7 +258,6 @@ const getLoanReturnById = async (id: number) => {
       user: {
         omit: {
           password: true,
-          googleId: true,
           type: true,
         },
       },
@@ -304,7 +302,6 @@ const updateLoan = async (
       user: {
         omit: {
           password: true,
-          googleId: true,
           type: true,
         },
       },
