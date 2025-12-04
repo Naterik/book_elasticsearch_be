@@ -246,6 +246,13 @@ const createBooksIndex = async (req: Request, res: Response) => {
 
               filter: ["lowercase"],
             },
+
+            // Analyzer mới cho exact prefix match
+            prefix_analyzer: {
+              type: "custom",
+              tokenizer: "keyword",
+              filter: ["lowercase"],
+            },
           },
 
           tokenizer: {
@@ -379,6 +386,11 @@ const createBooksIndex = async (req: Request, res: Response) => {
 
             fields: {
               keyword: { type: "keyword", ignore_above: 256 },
+              prefix: {
+                type: "text",
+                analyzer: "prefix_analyzer",
+                search_analyzer: "prefix_analyzer",
+              },
             },
           },
 

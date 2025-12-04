@@ -10,6 +10,7 @@
     "outDir": "dist",
     "rootDir": "src",
     "baseUrl": ".",
+    "typeRoots": ["./node_modules/@types", "./src/types"],
     "paths": {
       "configs/*": ["./src/config/*"],
       "controllers/*": ["./src/controllers/*"],
@@ -18,7 +19,8 @@
       "services/*": ["./src/services/*"],
       "views/*": ["./src/views/*"],
       "middleware/*": ["./src/middleware/*"],
-      "validation/*": ["./src/validation/*"]
+      "validation/*": ["./src/validation/*"],
+      "utils/*": ["./src/utils/*"]
     }
   }
 }

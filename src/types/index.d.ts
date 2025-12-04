@@ -11,15 +11,16 @@ declare global {
       role: {};
     }
   }
-  interface INotificationPayload {
-    userId: number;
-    type: "LOAN" | "RESERVATION" | "FINE" | "PAYMENT" | "SYSTEM";
-    title: string;
-    content: string;
-    priority?: "HIGH" | "NORMAL" | "LOW";
-    relatedId?: number;
-  }
-
-  type Timeframe = "7d" | "1m" | "3m" | "6m" | "1y";
 }
+
+export interface INotificationPayload {
+  userId: number;
+  type: "LOAN" | "RESERVATION" | "FINE" | "PAYMENT" | "SYSTEM";
+  title: string;
+  content: string;
+  priority?: "HIGH" | "NORMAL" | "LOW";
+  relatedId?: number;
+}
+export type Timeframe = "7d" | "1m" | "3m" | "6m";
+
 export {};

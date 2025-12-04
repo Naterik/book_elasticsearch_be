@@ -24,6 +24,7 @@ import {
   getAllGenreDisplay,
   postGenre,
   putGenre,
+  cleanupGenresController,
 } from "controllers/book/genre.controller";
 import { createAuthorFromOpenLibrary } from "controllers/import/import.authors.controller";
 import {
@@ -102,11 +103,12 @@ import {
 
 import {
   getChartForBookCopiesStatus,
-  getChartForGenrePreference,
-  getChartForLoanTrendsAndUserGrowth,
+  getChartForLoanTrends,
   getChartForRevenue,
   getChartForSearchTerms,
+  getPendingReservations,
   getSummary,
+  getUserWithCard,
 } from "controllers/dashboard.controller";
 
 const privateRouter = express.Router();
@@ -118,16 +120,12 @@ privateRouter.get(
   "/dashboard/chart/book-copies-status",
   getChartForBookCopiesStatus
 );
-privateRouter.get(
-  "/dashboard/chart/loan-trends-user-growth",
-  getChartForLoanTrendsAndUserGrowth
-);
-privateRouter.get(
-  "/dashboard/chart/genre-preference",
-  getChartForGenrePreference
-);
+
+privateRouter.get("/dashboard/chart/loan-trends", getChartForLoanTrends);
 privateRouter.get("/dashboard/chart/revenue", getChartForRevenue);
 privateRouter.get("/dashboard/chart/search-terms", getChartForSearchTerms);
+privateRouter.get("/dashboard/pending-reservations", getPendingReservations);
+privateRouter.get("/dashboard/user-with-card", getUserWithCard);
 
 privateRouter.get("/users", getAllUser);
 privateRouter.get("/users/:id", getUserById);
@@ -152,6 +150,8 @@ privateRouter.post("/genres", postGenre);
 privateRouter.put("/genres", putGenre);
 privateRouter.delete("/genres/:id", deleteGenre);
 privateRouter.get("/genres/display", getAllGenreDisplay);
+
+privateRouter.get("/genres/cleanup", cleanupGenresController);
 
 privateRouter.get("/books/recommend/:id", getRecommendedBooks);
 privateRouter.post("/books", fileUploadMiddleware("image", "books"), postBook);
@@ -222,5 +222,9 @@ privateRouter.post(
 );
 privateRouter.post("/worksid/open", postWorksIdOpen);
 //auth
+
+import { postSeedData } from "controllers/seed.controller";
+
+privateRouter.post("/seed/loans", postSeedData);
 
 export default privateRouter;

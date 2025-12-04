@@ -19,12 +19,75 @@ const filterElastic = async (req: Request, res: Response) => {
     let sort = [];
 
     if (search && (search as string).trim().length > 0) {
+      const searchWords = (search as string).trim().split(/\s+/);
+      const wordCount = searchWords.length;
+
       must = [
         {
-          multi_match: {
-            query: search as string | null,
-            type: "best_fields",
-            fields: ["authors.name.keyword", "title^2"],
+          bool: {
+            should: [
+              // 1. HIGHEST priority: Exact match (toàn bộ title khớp chính xác)
+              {
+                term: {
+                  "title.keyword": {
+                    value: search as string,
+                    boost: 1000,
+                  },
+                },
+              },
+              // 2. Very high priority: Exact phrase match (case-insensitive)
+              {
+                match_phrase: {
+                  title: {
+                    query: search as string,
+                    boost: 500,
+                  },
+                },
+              },
+              // 3. High priority: All words must match (AND operator)
+              {
+                match: {
+                  title: {
+                    query: search as string,
+                    operator: "and",
+                    boost: 100,
+                  },
+                },
+              },
+              // 4. Medium priority: Title starts with search query
+              {
+                match_phrase_prefix: {
+                  title: {
+                    query: search as string,
+                    boost: 50,
+                  },
+                },
+              },
+              // 5. Lower priority: Author exact phrase
+              {
+                match_phrase: {
+                  "authors.name": {
+                    query: search as string,
+                    boost: 20,
+                  },
+                },
+              },
+              // 6. Lowest priority: Fuzzy match (chỉ khi có > 5 từ)
+              ...(wordCount > 5
+                ? [
+                    {
+                      multi_match: {
+                        query: search as string,
+                        fields: ["title^2", "authors.name"],
+                        fuzziness: "1",
+                        boost: 1,
+                      },
+                    },
+                  ]
+                : []),
+            ],
+            // Yêu cầu ít nhất 1 trong các điều kiện trên phải match
+            minimum_should_match: 1,
           },
         },
       ];

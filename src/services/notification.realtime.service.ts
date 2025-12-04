@@ -1,16 +1,6 @@
 import { prisma } from "configs/client";
 import { getWebSocketManager } from "configs/websocket";
-
-/**
- * Interface cho notification payload
- */
-interface INotificationPayload {
-  userId: number;
-  type: string;
-  title: string;
-  content: string;
-  priority?: "LOW" | "NORMAL" | "HIGH";
-}
+import { INotificationPayload } from "src/types";
 
 export const addNotificationRealtime = async (
   payload: INotificationPayload

@@ -414,10 +414,9 @@ async function processWork(workId: string) {
         bookId: book.id,
         year_published: validDate.getFullYear(),
         copyNumber: `CP-${book.id}-${i + 1}`,
-        status: getRandomStatus(),
+        status: "AVAILABLE",
         location: getNextLocation(),
       }));
-
       await tx.bookcopy.createMany({ data: copiesData });
       return book;
     });

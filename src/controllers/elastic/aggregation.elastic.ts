@@ -49,27 +49,72 @@ const suggestElastic = async (req: Request, res: Response) => {
 
     if (!prefix) return res.status(200).json({ data: [] });
 
+    // Strategy: Ưu tiên exact match và prefix match cao nhất
     const results: any = await client.search({
       index,
-      size: 0,
-      suggest: {
-        // Tên key này có thể đặt tùy ý, ví dụ "global_suggestion"
-        global_suggestion: {
-          prefix,
-          completion: {
-            field: "suggest", // Tên field chung chúng ta đã tạo ở Bước 1
-            size: limit,
-            skip_duplicates: true,
-            fuzzy: { fuzziness: "AUTO" },
-          },
+      size: limit,
+      query: {
+        bool: {
+          should: [
+            // 1. HIGHEST: Exact title match
+            {
+              term: {
+                "title.keyword": {
+                  value: prefix,
+                  boost: 1000,
+                },
+              },
+            },
+            // 2. Very High: Exact phrase match
+            {
+              match_phrase: {
+                title: {
+                  query: prefix,
+                  boost: 500,
+                },
+              },
+            },
+            // 3. High: Title starts with prefix
+            {
+              match_phrase_prefix: {
+                title: {
+                  query: prefix,
+                  boost: 100,
+                },
+              },
+            },
+            // 4. Medium: Prefix query
+            {
+              prefix: {
+                "title.prefix": {
+                  value: prefix.toLowerCase(),
+                  boost: 50,
+                },
+              },
+            },
+            // 5. Lower: Author name starts with prefix
+            {
+              match_phrase_prefix: {
+                "authors.name": {
+                  query: prefix,
+                  boost: 20,
+                },
+              },
+            },
+          ],
+          minimum_should_match: 1,
         },
+      },
+      _source: ["title", "authors.name", "id"],
+      collapse: {
+        field: "title.keyword",
       },
     });
 
-    const suggestions = (
-      results.suggest?.global_suggestion?.[0]?.options || []
-    ).map((o: any) => ({
-      text: o.text,
+    const suggestions = (results.hits?.hits || []).map((hit: any) => ({
+      text: hit._source.title,
+      score: hit._score,
+      author: hit._source.authors?.name || "",
     }));
 
     if (suggestions.length === 0) {

@@ -6,6 +6,7 @@ import {
   getGenresForDisplay,
   createGenre,
   updateGenre,
+  performFullGenreCleanup,
 } from "services/book/genre.service";
 import { Genre, TGenre } from "validation/genre.schema";
 
@@ -64,4 +65,22 @@ const deleteGenre = async (req: Request, res: Response) => {
   }
 };
 
-export { getAllGenre, postGenre, putGenre, deleteGenre, getAllGenreDisplay };
+const cleanupGenresController = async (req: Request, res: Response) => {
+  try {
+    console.log("📌 Genre cleanup API called");
+    const result = await performFullGenreCleanup();
+    res.status(200).json({ data: result });
+  } catch (err: any) {
+    console.error("❌ Error in cleanup controller:", err);
+    res.status(500).json({ message: err.message, data: null });
+  }
+};
+
+export {
+  getAllGenre,
+  postGenre,
+  putGenre,
+  deleteGenre,
+  getAllGenreDisplay,
+  cleanupGenresController, // ⭐ API duy nhất để cleanup
+};
