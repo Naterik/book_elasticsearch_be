@@ -5,6 +5,95 @@ import { getAllBooks } from "services/book/book.service";
 
 const booksIndex = process.env.INDEX_N_GRAM_BOOK!;
 const bookCopiesIndex = process.env.INDEX_BOOKCOPY!;
+
+// Batch processing constants
+const BATCH_SIZE = 500; // Giảm kích thước batch để tránh quá tải
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000; // ms
+
+// Utility function: Sleep
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Utility function: Bulk index với retry logic
+const bulkIndexWithRetry = async (
+  operations: any[],
+  indexName: string,
+  retryCount = 0
+): Promise<any> => {
+  try {
+    const response = await client.bulk({
+      refresh: true,
+      operations,
+    });
+    return response;
+  } catch (error: any) {
+    if (
+      retryCount < MAX_RETRIES &&
+      error.message?.includes("es_rejected_execution_exception")
+    ) {
+      const delay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
+      console.log(
+        `Bulk indexing failed, retrying in ${delay}ms (attempt ${
+          retryCount + 1
+        }/${MAX_RETRIES})...`
+      );
+      await sleep(delay);
+      return bulkIndexWithRetry(operations, indexName, retryCount + 1);
+    }
+    throw error;
+  }
+};
+
+// Utility function: Process documents in batches
+const processBatch = async (
+  documents: any[],
+  indexName: string,
+  documentMapper: (doc: any) => any = (doc) => doc
+): Promise<number> => {
+  let totalIndexed = 0;
+
+  for (let i = 0; i < documents.length; i += BATCH_SIZE) {
+    const batch = documents.slice(i, i + BATCH_SIZE);
+    console.log(
+      `Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(
+        documents.length / BATCH_SIZE
+      )} (${batch.length} documents)`
+    );
+
+    const operations = batch.flatMap((doc) => [
+      { index: { _index: indexName, _id: String(doc.id) } },
+      documentMapper(doc),
+    ]);
+
+    try {
+      const bulkResponse = await bulkIndexWithRetry(operations, indexName);
+
+      if (bulkResponse.errors) {
+        console.warn(
+          `Some documents failed to index in batch, but continuing...`
+        );
+      }
+
+      totalIndexed += batch.length;
+      console.log(
+        `Successfully indexed batch: ${totalIndexed}/${documents.length}`
+      );
+
+      // Add delay between batches để Elasticsearch kịp xử lý
+      if (i + BATCH_SIZE < documents.length) {
+        await sleep(500);
+      }
+    } catch (error: any) {
+      console.error(
+        `Failed to index batch ${Math.floor(i / BATCH_SIZE) + 1}:`,
+        error.message
+      );
+      throw error;
+    }
+  }
+
+  return totalIndexed;
+};
 const createBookCopiesIndex = async (req: Request, res: Response) => {
   try {
     console.log("Creating book_copies index with ngram tokenizer...");
@@ -19,22 +108,13 @@ const createBookCopiesIndex = async (req: Request, res: Response) => {
       console.log(`Fetched ${bookCopies.length} book copies for update`);
 
       if (bookCopies.length > 0) {
-        const operations = bookCopies.flatMap((doc) => [
-          { index: { _index: bookCopiesIndex, _id: String(doc.id) } },
-          doc,
-        ]);
-
-        const bulkResponse = await client.bulk({
-          refresh: true,
-          operations,
-        });
+        const totalIndexed = await processBatch(bookCopies, bookCopiesIndex);
 
         return res.status(200).json({
           message:
             "Book copies index updated successfully (existing data preserved)",
           index: bookCopiesIndex,
-          documentsUpdated: bookCopies.length,
-          bulkResponse,
+          documentsUpdated: totalIndexed,
         });
       }
     }
@@ -170,27 +250,14 @@ const createBookCopiesIndex = async (req: Request, res: Response) => {
     const bookCopies = await getAllBookCopies();
     console.log(`Fetched ${bookCopies.length} book copies`);
 
-    // Bulk index the documents
+    // Bulk index the documents with batch processing
     if (bookCopies.length > 0) {
-      const operations = bookCopies.flatMap((doc) => [
-        { index: { _index: bookCopiesIndex, _id: String(doc.id) } },
-        doc,
-      ]);
-
-      const bulkResponse = await client.bulk({
-        refresh: true,
-        operations,
-      });
-
-      console.log(
-        `Bulk indexed ${bookCopies.length} documents, errors: ${bulkResponse.errors}`
-      );
+      const totalIndexed = await processBatch(bookCopies, bookCopiesIndex);
 
       return res.status(200).json({
         message: "Book copies index created and populated successfully",
         index: bookCopiesIndex,
-        documentsIndexed: bookCopies.length,
-        bulkResponse,
+        documentsIndexed: totalIndexed,
       });
     } else {
       return res.status(200).json({
@@ -408,35 +475,24 @@ const createBooksIndex = async (req: Request, res: Response) => {
     console.log(`Fetched ${books.length} books`);
 
     if (books.length > 0) {
-      const operations = books.flatMap((doc) => {
+      const totalIndexed = await processBatch(books, booksIndex, (doc) => {
         const suggestInput = [doc.title, doc.authors?.name].filter(
           (item) => item
         );
-        return [
-          { index: { _index: booksIndex, _id: String(doc.id) } },
-          {
-            ...doc,
-            suggest: suggestInput,
-          },
-        ];
+        return {
+          ...doc,
+          suggest: suggestInput,
+        };
       });
-
-      const bulkResponse = await client.bulk({
-        refresh: true,
-        operations,
-      });
-
-      if (bulkResponse.errors) {
-        console.error("Bulk indexing had errors");
-      }
 
       return res.status(200).json({
+        message: "Books index created and populated successfully",
         index: booksIndex,
-        documentsIndexed: books.length,
-        bulkResponse,
+        documentsIndexed: totalIndexed,
       });
     } else {
       return res.status(200).json({
+        message: "Books index created successfully but no documents to index",
         index: booksIndex,
       });
     }

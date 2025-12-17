@@ -1,6 +1,16 @@
 import { client } from "configs/elastic";
 import { Request, Response } from "express";
 
+type IFilterBookInput = {
+  publisherId?: string;
+  search?: string;
+  priceRange?: number[];
+  genres?: string;
+  yearRange?: number[];
+  language?: string;
+  page?: number;
+  order?: string;
+};
 const index = process.env.INDEX_N_GRAM_BOOK!;
 const filterElastic = async (req: Request, res: Response) => {
   try {
@@ -13,7 +23,7 @@ const filterElastic = async (req: Request, res: Response) => {
       language,
       page,
       order,
-    } = req.query;
+    } = req.query as IFilterBookInput;
     let must = [];
     let filter = [];
     let sort = [];
@@ -229,32 +239,61 @@ const filterElastic = async (req: Request, res: Response) => {
   }
 };
 
-const findBookCopyLocation = async (req: Request, res: Response) => {
+type IFilterBookcopyInput = {
+  page?: number;
+  search?: string;
+  yearPublished?: number;
+  status?: string;
+};
+const filterElasticBookCopy = async (req: Request, res: Response) => {
   try {
-    const indexc = process.env.INDEX_C;
-    const { page, search } = req.query;
+    const index_c = process.env.INDEX_BOOKCOPY;
+    const { page, search, yearPublished, status } =
+      req.query as IFilterBookcopyInput;
     const pageSize = +process.env.ITEM_PER_PAGE;
     let currentPage = +page ? +page : 1;
     const skip = (currentPage - 1) * pageSize;
 
     // Build query: show all if no search, otherwise search by location
-    let query: any = {};
-    if (search && (search as string).trim().length > 0) {
-      query = {
-        multi_match: {
-          query: search as string,
-          fields: ["location", "books.title", "copyNumber"],
+    let must = [];
+    let filter = [];
+    if (search && search.trim().length > 0) {
+      must = [
+        {
+          multi_match: {
+            query: search,
+            fields: ["location", "books.title^2", "copyNumber"],
+          },
         },
-      };
-    } else {
-      // Show all book copies if no search query provided
-      query = {
-        match_all: {},
-      };
+      ];
     }
 
+    if (yearPublished) {
+      filter = [
+        {
+          term: { year_published: yearPublished },
+        },
+      ];
+    }
+
+    if (status) {
+      filter = [
+        ...filter,
+        {
+          term: { status: status },
+        },
+      ];
+    }
+
+    const query = {
+      bool: {
+        must: must.length > 0 ? must : [{ match_all: {} }],
+        ...(filter.length > 0 ? { filter: filter } : {}),
+      },
+    };
+
     const results: any = await client.search({
-      index: indexc,
+      index: index_c,
       size: pageSize,
       from: skip,
       query,
@@ -265,7 +304,7 @@ const findBookCopyLocation = async (req: Request, res: Response) => {
     const total: number = results.hits.total.value;
 
     // Return empty result set with pagination if no results, instead of throwing error
-    if (total === 0) {
+    if (total === 0 || results.hits.hits.length === 0) {
       return res.status(200).json({
         data: {
           result: [],
@@ -308,4 +347,4 @@ const findBookCopyLocation = async (req: Request, res: Response) => {
   }
 };
 
-export { filterElastic, findBookCopyLocation };
+export { filterElastic, filterElasticBookCopy };

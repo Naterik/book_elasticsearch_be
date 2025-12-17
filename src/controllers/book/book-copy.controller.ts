@@ -5,6 +5,8 @@ import {
   getBookCopies,
   createBookCopy,
   updateBookCopy,
+  getBookCopyStatusById,
+  generateCopiesForAllBooksService,
 } from "services/book/book-copy.service";
 import { BookCopy } from "validation/book-copy.schema";
 import { fromError } from "zod-validation-error";
@@ -55,6 +57,14 @@ const putBookCopy = async (req: Request, res: Response) => {
     res.status(400).json({ message: fromError(error).toString(), data: null });
   }
 };
+const generateCopiesAll = async (req: Request, res: Response) => {
+  try {
+    const result = await generateCopiesForAllBooksService();
+    res.status(201).json({ data: result });
+  } catch (error) {
+    res.status(400).json({ message: error.message || "Error", data: null });
+  }
+};
 
 const deleteBookCopy = async (req: Request, res: Response) => {
   try {
@@ -65,4 +75,24 @@ const deleteBookCopy = async (req: Request, res: Response) => {
     res.status(400).json({ message: error.message, data: null });
   }
 };
-export { getAllBookCopy, postBookCopy, putBookCopy, deleteBookCopy };
+
+const getBookCopyStatusByBookId = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await getBookCopyStatusById(+id);
+    if (result === null) {
+      return res.status(200).json({ data: { status: "UNAVAILABLE" } });
+    }
+    res.status(200).json({ data: result });
+  } catch (error) {
+    res.status(400).json({ message: error.message, data: null });
+  }
+};
+export {
+  getAllBookCopy,
+  postBookCopy,
+  putBookCopy,
+  deleteBookCopy,
+  getBookCopyStatusByBookId,
+  generateCopiesAll,
+};

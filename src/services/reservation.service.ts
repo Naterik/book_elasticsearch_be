@@ -1,20 +1,56 @@
 import { prisma } from "configs/client";
 import { checkMemberCard } from "./member.service";
 
-const createReservation = async (bookId: number, userId: number) => {
+const createReservationService = async (bookId: number, userId: number) => {
   const { user } = await checkMemberCard(userId);
-  if (!user.cardNumber)
-    throw new Error("User doesn't have permission to renewal !");
+  if (!user.cardNumber) {
+    throw new Error(
+      "User does not have a valid membership card to reserve books!"
+    );
+  }
   return prisma.$transaction(async (tx) => {
-    const book = await tx.book.findUnique({
+    // 2. Kiểm tra xem user có đang mượn hoặc đã đặt cuốn này chưa
+    const existingLoanOrRes = await tx.loan.findFirst({
       where: {
-        id: bookId,
+        userId,
+        bookcopyId: {
+          in: (
+            await tx.bookcopy.findMany({
+              where: { bookId },
+              select: { id: true },
+            })
+          ).map((b) => b.id),
+        },
+        status: "ON_LOAN",
       },
     });
-    const checkValidReservation = book.quantity - book.borrowed;
-    if (checkValidReservation !== 0)
-      throw new Error("Book cannot reservation !");
-    const result = await tx.reservation.create({
+
+    if (existingLoanOrRes)
+      throw new Error("You are already holding a copy of this book.");
+
+    const existingPendingRes = await tx.reservation.findFirst({
+      where: { userId, bookId, status: { in: ["PENDING", "NOTIFIED"] } },
+    });
+    if (existingPendingRes)
+      throw new Error("You already have a pending reservation for this book.");
+
+    // Đếm số bản copy đang AVAILABLE
+    const availableCopiesCount = await tx.bookcopy.count({
+      where: {
+        bookId: bookId,
+        status: "AVAILABLE",
+      },
+    });
+
+    // 4. Nếu còn sách AVAILABLE -> Không cho Reserve -> Bắt buộc ra mượn
+    if (availableCopiesCount > 0) {
+      throw new Error(
+        "Book is currently available on the shelf. Please borrow it directly instead of reserving."
+      );
+    }
+
+    // 5. Nếu không còn sách -> Tạo Reservation
+    const newReservation = await tx.reservation.create({
       data: {
         userId,
         bookId,
@@ -22,19 +58,21 @@ const createReservation = async (bookId: number, userId: number) => {
         requestDate: new Date(),
       },
     });
-    const notification = await tx.notification.create({
+
+    await tx.notification.create({
       data: {
         userId,
         type: "RESERVATION_CREATED",
-        content: `You have success reserve "${book.title}".`,
+        content: `You have successfully reserved book ID ${bookId}. You are in the queue.`,
         sentAt: new Date(),
       },
     });
-    return result;
+
+    return newReservation;
   });
 };
 
-const getAllReservations = async (currentPage: number) => {
+const getAllReservationsService = async (currentPage: number) => {
   const limit = +process.env.ITEM_PER_PAGE;
   const offset = (currentPage - 1) * limit;
 
@@ -72,7 +110,7 @@ const getAllReservations = async (currentPage: number) => {
   };
 };
 
-const getReservationById = async (id: number) => {
+const getReservationByIdService = async (id: number) => {
   const reservation = await prisma.reservation.findUniqueOrThrow({
     where: { id },
     include: {
@@ -90,7 +128,7 @@ const getReservationById = async (id: number) => {
   });
   return reservation;
 };
-const handleGetReservationByUserId = async (id: number) => {
+const getReservationsByUserId = async (id: number) => {
   const reservation = await prisma.reservation.findMany({
     where: { userId: id },
     include: {
@@ -123,7 +161,7 @@ const cancelReservationStatus = async (id: number) => {
   return updatedReservation;
 };
 
-const deleteReservation = async (id: number) => {
+const deleteReservationService = async (id: number) => {
   const deletedReservation = await prisma.reservation.delete({
     where: { id },
   });
@@ -131,11 +169,11 @@ const deleteReservation = async (id: number) => {
 };
 
 export {
-  getAllReservations as getAllReservationsService,
-  getReservationById as getReservationByIdService,
-  createReservation as createReservationService,
+  getAllReservationsService,
+  getReservationByIdService,
+  createReservationService,
   updateReservationStatus,
-  deleteReservation as deleteReservationService,
-  handleGetReservationByUserId as getReservationsByUserId,
+  deleteReservationService,
+  getReservationsByUserId,
   cancelReservationStatus,
 };

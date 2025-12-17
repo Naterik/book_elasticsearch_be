@@ -53,7 +53,7 @@ const updateAuthor = async (id: string, name: string, bio?: string) => {
   });
 };
 
-const deleteAuthor = async (id: string) => {
+const deleteAuthorService = async (id: string) => {
   const used = await prisma.book.count({ where: { authorId: +id } });
   if (used > 0) {
     throw new Error(
@@ -78,6 +78,6 @@ export {
   getAllAuthors,
   createAuthor,
   updateAuthor,
-  deleteAuthor as deleteAuthorService,
+  deleteAuthorService,
   createMultipleAuthors,
 };

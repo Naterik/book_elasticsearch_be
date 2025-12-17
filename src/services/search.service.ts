@@ -14,7 +14,7 @@ const getRecentSearchesByUserId = async (userId: number) => {
   return searches;
 };
 
-const getTrendingSearches = async () => {
+const getTrendingSearchesService = async () => {
   const trendingSearches = await prisma.historysearch.groupBy({
     by: ["term"],
     _count: {
@@ -104,7 +104,7 @@ const clearAllSearches = async (userId: number) => {
 
 export {
   getRecentSearchesByUserId,
-  getTrendingSearches as getTrendingSearchesService,
+  getTrendingSearchesService,
   addRecentSearch,
   deleteSearch,
   clearAllSearches,

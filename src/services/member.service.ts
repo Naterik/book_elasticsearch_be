@@ -1,6 +1,6 @@
 import { prisma } from "configs/client";
 
-const createMemberCard = async (
+const createMemberCardService = async (
   fullName: string,
   phone: string,
   address: string,
@@ -67,4 +67,4 @@ const checkMemberCard = async (userId: number) => {
 
   return { user, policy };
 };
-export { createMemberCard as createMemberCardService, checkMemberCard };
+export { createMemberCardService, checkMemberCard };

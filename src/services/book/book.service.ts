@@ -11,7 +11,7 @@ const getAllBooks = async () => {
   });
 };
 const getBooks = async (currentPage: number) => {
-  const pageSize = process.env.ITEM_PER_PAGE || 10;
+  const pageSize = process.env.ITEM_PER_PAGE || 12;
   const skip = (currentPage - 1) * +pageSize;
   const countTotalBooks = await prisma.book.count();
   const totalPages = Math.ceil(countTotalBooks / +pageSize);
@@ -37,7 +37,7 @@ const getBooks = async (currentPage: number) => {
   };
 };
 
-const createBook = async (
+const createBookService = async (
   isbn: string,
   title: string,
   shortDesc: string,
@@ -83,7 +83,7 @@ const createBook = async (
   });
   return result;
 };
-const updateBook = async (
+const updateBookService = async (
   id: number,
   isbn: string,
   title: string,
@@ -133,7 +133,7 @@ const updateBook = async (
   return result;
 };
 
-const getBookById = async (id: number) => {
+const getBookByIdService = async (id: number) => {
   const result = prisma.book.findUnique({
     where: { id: +id },
     include: {
@@ -145,7 +145,7 @@ const getBookById = async (id: number) => {
   return result;
 };
 
-const deleteBook = async (id: number) => {
+const deleteBookService = async (id: number) => {
   const deleteBookOnGenres = await prisma.booksOnGenres.deleteMany({
     where: { bookId: id },
   });
@@ -156,11 +156,10 @@ const deleteBook = async (id: number) => {
 const limitPerSection: number = +process.env.ITEM_PER_SECTION
   ? +process.env.ITEM_PER_SECTION
   : 10;
-const getMostBorrowedBooks = async () => {
-  const limit = limitPerSection;
+const getMostBorrowedBooksService = async () => {
   const result = await prisma.book.findMany({
     orderBy: { borrowed: "desc" },
-    take: limit,
+    take: limitPerSection,
     include: {
       authors: { select: { name: true } },
       genres: { select: { genres: { select: { id: true, name: true } } } },
@@ -171,11 +170,10 @@ const getMostBorrowedBooks = async () => {
   return result;
 };
 
-const getNewArrivals = async () => {
-  const limit = limitPerSection;
+const getNewArrivalsService = async () => {
   const result = await prisma.book.findMany({
     orderBy: { publishDate: "desc" },
-    take: limit,
+    take: limitPerSection,
     include: {
       authors: { select: { name: true } },
       genres: { select: { genres: { select: { id: true, name: true } } } },
@@ -186,8 +184,7 @@ const getNewArrivals = async () => {
   return result;
 };
 
-const getTrendingBooks = async () => {
-  const limit = limitPerSection;
+const getTrendingBooksService = async () => {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const trendingLoans = await prisma.loan.groupBy({
@@ -205,7 +202,7 @@ const getTrendingBooks = async () => {
         id: "desc",
       },
     },
-    take: limit * 2,
+    take: limitPerSection * 2,
   });
   const bookcopyIds = trendingLoans.map((loan) => loan.bookcopyId);
 
@@ -227,7 +224,7 @@ const getTrendingBooks = async () => {
 
   const sortedBookIds = Object.entries(bookIdCounts)
     .sort(([, a], [, b]) => (b as number) - (a as number))
-    .slice(0, limit)
+    .slice(0, limitPerSection)
     .map(([bookId]) => parseInt(bookId));
   const trendingBooks = await prisma.book.findMany({
     where: {
@@ -248,8 +245,7 @@ const getTrendingBooks = async () => {
   return orderedBooks;
 };
 
-const getRecommendedBooks = async (userId: number) => {
-  const limit = limitPerSection;
+const getRecommendedBooksService = async (userId: number) => {
   const userLoans = await prisma.loan.findMany({
     where: {
       userId: userId,
@@ -272,7 +268,7 @@ const getRecommendedBooks = async (userId: number) => {
     orderBy: {
       loanDate: "desc",
     },
-    take: 10,
+    take: limitPerSection,
   });
   const genreMap = new Map<number, number>();
   const borrowedBookIds = new Set<number>();
@@ -293,7 +289,7 @@ const getRecommendedBooks = async (userId: number) => {
     .map(([genreId]) => genreId);
 
   if (topGenres.length === 0) {
-    return getTrendingBooks();
+    return getTrendingBooksService();
   }
   const recommendedBooks = await prisma.book.findMany({
     where: {
@@ -327,7 +323,7 @@ const getRecommendedBooks = async (userId: number) => {
         publishDate: "desc",
       },
     ],
-    take: limit,
+    take: limitPerSection,
     include: {
       authors: { select: { name: true } },
       genres: { select: { genres: { select: { id: true, name: true } } } },
@@ -339,13 +335,13 @@ const getRecommendedBooks = async (userId: number) => {
 };
 export {
   getBooks,
-  createBook as createBookService,
-  updateBook as updateBookService,
-  deleteBook as deleteBookService,
+  createBookService,
+  updateBookService,
+  deleteBookService,
   getAllBooks,
-  getBookById as getBookByIdService,
-  getMostBorrowedBooks as getMostBorrowedBooksService,
-  getNewArrivals as getNewArrivalsService,
-  getRecommendedBooks as getRecommendedBooksService,
-  getTrendingBooks as getTrendingBooksService,
+  getBookByIdService,
+  getMostBorrowedBooksService,
+  getNewArrivalsService,
+  getRecommendedBooksService,
+  getTrendingBooksService,
 };

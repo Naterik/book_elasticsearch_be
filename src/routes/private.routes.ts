@@ -11,6 +11,7 @@ import {
   getAllBookCopy,
   postBookCopy,
   putBookCopy,
+  generateCopiesAll,
 } from "controllers/book/book-copy.controller";
 import {
   deleteBook,
@@ -32,7 +33,6 @@ import {
   autoImportBooksFromGenres,
   autoImportBooksFromGenresList,
 } from "controllers/import/import.controller";
-
 import {
   deletePublisher,
   getAllPublisher,
@@ -85,7 +85,6 @@ import {
   postFined,
   putFined,
 } from "controllers/fine.controller";
-import { findBookCopyLocation } from "controllers/elastic/filter.elastic";
 import {
   cleanupNotifications,
   getNotificationsByUserId,
@@ -110,7 +109,12 @@ import {
   getSummary,
   getUserWithCard,
 } from "controllers/dashboard.controller";
-
+import { postSeedData } from "controllers/seed.controller";
+import {
+  countStatusFromBookCopy,
+  countYearPublishedFromBookCopy,
+} from "controllers/elastic/aggregation.elastic";
+import { filterElasticBookCopy } from "controllers/elastic/filter.elastic";
 const privateRouter = express.Router();
 
 privateRouter.get("/account", fetchAccount);
@@ -120,7 +124,6 @@ privateRouter.get(
   "/dashboard/chart/book-copies-status",
   getChartForBookCopiesStatus
 );
-
 privateRouter.get("/dashboard/chart/loan-trends", getChartForLoanTrends);
 privateRouter.get("/dashboard/chart/revenue", getChartForRevenue);
 privateRouter.get("/dashboard/chart/search-terms", getChartForSearchTerms);
@@ -204,7 +207,13 @@ privateRouter.get("/book-copies", getAllBookCopy);
 privateRouter.post("/book-copies", postBookCopy);
 privateRouter.put("/book-copies", putBookCopy);
 privateRouter.delete("/book-copies/:id", deleteBookCopy);
-privateRouter.get("/book-copies/elastic", findBookCopyLocation);
+privateRouter.post("/book-copies/generate-all", generateCopiesAll);
+privateRouter.get("/book-copies/filter", filterElasticBookCopy);
+privateRouter.get(
+  "/book-copies/count-year-published",
+  countYearPublishedFromBookCopy
+);
+privateRouter.get("/book-copies/count-status", countStatusFromBookCopy);
 
 privateRouter.get("/history-searches/full/:userId", getUserHistorySearches);
 privateRouter.post("/history-searches/recent", postUserRecentSearch);
@@ -222,8 +231,6 @@ privateRouter.post(
 );
 privateRouter.post("/worksid/open", postWorksIdOpen);
 //auth
-
-import { postSeedData } from "controllers/seed.controller";
 
 privateRouter.post("/seed/loans", postSeedData);
 

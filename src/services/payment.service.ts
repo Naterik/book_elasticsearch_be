@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import "dotenv/config";
 import { TIMEOUT } from "node:dns";
 
-const getAllPayments = async (currentPage: number) => {
+const getAllPaymentsService = async (currentPage: number) => {
   const pageSize = process.env.ITEM_PER_PAGE || 10;
   const skip = (currentPage - 1) * +pageSize;
   const countTotalPayments = await prisma.payment.count();
@@ -104,10 +104,7 @@ const updateMembershipPaymentStatus = async (
 };
 
 //
-const handleCreatePaymentForFine = async (
-  fineId: number,
-  paymentRef: string
-) => {
+const createPaymentForFine = async (fineId: number, paymentRef: string) => {
   const fine = await prisma.fine.findFirst({
     where: { id: fineId },
     include: {
@@ -195,7 +192,10 @@ const payFine = async (
   );
 };
 
-const updatePaymentStatus = async (paymentId: number, status: string) => {
+const updatePaymentStatusService = async (
+  paymentId: number,
+  status: string
+) => {
   // Validate status
   const validStatuses = ["PENDING", "COMPLETED", "PAYMENT_FAILED", "REFUNDED"];
   if (!validStatuses.includes(status)) {
@@ -266,7 +266,7 @@ const updatePaymentStatus = async (paymentId: number, status: string) => {
   });
 };
 
-const handleDeletePayment = async (paymentId: number) => {
+const deletePaymentService = async (paymentId: number) => {
   const payment = await prisma.payment.findUnique({
     where: { id: paymentId },
     include: {
@@ -314,7 +314,7 @@ const handleDeletePayment = async (paymentId: number) => {
   });
 };
 
-const handleGetPaymentById = async (paymentId: number) => {
+const getPaymentByIdService = async (paymentId: number) => {
   const payment = await prisma.payment.findUnique({
     where: { id: paymentId },
     include: {
@@ -350,11 +350,11 @@ const handleGetPaymentById = async (paymentId: number) => {
 };
 
 export {
-  getAllPayments as getAllPaymentsService,
+  getAllPaymentsService,
   updateMembershipPaymentStatus,
   payFine,
-  handleCreatePaymentForFine as createPaymentForFine,
-  updatePaymentStatus as updatePaymentStatusService,
-  handleDeletePayment as deletePaymentService,
-  handleGetPaymentById as getPaymentByIdService,
+  createPaymentForFine,
+  updatePaymentStatusService,
+  deletePaymentService,
+  getPaymentByIdService,
 };

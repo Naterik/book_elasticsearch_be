@@ -22,13 +22,13 @@ const getAllUsers = async (page: number) => {
   };
 };
 
-const getUserById = async (id: number) => {
+const getUserByIdService = async (id: number) => {
   return prisma.user.findUnique({
     where: { id },
   });
 };
 
-const createUser = async (
+const createUserService = async (
   username: string,
   password: string,
   fullName: string,
@@ -52,7 +52,7 @@ const createUser = async (
   return result;
 };
 
-const updateUser = async (
+const updateUserService = async (
   id: string,
   username: string,
   fullName: string,
@@ -75,7 +75,7 @@ const updateUser = async (
   return result;
 };
 
-const deleteUser = async (id: string) => {
+const deleteUserService = async (id: string) => {
   const result = await prisma.user.delete({
     where: {
       id: +id,
@@ -96,9 +96,9 @@ const checkUsernameExists = async (username: string) => {
 
 export {
   getAllUsers,
-  deleteUser as deleteUserService,
-  createUser as createUserService,
-  updateUser as updateUserService,
-  getUserById as getUserByIdService,
+  deleteUserService,
+  createUserService,
+  updateUserService,
+  getUserByIdService,
   checkUsernameExists,
 };

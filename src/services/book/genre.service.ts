@@ -209,7 +209,7 @@ const updateGenre = async (id: string, name: string, description?: string) => {
   });
 };
 
-const deleteGenre = async (id: string) => {
+const deleteGenreService = async (id: string) => {
   return prisma.genre.delete({ where: { id: +id } });
 };
 
@@ -612,7 +612,7 @@ export {
   checkGenreNameExists,
   createGenre,
   updateGenre,
-  deleteGenre as deleteGenreService,
+  deleteGenreService,
   getGenresForDisplay,
-  performFullGenreCleanup, // ⭐ API chính - chỉ cần export cái này
+  performFullGenreCleanup,
 };

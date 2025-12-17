@@ -1,8 +1,9 @@
 import { prisma } from "configs/client";
 import { checkMemberCard } from "./member.service";
 import "dotenv/config";
+import { time } from "node:console";
 
-const getAllLoans = async (currentPage: number) => {
+const getAllLoansService = async (currentPage: number) => {
   const pageSize = +process.env.ITEM_PER_PAGE;
   const skip = (currentPage - 1) * pageSize;
   const total = await prisma.loan.count({});
@@ -27,90 +28,125 @@ const getAllLoans = async (currentPage: number) => {
   };
 };
 
-const createLoan = async (userId: number, bookId: number, dueDate: string) => {
+const createLoanService = async (
+  userId: number,
+  bookId: number,
+  dueDate: string
+) => {
   const { user, policy } = await checkMemberCard(userId);
   const now = new Date();
   const due =
     dueDate === "7"
       ? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
       : new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+
   return prisma.$transaction(async (tx) => {
     const activeLoans = await tx.loan.count({
       where: { userId, status: { in: ["ON_LOAN", "OVERDUE"] } },
     });
-    if (activeLoans > policy.maxActiveLoans)
-      throw new Error(`Maximum ${policy.maxActiveLoans} books allowed`);
-
-    const copy = await tx.bookcopy.findFirst({
-      where: { bookId, status: "AVAILABLE" },
-      include: { books: true },
-    });
-
-    if (copy.status === "ON_HOLD") {
-      if (
-        copy.heldByUserId !== userId ||
-        !copy.holdExpiryDate ||
-        copy.holdExpiryDate <= now
-      ) {
-        throw new Error("This copy is on hold for another user");
-      }
-
-      const updateLoan = await tx.bookcopy.updateMany({
-        where: {
-          id: copy.id,
-          status: "ON_HOLD",
-          heldByUserId: userId,
-          holdExpiryDate: { gt: now },
-        },
-        data: { status: "ON_LOAN", heldByUserId: null, holdExpiryDate: null },
-      });
-      if (updateLoan.count !== 1) throw new Error("Hold expired or copy taken");
-    } else if (copy.status === "AVAILABLE") {
-      const r = await tx.bookcopy.updateMany({
-        where: { id: copy.id, status: "AVAILABLE" },
-        data: { status: "ON_LOAN" },
-      });
-      if (r.count !== 1) throw new Error("Copy just taken, try again");
-    } else {
-      throw new Error(`Bookcopy is ${copy.status}`);
+    if (activeLoans >= policy.maxActiveLoans) {
+      throw new Error(
+        `Limit reached: Maximum ${policy.maxActiveLoans} books allowed.`
+      );
     }
 
+    // Ưu tiên 1: Tìm cuốn sách đang được giữ (ON_HOLD) cho CHÍNH user này
+    let targetCopy = await tx.bookcopy.findFirst({
+      where: {
+        bookId,
+        status: "ON_HOLD",
+        heldByUserId: userId,
+        holdExpiryDate: { gte: now }, // Phải còn hạn giữ sách
+      },
+    });
+
+    let isFromReservation = true;
+
+    // Ưu tiên 2: Nếu không có sách giữ riêng, tìm cuốn AVAILABLE bất kỳ
+    if (!targetCopy) {
+      isFromReservation = false;
+      targetCopy = await tx.bookcopy.findFirst({
+        where: { bookId, status: "AVAILABLE" },
+      });
+
+      //Nếu tìm thấy sách Available, phải check xem có ai đang xếp hàng đợi không?
+      if (targetCopy) {
+        const pendingReservations = await tx.reservation.count({
+          where: { bookId, status: { in: ["PENDING", "NOTIFIED"] } },
+        });
+
+        // Nếu có người đang đợi mà sách lại Available (có thể do lỗi quy trình trả sách chưa gán hold),
+        // ta nên chặn hoặc cảnh báo. Ở đây chọn cách chặn để bảo vệ quyền lợi người đặt trước.
+        if (pendingReservations > 0) {
+          throw new Error(
+            "This book has pending reservations. Staff needs to process it for the queue."
+          );
+        }
+      }
+    }
+
+    // Nếu vẫn không tìm thấy copy nào
+    if (!targetCopy) {
+      throw new Error(
+        "No copies available directly or held for you. Please make a reservation."
+      );
+    }
+
+    // Dùng updateMany với where clause chi tiết để đảm bảo trạng thái không bị đổi bởi request khác giữa chừng
+    const updateCopyResult = await tx.bookcopy.updateMany({
+      where: {
+        id: targetCopy.id,
+        status: targetCopy.status, // status phải y nguyên như lúc find
+      },
+      data: {
+        status: "ON_LOAN",
+        heldByUserId: null, // Xóa người giữ
+        holdExpiryDate: null, // Xóa hạn giữ
+      },
+    });
+
+    if (updateCopyResult.count === 0) {
+      throw new Error(
+        "System conflict: The book copy was taken by someone else just now. Please try again."
+      );
+    }
+    // 4. Tạo bản ghi Loan
     const loan = await tx.loan.create({
       data: {
         userId,
-        bookcopyId: copy.id,
+        bookcopyId: targetCopy.id,
         loanDate: now,
         dueDate: due,
         status: "ON_LOAN",
       },
     });
 
+    // 5. Cập nhật số lượng đã mượn
     await tx.book.update({
       where: { id: bookId },
       data: { borrowed: { increment: 1 } },
     });
 
-    if (user.cardNumber) {
-      const r = await tx.reservation.findFirst({
-        where: { userId, bookId: bookId, status: "PENDING" },
+    // 6. Xử lý đóng Reservation (Nếu mượn từ nguồn ON_HOLD)
+    if (isFromReservation) {
+      // Tìm reservation tương ứng và đóng lại
+      const reservation = await tx.reservation.findFirst({
+        where: { userId, bookId, status: "NOTIFIED" },
       });
-      if (r) {
+      if (reservation) {
         await tx.reservation.update({
-          where: { id: r.id },
-          data: { status: "NOTIFIED" },
+          where: { id: reservation.id },
+          data: { status: "COMPLETED" },
         });
       }
     }
-    const notification = await tx.notification.create({
+    await tx.notification.create({
       data: {
         userId,
         type: "LOAN_CREATED",
-        content: `You have loaned "${
-          copy.books.title
-        }". Due date: ${due.toLocaleDateString("vi-VN")}${
-          loan?.dueDate ? "" : " (Register member card to get 14 days!)"
-        }`,
-        sentAt: new Date(),
+        content: `Loan successful! Due date: ${due.toLocaleDateString(
+          "vi-VN"
+        )}`,
       },
     });
 
@@ -243,7 +279,7 @@ const getLoanById = async (id: number) => {
   return result;
 };
 
-const getLoanReturnById = async (id: number) => {
+const getLoanReturnByIdService = async (id: number) => {
   const result = await prisma.loan.findMany({
     where: { userId: id, status: "RETURNED" },
     include: {
@@ -266,7 +302,7 @@ const getLoanReturnById = async (id: number) => {
   return result;
 };
 
-const updateLoan = async (
+const updateLoanService = async (
   loanId: number,
   userId: number,
   dueDate?: Date,
@@ -311,7 +347,7 @@ const updateLoan = async (
   return result;
 };
 
-const deleteLoan = async (loanId: number) => {
+const deleteLoanService = async (loanId: number) => {
   const loan = await checkLoanExists(loanId);
   if (loan.status === "ON_LOAN") {
     throw new Error(
@@ -463,15 +499,15 @@ const approveReturnBook = async (loanId: number, userId: number) => {
 };
 
 export {
-  getAllLoans as getAllLoansService,
-  createLoan as createLoanService,
+  getAllLoansService,
+  createLoanService,
   renewalLoan,
   updateLoanStatus,
   checkLoanExists,
   getLoanById,
-  getLoanReturnById as getLoanReturnByIdService,
+  getLoanReturnByIdService,
   checkBookIsLoaned,
-  updateLoan as updateLoanService,
-  deleteLoan as deleteLoanService,
+  updateLoanService,
+  deleteLoanService,
   approveReturnBook,
 };

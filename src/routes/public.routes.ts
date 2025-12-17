@@ -25,8 +25,9 @@ import passport from "passport";
 import {
   countGenres,
   countLanguage,
-  suggestElastic,
 } from "controllers/elastic/aggregation.elastic";
+import { getBookCopyStatusByBookId } from "controllers/book/book-copy.controller";
+import { suggestElastic } from "controllers/elastic/suggest.elastic";
 
 const publicRouter = express.Router();
 
@@ -39,6 +40,7 @@ publicRouter.get("/books/filter", filterBook);
 publicRouter.get("/books/trending", getTrendingBooks);
 publicRouter.get("/books/new-arrivals", getNewArrivals);
 publicRouter.get("/books/most-borrowed", getMostBorrowedBooks);
+publicRouter.get("/book-copies/status/:id", getBookCopyStatusByBookId);
 
 publicRouter.get("/books/:id", getBookById);
 

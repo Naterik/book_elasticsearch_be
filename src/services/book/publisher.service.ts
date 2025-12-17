@@ -55,7 +55,7 @@ const updatePublisher = async (
   });
 };
 
-const deletePublisher = async (id: string) => {
+const deletePublisherService = async (id: string) => {
   const used = await prisma.book.count({ where: { publisherId: +id } });
   if (used > 0) {
     throw new Error(
@@ -71,5 +71,5 @@ export {
   checkPublisherNameExists,
   createPublisher,
   updatePublisher,
-  deletePublisher as deletePublisherService,
+  deletePublisherService,
 };
