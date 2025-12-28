@@ -24,14 +24,14 @@ const getAllBookCopy = async (req: Request, res: Response) => {
 };
 const postBookCopy = async (req: Request, res: Response) => {
   try {
-    const { year_published, copyNumber, bookId, status, location } = req.body;
+    const { year_published, copyNumber, bookId, status } = req.body;
     BookCopy.omit({ id: true }).parse(req.body);
     const result = await createBookCopy(
       +year_published,
       copyNumber,
       +bookId,
       status,
-      location
+
     );
     res.status(201).json({ data: result });
   } catch (error) {
@@ -41,7 +41,7 @@ const postBookCopy = async (req: Request, res: Response) => {
 
 const putBookCopy = async (req: Request, res: Response) => {
   try {
-    const { id, year_published, copyNumber, bookId, status, location } =
+    const { id, year_published, copyNumber, bookId, status } =
       req.body;
     BookCopy.parse(req.body);
     const result = await updateBookCopy(
@@ -50,7 +50,7 @@ const putBookCopy = async (req: Request, res: Response) => {
       copyNumber,
       +bookId,
       status,
-      location
+      
     );
     res.status(200).json({ data: result });
   } catch (error) {

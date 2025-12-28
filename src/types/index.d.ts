@@ -24,3 +24,5 @@ export interface INotificationPayload {
 export type Timeframe = "7d" | "1m" | "3m" | "6m";
 
 export {};
+
+

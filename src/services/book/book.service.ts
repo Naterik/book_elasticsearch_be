@@ -333,6 +333,37 @@ const getRecommendedBooksService = async (userId: number) => {
 
   return recommendedBooks;
 };
+
+const getBooksForSelectService = async (search: string = "") => {
+  if (search !== "") {
+    return await prisma.book.findMany({
+      where: {
+        OR: [{ title: { contains: search } }, { isbn: { contains: search } }],
+      },
+      take: 50,
+      select: {
+        id: true,
+        title: true,
+        isbn: true,
+        image: true,
+        authors: { select: { name: true } },
+      },
+    });
+  } else {
+    return await prisma.book.findMany({
+      take: 50,
+      select: {
+        id: true,
+        title: true,
+        isbn: true,
+        image: true,
+        authors: { select: { name: true } },
+      },
+      orderBy: { id: "desc" },
+    });
+  }
+};
+
 export {
   getBooks,
   createBookService,
@@ -344,4 +375,5 @@ export {
   getNewArrivalsService,
   getRecommendedBooksService,
   getTrendingBooksService,
+  getBooksForSelectService,
 };

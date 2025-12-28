@@ -288,3 +288,186 @@ export const seedLibraryData = async () => {
 
   return createdData;
 };
+
+export const seedVietnameseBooks = async () => {
+  // Ensure we have some authors, publishers, genres
+  let authors = await prisma.author.findMany();
+  if (authors.length === 0) {
+    const newAuthors = [
+      "Nguyễn Nhật Ánh",
+      "Nam Cao",
+      "Vũ Trọng Phụng",
+      "Tô Hoài",
+      "Nguyễn Du",
+      "Xuân Quỳnh",
+      "Hồ Xuân Hương",
+      "Thạch Lam",
+      "Ngô Tất Tố",
+      "Kim Lân",
+    ].map((name) => ({ name, bio: "Nhà văn Việt Nam" }));
+    await prisma.author.createMany({ data: newAuthors });
+    authors = await prisma.author.findMany();
+  }
+
+  let publishers = await prisma.publisher.findMany();
+  if (publishers.length === 0) {
+    const newPublishers = [
+      "NXB Trẻ",
+      "NXB Kim Đồng",
+      "NXB Văn Học",
+      "NXB Hội Nhà Văn",
+      "NXB Phụ Nữ",
+      "NXB Lao Động",
+      "NXB Thanh Niên",
+    ].map((name) => ({ name, description: "Nhà xuất bản uy tín" }));
+    await prisma.publisher.createMany({ data: newPublishers });
+    publishers = await prisma.publisher.findMany();
+  }
+
+  let genres = await prisma.genre.findMany();
+  if (genres.length === 0) {
+    const newGenres = [
+      "Tiểu thuyết",
+      "Truyện ngắn",
+      "Thơ",
+      "Kịch",
+      "Hồi ký",
+      "Tản văn",
+      "Phóng sự",
+      "Truyện dài",
+    ].map((name) => ({ name, description: "Thể loại văn học" }));
+    await prisma.genre.createMany({ data: newGenres });
+    genres = await prisma.genre.findMany();
+  }
+
+  const subjects = [
+    "Cuộc đời",
+    "Hành trình",
+    "Bí mật",
+    "Tình yêu",
+    "Mùa hè",
+    "Dòng sông",
+    "Ngôi nhà",
+    "Người mẹ",
+    "Đất nước",
+    "Tuổi trẻ",
+    "Giấc mơ",
+    "Ký ức",
+    "Nỗi buồn",
+    "Niềm vui",
+    "Hy vọng",
+    "Thử thách",
+    "Bài học",
+    "Triết lý",
+    "Văn hóa",
+    "Lịch sử",
+    "Cánh đồng",
+    "Biển cả",
+    "Rừng xanh",
+    "Thành phố",
+    "Làng quê",
+  ];
+  const adjectives = [
+    "bất tận",
+    "rực rỡ",
+    "bình yên",
+    "dữ dội",
+    "lặng lẽ",
+    "hạnh phúc",
+    "đau thương",
+    "vĩnh cửu",
+    "xanh",
+    "đỏ",
+    "tuyệt vời",
+    "đáng nhớ",
+    "huyền bí",
+    "sâu thẳm",
+    "mênh mông",
+    "nhỏ bé",
+    "vĩ đại",
+    "thiêng liêng",
+    "giản dị",
+    "phức tạp",
+    "hoang vu",
+    "ấm áp",
+    "lạnh lẽo",
+    "rực lửa",
+    "tinh khôi",
+  ];
+  const objects = [
+    "của tôi",
+    "nơi ấy",
+    "trong tim",
+    "bên kia sông",
+    "trên đồi",
+    "dưới trăng",
+    "giữa đời",
+    "về đêm",
+    "sáng nay",
+    "ngày mai",
+    "hôm qua",
+    "vô tận",
+    "nhân gian",
+    "thế giới",
+    "vũ trụ",
+    "tâm hồn",
+    "trái tim",
+    "con người",
+    "thiên nhiên",
+    "cuộc sống",
+    "tuổi thơ",
+    "thanh xuân",
+    "gia đình",
+    "bạn bè",
+    "tình yêu",
+  ];
+
+  const generateVietnameseTitle = () => {
+    const pattern = Math.floor(Math.random() * 3);
+    const sub = getRandomItem(subjects);
+    const adj = getRandomItem(adjectives);
+    const obj = getRandomItem(objects);
+
+    if (pattern === 0) return `${sub} ${adj}`;
+    if (pattern === 1) return `${sub} ${obj}`;
+    return `${sub} ${adj} ${obj}`;
+  };
+
+  let count = 0;
+  for (let i = 0; i < 1000; i++) {
+    const title = generateVietnameseTitle();
+    const author = getRandomItem(authors);
+    const publisher = getRandomItem(publishers);
+    const genre = getRandomItem(genres);
+    const isbn = `978-604-${Math.floor(100000000 + Math.random() * 900000000)}`; // 9 digits random
+
+    // Check ISBN uniqueness
+    const exists = await prisma.book.findUnique({ where: { isbn } });
+    if (exists) continue;
+
+    await prisma.book.create({
+      data: {
+        isbn,
+        title,
+        shortDesc: `Sách về ${title}`,
+        detailDesc: `Đây là cuốn sách chi tiết về ${title}. Một tác phẩm đáng đọc của tác giả ${author.name}.`,
+        price: getRandomInt(50, 500) * 1000,
+        quantity: getRandomInt(1, 20),
+        publishDate: getRandomDate(new Date(2000, 0, 1), new Date()),
+        image: "https://via.placeholder.com/150",
+        language: "Vietnamese",
+        pages: getRandomInt(100, 1000),
+        authorId: author.id,
+        publisherId: publisher.id,
+        genres: {
+          create: {
+            genreId: genre.id,
+          },
+        },
+      },
+    });
+    count++;
+  }
+
+  return { count, message: `Successfully added ${count} Vietnamese books` };
+};

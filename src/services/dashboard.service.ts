@@ -245,7 +245,6 @@ const getListPendingReservations = async () => {
             select: {
               id: true,
               copyNumber: true,
-              location: true,
             },
           },
         },

@@ -33,8 +33,7 @@ const createBookCopy = async (
   year_published: number,
   copyNumber: string,
   bookId: number,
-  status: string,
-  location: string
+  status: string
 ) => {
   const result = await prisma.bookcopy.create({
     data: {
@@ -42,7 +41,6 @@ const createBookCopy = async (
       copyNumber,
       bookId,
       status,
-      location,
     },
     include: { books: true },
   });
@@ -53,8 +51,7 @@ const updateBookCopy = async (
   year_published: number,
   copyNumber: string,
   bookId: number,
-  status: string,
-  location: string
+  status: string
 ) => {
   const result = await prisma.bookcopy.update({
     where: { id },
@@ -63,7 +60,6 @@ const updateBookCopy = async (
       copyNumber,
       bookId,
       status,
-      location,
     },
     include: { books: true },
   });
@@ -82,24 +78,6 @@ const getBookCopyStatusById = async (bookId: number) => {
   });
   return bookcopy;
 };
-
-let locationCounter = 0;
-
-function getNextLocation(): string {
-  // 26 chữ cái * 100 vị trí = 2600 slots
-  const totalSlots = 26 * 100;
-  const current = locationCounter % totalSlots;
-
-  // Tính toán chữ cái (A-Z)
-  const letterIndex = Math.floor(current / 100);
-  const letter = String.fromCharCode(65 + letterIndex); // 65 là mã ASCII của 'A'
-
-  // Tính toán số (1-100)
-  const number = (current % 100) + 1;
-
-  locationCounter++;
-  return `Shelf ${letter}${number}`;
-}
 
 const generateCopiesForBookService = async (bookId: number) => {
   const book = await prisma.book.findUnique({
@@ -129,7 +107,6 @@ const generateCopiesForBookService = async (bookId: number) => {
         copyNumber: copyNumber,
         bookId: book.id,
         status: "AVAILABLE",
-        location: getNextLocation(),
       },
     });
     copies.push(copy);

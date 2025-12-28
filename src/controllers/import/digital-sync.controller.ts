@@ -1,0 +1,175 @@
+import { Request, Response } from "express";
+import { prisma } from "configs/client";
+import { PreviewStatus } from "@prisma/client";
+
+// ================= HELPERS: FETCHING =================
+// Simplified version of getJSON from import.controller.ts
+async function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+const RETRIES = 3;
+const RETRY_BASE_MS = 1000;
+
+async function getJSON<T = any>(url: string, attempt = 1): Promise<T> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+    const r = await fetch(url, {
+      headers: { "User-Agent": "LMS-Importer/1.0", Accept: "application/json" },
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (!r.ok) {
+      if ((r.status === 429 || r.status >= 500) && attempt < RETRIES) {
+        const backoff = RETRY_BASE_MS * Math.pow(2, attempt - 1);
+        await sleep(backoff);
+        return getJSON<T>(url, attempt + 1);
+      }
+      // Return null or empty object explicitly if not found or other non-retriable error
+      // to avoid crashing the batch
+      throw new Error(`OpenLibrary Status ${r.status}`);
+    }
+    return (await r.json()) as T;
+  } catch (err) {
+    if (attempt < RETRIES) {
+      await sleep(RETRY_BASE_MS);
+      return getJSON<T>(url, attempt + 1);
+    }
+    throw err;
+  }
+}
+
+/**
+ * Syncs digital preview status for all books using OpenLibrary API.
+ * 
+ * Logic:
+ * 1. Fetch all ISBNs from Book table.
+ * 2. Process in batches to avoid overwhelming the API or database.
+ * 3. Call OpenLibrary API for each ISBN.
+ * 4. details.preview == "noview" -> NO_VIEW
+ *    details.preview == "full" -> FULL
+ *    details.preview == "restricted" (or others) -> RESTRICTED
+ * 5. Upsert into DigitalBook.
+ */
+export const syncDigitalBooks = async (req: Request, res: Response) => {
+  try {
+    const BATCH_SIZE = 20; // Lower batch size to be safe with fetch/concurrency
+    
+    // 1. Get all ISBNs
+    const books = await prisma.book.findMany({
+      select: {
+        id: true,
+        isbn: true,
+      },
+      where: {
+        isbn: {
+          not: "",
+        },
+      },
+    });
+
+    if (books.length === 0) {
+      return res.status(200).json({ message: "No books found to sync." });
+    }
+
+    console.log(`[DigitalSync] Found ${books.length} books to sync.`);
+
+    let processedCount = 0;
+    let errorCount = 0;
+    const errors: any[] = [];
+
+    // 2. Process in batches
+    for (let i = 0; i < books.length; i += BATCH_SIZE) {
+      const batch = books.slice(i, i + BATCH_SIZE);
+      
+      const batchPromises = batch.map(async (book) => {
+        try {
+            if (!book.isbn) return;
+
+            const apiUrl = `https://openlibrary.org/api/volumes/brief/isbn/${book.isbn}.json`;
+            
+            // External API Call using fetch helper
+            let data: any = {};
+            try {
+               data = await getJSON(apiUrl);
+            } catch (fetchErr) {
+               // If fetch fails (after retries), we treat it as no data found for this book
+               // but we don't necessarily want to count it as a hard error for the whole process
+               // unless status is critical. For now, logging and skipping.
+               console.warn(`[DigitalSync] Failed to fetch for ISBN ${book.isbn}`);
+               return; 
+            }
+
+            // Determine Status
+            let status: PreviewStatus = PreviewStatus.NO_VIEW;
+            let previewUrl = null;
+
+            if (data && data.records) {
+              const keys = Object.keys(data.records);
+              if (keys.length > 0) {
+                const record = data.records[keys[0]];
+                if (record.details) {
+                  const preview = record.details.preview;
+                  previewUrl = record.details.preview_url;
+
+                  if (preview === "noview") {
+                    status = PreviewStatus.NO_VIEW;
+                  } else if (preview === "full") {
+                    status = PreviewStatus.FULL;
+                  } else {
+                    // "restricted" or any other value
+                    status = PreviewStatus.RESTRICTED;
+                  }
+                }
+              }
+            }
+
+            // Database Update (Upsert)
+            // Note: updatedAt is automatically handled by @updatedAt in prisma if defined, 
+            // but we can explicitly set it to be sure or if req allows.
+            await prisma.digitalBook.upsert({
+              where: {
+                bookId: book.id,
+              },
+              create: {
+                bookId: book.id,
+                status: status,
+                previewUrl: previewUrl,
+              },
+              update: {
+                status: status,
+                previewUrl: previewUrl,
+              },
+            });
+
+            processedCount++;
+        } catch (err: any) {
+          console.error(`[DigitalSync] Error processing ISBN ${book.isbn}:`, err.message);
+          errorCount++;
+          errors.push({ isbn: book.isbn, error: err.message });
+        }
+      });
+
+      // Wait for the current batch to finish
+      await Promise.all(batchPromises);
+      
+      // Optional: Add a small delay between batches to be nice to the external API
+      await sleep(200);
+    }
+
+    return res.status(200).json({
+      message: "Digital book sync completed.",
+      total: books.length,
+      processed: processedCount,
+      errors: errorCount,
+      errorDetails: errors.length > 0 ? errors : undefined,
+    });
+
+  } catch (error: any) {
+    console.error("[DigitalSync] Critical failure:", error);
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};

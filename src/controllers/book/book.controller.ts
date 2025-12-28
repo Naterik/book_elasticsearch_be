@@ -11,10 +11,21 @@ import {
   createBookService,
   updateBookService,
   getAllBooks,
+  getBooksForSelectService,
 } from "services/book/book.service";
 
 import { Book, TBook } from "validation/books.schema";
 import { fromError } from "zod-validation-error";
+
+const getAllBookForSelect = async (req: Request, res: Response) => {
+  try {
+    const { search } = req.query;
+    const result = await getBooksForSelectService(search as string);
+    res.status(200).json({ data: result });
+  } catch (error: any) {
+    res.status(400).json({ error: fromError(error).toString(), data: null });
+  }
+};
 
 const getAllBook = async (req: Request, res: Response) => {
   try {
@@ -43,7 +54,7 @@ const postBook = async (req: Request, res: Response) => {
       authorId,
       genreIds,
       publisherId,
-    } = req.body as TBook;
+    } = req.body;
     Book.omit({ id: true }).parse(req.body);
     const image = req?.file?.filename ?? null;
     const result = await createBookService(
@@ -66,6 +77,7 @@ const postBook = async (req: Request, res: Response) => {
     res.status(400).json({ error: fromError(error).toString(), data: null });
   }
 };
+
 const putBook = async (req: Request, res: Response) => {
   try {
     const {
@@ -237,4 +249,5 @@ export {
   getRecommendedBooks,
   getTrendingBooks,
   getNewArrivals,
+  getAllBookForSelect,
 };

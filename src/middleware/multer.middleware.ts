@@ -1,13 +1,13 @@
 import multer from "multer";
 import path from "path";
-import { v4 } from "uuid";
+import { v4 as uuidv4 } from "uuid";
 
 const fileUploadMiddleware = (fieldName: string, dir: string) => {
   return multer({
     storage: multer.diskStorage({
       destination: "public/images/" + dir,
       filename: (req, file, cb) => {
-        cb(null, v4() + path.extname(file.originalname));
+        cb(null, uuidv4() + path.extname(file.originalname));
       },
     }),
     limits: {

@@ -15,6 +15,7 @@ import {
 } from "controllers/book/book-copy.controller";
 import {
   deleteBook,
+  getAllBookForSelect,
   getRecommendedBooks,
   postBook,
   putBook,
@@ -109,12 +110,21 @@ import {
   getSummary,
   getUserWithCard,
 } from "controllers/dashboard.controller";
+import {
+  importBooksByLanguage,
+  deleteImportedVietnameseBooks,
+} from "controllers/import/import.language.controller";
+
 import { postSeedData } from "controllers/seed.controller";
 import {
   countStatusFromBookCopy,
   countYearPublishedFromBookCopy,
 } from "controllers/elastic/aggregation.elastic";
 import { filterElasticBookCopy } from "controllers/elastic/filter.elastic";
+import { vietnameseBooksController } from "controllers/import/import.vietnamese.controller";
+import { cleanupBookData } from "controllers/import/cleanup.controller";
+import { syncDigitalBooks } from "controllers/import/digital-sync.controller";
+
 const privateRouter = express.Router();
 
 privateRouter.get("/account", fetchAccount);
@@ -230,7 +240,15 @@ privateRouter.post(
   autoImportBooksFromGenresList
 );
 privateRouter.post("/worksid/open", postWorksIdOpen);
-//auth
+
+
+privateRouter.post("/books/import-by-language", importBooksByLanguage);
+privateRouter.post("/books/delete-by-language", deleteImportedVietnameseBooks);
+
+privateRouter.post("/books/vietnamese", vietnameseBooksController);
+privateRouter.post("/books/cleanup",cleanupBookData)
+privateRouter.post("/books/sync-digital", syncDigitalBooks);
+
 
 privateRouter.post("/seed/loans", postSeedData);
 
