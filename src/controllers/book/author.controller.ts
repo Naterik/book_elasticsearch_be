@@ -8,6 +8,7 @@ import {
   updateAuthor,
 } from "services/book/author.service";
 import { Author, TAuthor } from "validation/author.schema";
+import { sendResponse } from "src/utils";
 
 const getAllAuthor = async (req: Request, res: Response) => {
   try {
@@ -17,9 +18,9 @@ const getAllAuthor = async (req: Request, res: Response) => {
 
     const result = await getAllAuthors(currentPage);
 
-    res.status(200).json({ data: result });
+    return sendResponse(res, 200, "success", result);
   } catch (err: any) {
-    res.status(400).json({ message: err.message, data: null });
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 
@@ -28,9 +29,15 @@ const postAuthor = async (req: Request, res: Response) => {
     const { name, bio } = req.body as TAuthor;
     Author.omit({ id: true }).parse(req.body);
     const result = await createAuthor(name, bio);
-    res.status(200).json({ data: result });
-  } catch (err) {
-    res.status(400).json({ message: fromError(err).toString(), data: null });
+    return sendResponse(res, 201, "success", result);
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message,
+      null
+    );
   }
 };
 
@@ -39,9 +46,15 @@ const putAuthor = async (req: Request, res: Response) => {
     Author.parse(req.body);
     const { id, name, bio } = req.body as TAuthor;
     const result = await updateAuthor(id, name, bio);
-    res.status(200).json({ data: result });
-  } catch (err) {
-    res.status(400).json({ message: fromError(err).toString(), data: null });
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message,
+      null
+    );
   }
 };
 
@@ -49,9 +62,9 @@ const deleteAuthor = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await deleteAuthorService(id);
-    res.status(200).json({ data: result });
+    return sendResponse(res, 200, "success", result);
   } catch (err: any) {
-    res.status(400).json({ message: err.message, data: null });
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 
@@ -61,9 +74,20 @@ const postManyAuthors = async (req: Request, res: Response) => {
     const authors = req.body as { name: string; bio?: string }[];
     if (!Array.isArray(authors)) throw new Error("Invalid authors data");
     const result = await createMultipleAuthors(authors);
-    res.status(200).json({ data: result });
-  } catch (err) {
-    res.status(400).json({ message: fromError(err).toString(), data: null });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message,
+      null
+    );
   }
 };
 

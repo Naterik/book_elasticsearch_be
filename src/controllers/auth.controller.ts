@@ -6,6 +6,7 @@ import {
   loginUserService,
   registerUserService,
 } from "services/auth.service";
+import { sendResponse } from "src/utils";
 
 const loginUser = async (req: Request, res: Response) => {
   try {
@@ -21,14 +22,15 @@ const loginUser = async (req: Request, res: Response) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.status(200).json({
-      data: checkLogin,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: fromError(err).toString(),
-      data: null,
-    });
+    return sendResponse(res, 200, "success", checkLogin);
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message,
+      null
+    );
   }
 };
 
@@ -42,43 +44,44 @@ const registerUser = async (req: Request, res: Response) => {
       fullName,
       password
     );
-    res.status(200).json({
-      data: checkRegister,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: fromError(err).toString(),
-      data: null,
-    });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      checkRegister
+    );
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message,
+      null
+    );
   }
 };
 
 const fetchAccount = (req: Request, res: Response) => {
   try {
     const { user } = req;
-    res.status(200).json({
-      data: user,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: "Fetch error" + fromError(err).toString(),
-      data: null,
-    });
+    return sendResponse(res, 200, "success", user);
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      "Fetch error " + (fromError(err).toString() || err.message),
+      null
+    );
   }
 };
 
 const logoutUser = (req: Request, res: Response) => {
   try {
     res.clearCookie("access_token");
-    res.status(200).json({
-      message: "Logout successful",
-      data: null,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: err.message,
-      data: null,
-    });
+    return sendResponse(res, 200, "success", null);
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 

@@ -61,6 +61,8 @@ import {
   renewalLoans,
   returnBookApprove,
   updateLoan,
+  triggerOverdueCheck,
+  seedOverdueLoan,
 } from "controllers/loan.controller";
 import {
   createReservation,
@@ -122,8 +124,12 @@ import {
 } from "controllers/elastic/aggregation.elastic";
 import { filterElasticBookCopy } from "controllers/elastic/filter.elastic";
 import { vietnameseBooksController } from "controllers/import/import.vietnamese.controller";
-import { cleanupBookData } from "controllers/import/cleanup.controller";
+import {
+  cleanupBookData,
+  cleanupSpecificGenres,
+} from "controllers/import/cleanup.controller";
 import { syncDigitalBooks } from "controllers/import/digital-sync.controller";
+import { previewDigitalBookController } from "controllers/book/digital.controller";
 
 const privateRouter = express.Router();
 
@@ -188,6 +194,8 @@ privateRouter.get("/loans/returned/:id", getLoanReturnById);
 privateRouter.put("/loans", updateLoan);
 privateRouter.delete("/loans/:id", deleteLoan);
 privateRouter.put("/loans/return-book", returnBookApprove);
+privateRouter.post("/loans/cron/trigger-overdue-check", triggerOverdueCheck); // Testing Manual Trigger
+privateRouter.post("/loans/seed/overdue", seedOverdueLoan); // Testing Seed Overdue Loan
 
 privateRouter.get("/fines", getAllFined);
 privateRouter.get("/fines/:id", getFinedByUserId);
@@ -231,6 +239,7 @@ privateRouter.post("/history-searches/merge", postMergeUserRecentSearches);
 privateRouter.delete("/history-searches/:searchId", deleteUserSearch);
 privateRouter.delete("/history-searches", deleteAllUserSearches);
 
+privateRouter.get("/digitals/preview/:isbn",previewDigitalBookController)
 //openLibrary
 privateRouter.post("/authors/openlibrary", createAuthorFromOpenLibrary);
 privateRouter.post("/books/open", createBooksFromOpenLibrary);
@@ -241,14 +250,13 @@ privateRouter.post(
 );
 privateRouter.post("/worksid/open", postWorksIdOpen);
 
-
 privateRouter.post("/books/import-by-language", importBooksByLanguage);
 privateRouter.post("/books/delete-by-language", deleteImportedVietnameseBooks);
 
 privateRouter.post("/books/vietnamese", vietnameseBooksController);
-privateRouter.post("/books/cleanup",cleanupBookData)
+privateRouter.post("/books/cleanup", cleanupBookData);
+privateRouter.post("/books/cleanup-specific-genres", cleanupSpecificGenres);
 privateRouter.post("/books/sync-digital", syncDigitalBooks);
-
 
 privateRouter.post("/seed/loans", postSeedData);
 

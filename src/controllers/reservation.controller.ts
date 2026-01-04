@@ -8,18 +8,20 @@ import {
   getReservationsByUserId,
   updateReservationStatus,
 } from "services/reservation.service";
+import { sendResponse } from "src/utils";
+
 const createReservation = async (req: Request, res: Response) => {
   try {
     const { bookId, userId } = req.body;
     const result = await createReservationService(+bookId, +userId);
-    res.status(201).json({
-      data: result,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: err.message,
-      data: null,
-    });
+    return sendResponse(
+      res,
+      201,
+      "success",
+      result
+    );
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 
@@ -29,9 +31,14 @@ const getAllReservations = async (req: Request, res: Response) => {
     let currentPage: number = page ? +page : 1;
     if (currentPage <= 0) currentPage = 1;
     const result = await getAllReservationsService(currentPage);
-    res.status(200).json({ data: result });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (error: any) {
-    res.status(500).json({ message: error.message, data: null });
+    return sendResponse(res, 500, "error", error.message, null);
   }
 };
 
@@ -39,18 +46,23 @@ const getReservationById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await getReservationByIdService(+id);
-    res.status(200).json({ data: result });
+    return sendResponse(res, 200, "success", result);
   } catch (e: any) {
-    res.status(404).json({ message: "Reservation not found", data: null });
+    return sendResponse(res, 404, "error", "Reservation not found", null);
   }
 };
 const getReservationByUserId = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await getReservationsByUserId(+id);
-    res.status(200).json({ data: result });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (e: any) {
-    res.status(404).json({ message: "Reservation not found", data: null });
+    return sendResponse(res, 404, "error", "Reservation not found", null);
   }
 };
 
@@ -59,9 +71,14 @@ const putCancelReservationStatus = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     const result = await cancelReservationStatus(+id);
-    res.status(200).json({ data: result });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (error: any) {
-    res.status(400).json({ message: error.message, data: null });
+    return sendResponse(res, 400, "error", error.message, null);
   }
 };
 
@@ -70,9 +87,14 @@ const updateReservation = async (req: Request, res: Response) => {
     const { status, id } = req.body;
 
     const result = await updateReservationStatus(+id, status);
-    res.status(200).json({ data: result });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (error: any) {
-    res.status(400).json({ message: error.message, data: null });
+    return sendResponse(res, 400, "error", error.message, null);
   }
 };
 
@@ -80,9 +102,14 @@ const deleteReservation = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await deleteReservationService(+id);
-    res.status(200).json({ data: result });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (error: any) {
-    res.status(400).json({ message: error.message, data: null });
+    return sendResponse(res, 400, "error", error.message, null);
   }
 };
 

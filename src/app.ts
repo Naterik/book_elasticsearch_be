@@ -4,6 +4,7 @@ const app = express();
 import "dotenv/config";
 import apiRoutes from "routes/api.routes";
 import initData from "configs/seed";
+import { initCronJobs } from "./jobs/cron"; // Relative path
 import "./config/google";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -21,6 +22,7 @@ const port = process.env.PORT;
 apiRoutes(app);
 
 initData();
+initCronJobs();
 
 loginWithGoogle();
 

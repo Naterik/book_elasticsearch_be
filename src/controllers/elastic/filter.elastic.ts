@@ -1,5 +1,6 @@
 import { client } from "configs/elastic";
 import { Request, Response } from "express";
+import { sendResponse } from "src/utils";
 
 type IFilterBookInput = {
   publisherId?: string;
@@ -198,16 +199,13 @@ const filterElastic = async (req: Request, res: Response) => {
     const total: number = results.hits.total.value;
 
     if (total === 0) {
-      return res.status(200).json({
-        data: {
-          result: [],
-          pagination: {
-            currentPage,
-            totalPages: 0,
-            pageSize,
-            totalItems: 0,
-          },
-          message: "No results found for the applied filters",
+      return sendResponse(res, 200, "success", {
+        result: [],
+        pagination: {
+          currentPage,
+          totalPages: 0,
+          pageSize,
+          totalItems: 0,
         },
       });
     }
@@ -220,22 +218,17 @@ const filterElastic = async (req: Request, res: Response) => {
       };
     });
 
-    res.status(200).json({
-      data: {
-        result,
-        pagination: {
-          currentPage,
-          totalPages,
-          pageSize,
-          totalItems: total,
-        },
+    return sendResponse(res, 200, "success", {
+      result,
+      pagination: {
+        currentPage,
+        totalPages,
+        pageSize,
+        totalItems: total,
       },
     });
-  } catch (e) {
-    res.status(400).json({
-      message: e.message,
-      data: null,
-    });
+  } catch (e: any) {
+    return sendResponse(res, 400, "error", e.message, null);
   }
 };
 
@@ -305,16 +298,13 @@ const filterElasticBookCopy = async (req: Request, res: Response) => {
 
     // Return empty result set with pagination if no results, instead of throwing error
     if (total === 0 || results.hits.hits.length === 0) {
-      return res.status(200).json({
-        data: {
-          result: [],
-          pagination: {
-            currentPage,
-            totalPages: 0,
-            pageSize,
-            totalItems: 0,
-          },
-          message: "No book copies found",
+      return sendResponse(res, 200, "success", {
+        result: [],
+        pagination: {
+          currentPage,
+          totalPages: 0,
+          pageSize,
+          totalItems: 0,
         },
       });
     }
@@ -328,22 +318,17 @@ const filterElasticBookCopy = async (req: Request, res: Response) => {
       };
     });
 
-    res.status(200).json({
-      data: {
-        result,
-        pagination: {
-          currentPage,
-          totalPages,
-          pageSize,
-          totalItems: total,
-        },
+    return sendResponse(res, 200, "success", {
+      result,
+      pagination: {
+        currentPage,
+        totalPages,
+        pageSize,
+        totalItems: total,
       },
     });
-  } catch (e) {
-    res.status(400).json({
-      message: e.message,
-      data: null,
-    });
+  } catch (e: any) {
+    return sendResponse(res, 400, "error", e.message, null);
   }
 };
 

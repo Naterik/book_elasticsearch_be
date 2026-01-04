@@ -10,20 +10,17 @@ import "dotenv/config";
 import { TUser, User } from "validation/user.schema";
 import { fromError } from "zod-validation-error";
 import { createMemberCardService } from "services/member.service";
+import { sendResponse } from "src/utils";
+
 const getAllUser = async (req: Request, res: Response) => {
   try {
     const { page } = req.query;
     let currentPage = page ? page : 1;
     if (+currentPage <= 0) currentPage = 1;
     const result = await getAllUsers(+currentPage);
-    res.status(200).json({
-      data: result,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: err.message,
-      data: null,
-    });
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 
@@ -31,14 +28,15 @@ const getUserById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await getUserByIdService(+id);
-    res.status(200).json({
-      data: result,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: fromError(err).toString(),
-      data: null,
-    });
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message,
+      null
+    );
   }
 };
 
@@ -57,14 +55,15 @@ const postUser = async (req: Request, res: Response) => {
       avatar,
       roleId
     );
-    res.status(200).json({
-      data: result,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: fromError(err).toString(),
-      data: null,
-    });
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message,
+      null
+    );
   }
 };
 
@@ -83,14 +82,15 @@ const putUser = async (req: Request, res: Response) => {
       roleId,
       avatar
     );
-    res.status(200).json({
-      data: result,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: fromError(err).toString(),
-      data: null,
-    });
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message,
+      null
+    );
   }
 };
 
@@ -98,14 +98,9 @@ const deleteUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await deleteUserService(id);
-    res.status(200).json({
-      data: result,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: err.message,
-      data: null,
-    });
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 
@@ -120,14 +115,14 @@ const createMemberCard = async (req: Request, res: Response) => {
       duration,
       paymentRef
     );
-    res.status(200).json({
-      data: result,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: err.message,
-      data: null,
-    });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 

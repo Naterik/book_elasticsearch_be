@@ -7,6 +7,7 @@ import {
 } from "services/book/publisher.service";
 import { Publisher, TPublisher } from "validation/publisher.schema";
 import { fromError } from "zod-validation-error";
+import { sendResponse } from "src/utils";
 
 const getAllPublisher = async (req: Request, res: Response) => {
   try {
@@ -16,9 +17,14 @@ const getAllPublisher = async (req: Request, res: Response) => {
 
     const result = await getAllPublishers(currentPage);
 
-    res.status(200).json({ data: result });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (err: any) {
-    res.status(400).json({ message: err.message, data: null });
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 
@@ -27,9 +33,20 @@ const postPublisher = async (req: Request, res: Response) => {
     Publisher.omit({ id: true }).parse(req.body);
     const { name, description } = req.body as TPublisher;
     const result = await createPublisher(name, description);
-    res.status(200).json({ data: result });
-  } catch (err) {
-    res.status(400).json({ message: fromError(err).toString(), data: null });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message,
+      null
+    );
   }
 };
 
@@ -38,9 +55,20 @@ const putPublisher = async (req: Request, res: Response) => {
     Publisher.parse(req.body);
     const { id, name, description } = req.body as TPublisher;
     const result = await updatePublisher(id, name, description);
-    res.status(200).json({ data: result });
-  } catch (err) {
-    res.status(400).json({ message: fromError(err).toString(), data: null });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message,
+      null
+    );
   }
 };
 
@@ -48,9 +76,14 @@ const deletePublisher = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await deletePublisherService(id);
-    res.status(200).json({ data: result });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (err: any) {
-    res.status(400).json({ message: err.message, data: null });
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 

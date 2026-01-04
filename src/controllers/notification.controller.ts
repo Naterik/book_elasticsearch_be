@@ -7,14 +7,20 @@ import {
   updateAllNotifications,
   updateSingleNotification,
 } from "services/notification.realtime.service";
+import { sendResponse } from "src/utils";
 
 const getNotificationsByUserId = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
     const result = await getNotifications(+userId);
-    res.status(200).json({ data: result });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (e: any) {
-    res.status(400).json({ message: e.message, data: null });
+    return sendResponse(res, 500, "error", e.message, null);
   }
 };
 
@@ -22,9 +28,14 @@ const getUnread = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
     const result = await getUnreadNotifications(+userId);
-    res.status(200).json({ data: result });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (e: any) {
-    res.status(400).json({ message: e.message, data: null });
+    return sendResponse(res, 500, "error", e.message, null);
   }
 };
 
@@ -33,9 +44,14 @@ const putSingleNotification = async (req: Request, res: Response) => {
     const { userId } = req.params;
     const { id } = req.body;
     const result = await updateSingleNotification(+id, +userId);
-    res.status(200).json({ data: result });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (e: any) {
-    res.status(400).json({ message: e.message, data: null });
+    return sendResponse(res, 500, "error", e.message, null);
   }
 };
 
@@ -43,9 +59,14 @@ const putBulkNotification = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
     const result = await updateAllNotifications(+userId);
-    res.status(200).json({ data: result });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (e: any) {
-    res.status(400).json({ message: e.message, data: null });
+    return sendResponse(res, 500, "error", e.message, null);
   }
 };
 
@@ -53,9 +74,14 @@ const cleanupNotifications = async (req: Request, res: Response) => {
   try {
     const { days = 30 } = req.body;
     const result = await cleanupOldNotifications(days);
-    res.status(200).json({ data: result, message: "Cleanup completed" });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (e: any) {
-    res.status(400).json({ message: e.message, data: null });
+    return sendResponse(res, 500, "error", e.message, null);
   }
 };
 

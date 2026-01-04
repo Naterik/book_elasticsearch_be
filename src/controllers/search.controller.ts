@@ -7,20 +7,25 @@ import {
   mergeRecentSearches,
   getTrendingSearchesService,
 } from "services/search.service";
+import { sendResponse } from "src/utils";
 
 const getTrendingSearches = async (req: Request, res: Response) => {
   try {
     const trendingSearches = await getTrendingSearchesService();
-    res.status(200).json({
-      data: trendingSearches,
-      count: trendingSearches.length,
-    });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      trendingSearches
+    );
   } catch (err: any) {
-    res.status(400).json({
-      data: null,
-      message:
-        err?.message || "An error occurred while fetching trending searches",
-    });
+    return sendResponse(
+      res,
+      400,
+      "error",
+      err?.message || "An error occurred while fetching trending searches",
+      null
+    );
   }
 };
 
@@ -29,16 +34,20 @@ const getUserHistorySearches = async (req: Request, res: Response) => {
     const { userId } = req.params;
     const recentSearches = await getRecentSearchesByUserId(+userId);
 
-    res.status(200).json({
-      data: recentSearches,
-      count: recentSearches.length,
-    });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      recentSearches
+    );
   } catch (err: any) {
-    res.status(400).json({
-      data: null,
-      message:
-        err?.message || "An error occurred while fetching recent searches",
-    });
+    return sendResponse(
+      res,
+      400,
+      "error",
+      err?.message || "An error occurred while fetching recent searches",
+      null
+    );
   }
 };
 
@@ -47,15 +56,20 @@ const postMergeUserRecentSearches = async (req: Request, res: Response) => {
     const { userId, terms } = req.body;
     console.log("term :>> ", terms);
     const mergedSearches = await mergeRecentSearches(+userId, terms);
-    res.status(200).json({
-      data: mergedSearches,
-    });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      mergedSearches
+    );
   } catch (err: any) {
-    res.status(400).json({
-      data: null,
-      message:
-        err?.message || "An error occurred while merging recent searches",
-    });
+    return sendResponse(
+      res,
+      400,
+      "error",
+      err?.message || "An error occurred while merging recent searches",
+      null
+    );
   }
 };
 
@@ -64,14 +78,20 @@ const postUserRecentSearch = async (req: Request, res: Response) => {
     const { term, userId } = req.body;
     const searchHistory = await addRecentSearch(userId, term);
 
-    res.status(200).json({
-      data: searchHistory,
-    });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      searchHistory
+    );
   } catch (err: any) {
-    res.status(400).json({
-      data: null,
-      message: err?.message || "An error occurred while saving search",
-    });
+    return sendResponse(
+      res,
+      400,
+      "error",
+      err?.message || "An error occurred while saving search",
+      null
+    );
   }
 };
 
@@ -80,14 +100,20 @@ const deleteUserSearch = async (req: Request, res: Response) => {
     const { searchId } = req.params;
     const result = await deleteSearch(+searchId);
 
-    res.status(200).json({
-      data: result,
-    });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (err: any) {
-    res.status(400).json({
-      data: null,
-      message: err?.message || "An error occurred while deleting search",
-    });
+    return sendResponse(
+      res,
+      400,
+      "error",
+      err?.message || "An error occurred while deleting search",
+      null
+    );
   }
 };
 
@@ -95,21 +121,30 @@ const deleteAllUserSearches = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     if (!userId) {
-      return res.status(401).json({
-        data: null,
-        message: "Unauthorized: User ID not found",
-      });
+      return sendResponse(
+        res,
+        401,
+        "error",
+        "Unauthorized: User ID not found",
+        null
+      );
     }
 
     const result = await clearAllSearches(userId);
-    res.status(200).json({
-      data: result,
-    });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (err: any) {
-    res.status(400).json({
-      data: null,
-      message: err?.message || "An error occurred while clearing searches",
-    });
+    return sendResponse(
+      res,
+      400,
+      "error",
+      err?.message || "An error occurred while clearing searches",
+      null
+    );
   }
 };
 

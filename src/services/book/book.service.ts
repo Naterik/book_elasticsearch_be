@@ -1,4 +1,5 @@
 import { prisma } from "configs/client";
+import { client } from "configs/elastic";
 import "dotenv/config";
 
 const getAllBooks = async () => {
@@ -7,6 +8,7 @@ const getAllBooks = async () => {
       authors: { select: { name: true } },
       genres: { select: { genres: { select: { id: true, name: true } } } },
       publishers: { select: { name: true } },
+      digitalBook: { select: { status: true } },
     },
   });
 };
@@ -23,6 +25,7 @@ const getBooks = async (currentPage: number) => {
       authors: { select: { name: true } },
       genres: { select: { genres: { select: { id: true, name: true } } } },
       publishers: { select: { name: true } },
+      digitalBook: { select: { status: true } },
     },
   });
 
@@ -37,6 +40,7 @@ const getBooks = async (currentPage: number) => {
   };
 };
 
+const indexBook = process.env.INDEX_N_GRAM_BOOK;
 const createBookService = async (
   isbn: string,
   title: string,
@@ -69,7 +73,7 @@ const createBookService = async (
       authorId,
       publisherId,
       genres: {
-        create: (genreIds as string[]).map((id) => ({
+        create: genreIds.map((id) => ({
           genres: { connect: { id: +id } },
         })),
       },
@@ -79,8 +83,43 @@ const createBookService = async (
       authors: { select: { name: true } },
       genres: { select: { genres: { select: { id: true, name: true } } } },
       publishers: { select: { name: true } },
+      digitalBook: { select: { status: true } },
     },
   });
+  if (result && indexBook) {
+    await client.index({
+      index: indexBook,
+      document: {
+        id: result.id,
+        isbn: result.isbn,
+        title: result.title,
+        shortDesc: result.shortDesc,
+        detailDesc: result.detailDesc,
+        price: result.price,
+        quantity: result.quantity,
+        pages: result.pages,
+        publishDate: result.publishDate,
+        language: result.language,
+        authorId: result.authorId,
+        publisherId: result.publisherId,
+        image: result.image,
+        genres: result.genres.map((g) => ({
+          genres: {
+            id: g.genres.id,
+            name: g.genres.name,
+          },
+        })),
+        authors: {
+          name: result.authors.name,
+        },
+        publishers: {
+          name: result.publishers.name,
+        },
+        suggest: [result.title, result.authors.name].filter((item) => item),
+      },
+      refresh: true,
+    });
+  }
   return result;
 };
 const updateBookService = async (
@@ -128,8 +167,45 @@ const updateBookService = async (
       authors: { select: { name: true } },
       genres: { select: { genres: { select: { id: true, name: true } } } },
       publishers: { select: { name: true } },
+      digitalBook: { select: { status: true } },
     },
   });
+
+  if (result && indexBook) {
+    await client.index({
+      index: indexBook,
+      id: String(result.id),
+      document: {
+        id: result.id,
+        isbn: result.isbn,
+        title: result.title,
+        shortDesc: result.shortDesc,
+        detailDesc: result.detailDesc,
+        price: result.price,
+        quantity: result.quantity,
+        pages: result.pages,
+        publishDate: result.publishDate,
+        language: result.language,
+        authorId: result.authorId,
+        publisherId: result.publisherId,
+        image: result.image,
+        genres: result.genres.map((g) => ({
+          genres: {
+            id: g.genres.id,
+            name: g.genres.name,
+          },
+        })),
+        authors: {
+          name: result.authors.name,
+        },
+        publishers: {
+          name: result.publishers.name,
+        },
+        suggest: [result.title, result.authors.name].filter((item) => item),
+      },
+      refresh: true,
+    });
+  }
   return result;
 };
 
@@ -140,6 +216,7 @@ const getBookByIdService = async (id: number) => {
       authors: { select: { name: true } },
       genres: { select: { genres: { select: { id: true, name: true } } } },
       publishers: { select: { name: true } },
+      digitalBook: { select: { status: true } },
     },
   });
   return result;
@@ -150,7 +227,20 @@ const deleteBookService = async (id: number) => {
     where: { bookId: id },
   });
   if (!deleteBookOnGenres) throw new Error("Failed to delete related genres.");
-  return await prisma.book.delete({ where: { id } });
+  const result = await prisma.book.delete({ where: { id } });
+
+  if (indexBook) {
+    try {
+      await client.delete({
+        index: indexBook,
+        id: String(id),
+        refresh: true,
+      });
+    } catch (error) {
+      console.error(`Failed to delete book ${id} from elasticsearch`, error);
+    }
+  }
+  return result;
 };
 
 const limitPerSection: number = +process.env.ITEM_PER_SECTION
@@ -164,6 +254,7 @@ const getMostBorrowedBooksService = async () => {
       authors: { select: { name: true } },
       genres: { select: { genres: { select: { id: true, name: true } } } },
       publishers: { select: { name: true } },
+      digitalBook: { select: { status: true } },
     },
   });
   if (!result) throw new Error("Most borrowed books not available !");
@@ -178,6 +269,7 @@ const getNewArrivalsService = async () => {
       authors: { select: { name: true } },
       genres: { select: { genres: { select: { id: true, name: true } } } },
       publishers: { select: { name: true } },
+      digitalBook: { select: { status: true } },
     },
   });
   if (!result) throw new Error("Error fetching new arrivals !");
@@ -236,6 +328,7 @@ const getTrendingBooksService = async () => {
       authors: { select: { name: true } },
       genres: { select: { genres: { select: { id: true, name: true } } } },
       publishers: { select: { name: true } },
+      digitalBook: { select: { status: true } },
     },
   });
 
@@ -328,6 +421,7 @@ const getRecommendedBooksService = async (userId: number) => {
       authors: { select: { name: true } },
       genres: { select: { genres: { select: { id: true, name: true } } } },
       publishers: { select: { name: true } },
+      digitalBook: { select: { status: true } },
     },
   });
 
@@ -364,12 +458,32 @@ const getBooksForSelectService = async (search: string = "") => {
   }
 };
 
+const getBooksBatch = async (skip: number, take: number) => {
+  return await prisma.book.findMany({
+    skip,
+    take,
+    orderBy: { id: "desc" },
+    include: {
+      authors: { select: { name: true } },
+      genres: { select: { genres: { select: { id: true, name: true } } } },
+      publishers: { select: { name: true } },
+      digitalBook: { select: { status: true } },
+    },
+  });
+};
+
+const countBooks = async () => {
+  return await prisma.book.count();
+};
+
 export {
   getBooks,
   createBookService,
   updateBookService,
   deleteBookService,
   getAllBooks,
+  getBooksBatch,
+  countBooks,
   getBookByIdService,
   getMostBorrowedBooksService,
   getNewArrivalsService,

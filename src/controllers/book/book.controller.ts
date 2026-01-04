@@ -16,14 +16,26 @@ import {
 
 import { Book, TBook } from "validation/books.schema";
 import { fromError } from "zod-validation-error";
+import { sendResponse } from "src/utils";
 
 const getAllBookForSelect = async (req: Request, res: Response) => {
   try {
     const { search } = req.query;
     const result = await getBooksForSelectService(search as string);
-    res.status(200).json({ data: result });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (error: any) {
-    res.status(400).json({ error: fromError(error).toString(), data: null });
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(error).toString() || error.message,
+      null
+    );
   }
 };
 
@@ -33,9 +45,15 @@ const getAllBook = async (req: Request, res: Response) => {
     let currentPage: number = page ? +page : 1;
     if (currentPage <= 0) currentPage = 1;
     const result = await getBooks(+currentPage);
-    res.status(200).json({ data: result });
+    return sendResponse(res, 200, "success", result);
   } catch (error: any) {
-    res.status(400).json({ error: fromError(error).toString(), data: null });
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(error).toString() || error.message,
+      null
+    );
   }
 };
 
@@ -72,9 +90,15 @@ const postBook = async (req: Request, res: Response) => {
       genreIds,
       image
     );
-    res.status(201).json({ data: result });
+    return sendResponse(res, 201, "success", result);
   } catch (error: any) {
-    res.status(400).json({ error: fromError(error).toString(), data: null });
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(error).toString() || error.message,
+      null
+    );
   }
 };
 
@@ -116,9 +140,15 @@ const putBook = async (req: Request, res: Response) => {
       genreIds,
       image
     );
-    res.status(201).json({ data: result });
+    return sendResponse(res, 201, "success", result);
   } catch (error: any) {
-    res.status(400).json({ error: fromError(error).toString(), data: null });
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(error).toString() || error.message,
+      null
+    );
   }
 };
 
@@ -126,9 +156,15 @@ const deleteBook = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await deleteBookService(+id);
-    res.status(200).json({ data: result });
+    return sendResponse(res, 200, "success", result);
   } catch (error: any) {
-    res.status(400).json({ error: fromError(error).toString(), data: null });
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(error).toString() || error.message,
+      null
+    );
   }
 };
 
@@ -136,14 +172,9 @@ const getBookById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await getBookByIdService(+id);
-    res.status(200).json({
-      data: result,
-    });
-  } catch (e) {
-    res.status(400).json({
-      data: null,
-      message: e.message,
-    });
+    return sendResponse(res, 200, "success", result);
+  } catch (e: any) {
+    return sendResponse(res, 400, "error", e.message, null);
   }
 };
 
@@ -176,65 +207,69 @@ const filterBook = async (req: Request, res: Response) => {
       language
     );
 
-    res.status(200).json({
-      data: result,
-    });
+    return sendResponse(res, 200, "success", result);
   } catch (error: any) {
-    res.status(400).json({ error: fromError(error).toString(), data: null });
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(error).toString() || error.message,
+      null
+    );
   }
 };
 
 const getMostBorrowedBooks = async (req: Request, res: Response) => {
   try {
     const result = await getMostBorrowedBooksService();
-    res.status(200).json({
-      data: result,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: err.message,
-      data: null,
-    });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 const getRecommendedBooks = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await getRecommendedBooksService(+id);
-    res.status(200).json({
-      data: result,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: err.message,
-      data: null,
-    });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 const getTrendingBooks = async (req: Request, res: Response) => {
   try {
     const result = await getTrendingBooksService();
-    res.status(200).json({
-      data: result,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: err.message,
-      data: null,
-    });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 const getNewArrivals = async (req: Request, res: Response) => {
   try {
     const result = await getNewArrivalsService();
-    res.status(200).json({
-      data: result,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: err.message,
-      data: null,
-    });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 

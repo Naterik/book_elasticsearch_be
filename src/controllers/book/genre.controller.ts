@@ -9,13 +9,14 @@ import {
   performFullGenreCleanup,
 } from "services/book/genre.service";
 import { Genre, TGenre } from "validation/genre.schema";
+import { sendResponse } from "src/utils";
 
 const getAllGenreDisplay = async (req: Request, res: Response) => {
   try {
     const data = await getGenresForDisplay();
-    res.status(200).json({ data });
+    return sendResponse(res, 200, "success", data);
   } catch (err: any) {
-    res.status(400).json({ message: err.message, data: null });
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 
@@ -27,9 +28,9 @@ const getAllGenre = async (req: Request, res: Response) => {
 
     const result = await getAllGenres(currentPage);
 
-    res.status(200).json({ data: result });
+    return sendResponse(res, 200, "success", result);
   } catch (err: any) {
-    res.status(400).json({ message: err.message, data: null });
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 
@@ -38,9 +39,15 @@ const postGenre = async (req: Request, res: Response) => {
     Genre.omit({ id: true }).parse(req.body);
     const { name, description } = req.body as TGenre;
     const result = await createGenre(name, description);
-    res.status(200).json({ data: result });
-  } catch (err) {
-    res.status(400).json({ message: fromError(err).toString(), data: null });
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message,
+      null
+    );
   }
 };
 
@@ -49,9 +56,15 @@ const putGenre = async (req: Request, res: Response) => {
     Genre.parse(req.body);
     const { id, name, description } = req.body as TGenre;
     const result = await updateGenre(id, name, description);
-    res.status(200).json({ data: result });
-  } catch (err) {
-    res.status(400).json({ message: fromError(err).toString(), data: null });
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message,
+      null
+    );
   }
 };
 
@@ -59,9 +72,9 @@ const deleteGenre = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await deleteGenreService(id);
-    res.status(200).json({ data: result });
+    return sendResponse(res, 200, "success", result);
   } catch (err: any) {
-    res.status(400).json({ message: err.message, data: null });
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 
@@ -69,10 +82,10 @@ const cleanupGenresController = async (req: Request, res: Response) => {
   try {
     console.log("📌 Genre cleanup API called");
     const result = await performFullGenreCleanup();
-    res.status(200).json({ data: result });
+    return sendResponse(res, 200, "success", result);
   } catch (err: any) {
     console.error("❌ Error in cleanup controller:", err);
-    res.status(500).json({ message: err.message, data: null });
+    return sendResponse(res, 500, "error", err.message, null);
   }
 };
 
@@ -82,5 +95,5 @@ export {
   putGenre,
   deleteGenre,
   getAllGenreDisplay,
-  cleanupGenresController, // ⭐ API duy nhất để cleanup
+  cleanupGenresController,
 };

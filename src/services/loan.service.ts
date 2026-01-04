@@ -498,6 +498,108 @@ const approveReturnBook = async (loanId: number, userId: number) => {
   });
 };
 
+const processOverdueLoans = async () => {
+  const now = new Date();
+  console.log(`[Cron] Starting overdue loans check at ${now.toISOString()}`);
+  
+  const BATCH_SIZE = 50;
+
+  try {
+    // 1. Tìm tổng số bản ghi thỏa mãn điều kiện
+    // status = 'ON_LOAN' và dueDate < now
+    const totalCount = await prisma.loan.count({
+      where: {
+        status: "ON_LOAN",
+        dueDate: { lt: now },
+      },
+    });
+
+    if (totalCount === 0) {
+      console.log("[Cron] No overdue loans found.");
+      return;
+    }
+
+    console.log(`[Cron] Found ${totalCount} overdue loans. Processing...`);
+
+    let processedCount = 0;
+
+    // 2. Xử lý theo lô (Batch Processing)
+    // Vì ta update trạng thái bản ghi từ ON_LOAN -> OVERDUE,
+    // nên lần query tiếp theo sẽ tự động lấy các bản ghi khác chưa xử lý.
+    while (processedCount < totalCount) {
+      const loans = await prisma.loan.findMany({
+        where: {
+          status: "ON_LOAN",
+          dueDate: { lt: now },
+        },
+        take: BATCH_SIZE,
+        select: { id: true, userId: true },
+      });
+
+      if (loans.length === 0) break;
+
+      // Xử lý song song các khoản vay trong batch hiện tại
+      await Promise.all(
+        loans.map(async (loan) => {
+          try {
+            await prisma.$transaction(async (tx) => {
+              // 1. Cập nhật status -> OVERDUE
+              await tx.loan.update({
+                where: { id: loan.id },
+                data: { status: "OVERDUE" },
+              });
+
+              // 2. Gửi Notification
+              await tx.notification.create({
+                data: {
+                  userId: loan.userId,
+                  type: "LOAN_OVERDUE",
+                  title: "Sách quá hạn / Overdue Book",
+                  content:
+                    "Sách của bạn đã quá hạn. Vui lòng trả sách sớm! (Your book is overdue. Please return it soon!)",
+                  priority: "HIGH",
+                },
+              });
+
+              // 3. Tạo Fine (Phạt 5000đ)
+              // Kiểm tra xem đã có fine chưa để tránh lỗi unique constraint (dù logic cũ loan status ON_LOAN thường chưa có fine)
+              const existingFine = await tx.fine.findUnique({
+                 where: { loanId: loan.id }
+              });
+
+              if (!existingFine) {
+                await tx.fine.create({
+                    data: {
+                    amount: 5000,
+                    reason: "OVERDUE_AUTO_CRON",
+                    isPaid: false,
+                    loanId: loan.id,
+                    userId: loan.userId,
+                    },
+                });
+              }
+            });
+          } catch (err: any) {
+            console.error(
+              `[Cron] Error processing loan ID ${loan.id}:`,
+              err.message
+            );
+          }
+        })
+      );
+
+      processedCount += loans.length;
+      console.log(`[Cron] Processed ${processedCount}/${totalCount} records...`);
+    }
+
+    console.log(
+      `[Cron] Finished overdue loans check at ${new Date().toISOString()}`
+    );
+  } catch (error) {
+    console.error("[Cron] Global Error in processOverdueLoans:", error);
+  }
+};
+
 export {
   getAllLoansService,
   createLoanService,
@@ -510,4 +612,5 @@ export {
   updateLoanService,
   deleteLoanService,
   approveReturnBook,
+  processOverdueLoans,
 };

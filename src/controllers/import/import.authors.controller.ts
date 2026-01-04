@@ -1,6 +1,7 @@
 // src/controllers/author.import.controller.ts
 import { Request, Response } from "express";
 import { createAuthor } from "services/book/author.service";
+import { sendResponse } from "src/utils";
 
 async function getJSON(url: string) {
   const r = await fetch(url, { headers: { "User-Agent": "LMS/1.0" } });
@@ -58,7 +59,7 @@ export const createAuthorFromOpenLibrary = async (
 
     if (olids.length === 1) {
       const item = await importOne(olids[0]);
-      return res.status(201).json(item);
+      return sendResponse(res, 201, "success", item);
     }
 
     const results = await Promise.allSettled(olids.map(importOne));
@@ -78,10 +79,8 @@ export const createAuthorFromOpenLibrary = async (
       )
       .filter(Boolean) as Array<{ olid: string; error: string }>;
 
-    return res.status(201).json({ data, failed });
+    return sendResponse(res, 201, "success", { data, failed });
   } catch (err: any) {
-    return res
-      .status(400)
-      .json({ message: err?.message || String(err), data: null });
+    return sendResponse(res, 400, "error", err?.message || String(err), null);
   }
 };

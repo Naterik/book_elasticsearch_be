@@ -87,6 +87,7 @@ const filterBooks = async (
         authors: { select: { name: true } },
         genres: { select: { genres: { select: { id: true, name: true } } } },
         publishers: { select: { name: true } },
+        digitalBook: { select: { status: true } },
       },
     }),
     prisma.book.count({ where: whereClause }),

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "configs/client";
+import { sendResponse } from "src/utils";
 
 // ================= CONFIGURATION =================
 const MAX_CONCURRENCY = 10;
@@ -493,9 +494,7 @@ export const vietnameseBooksController = async (
     const toPage = Math.min(100, req.body.toPage || 10);
 
     if (fromPage > toPage) {
-      return res.status(400).json({
-        error: "fromPage phải nhỏ hơn hoặc bằng toPage",
-      });
+      return sendResponse(res, 400, "error", "fromPage phải nhỏ hơn hoặc bằng toPage", null);
     }
 
     console.log(
@@ -542,8 +541,7 @@ export const vietnameseBooksController = async (
     );
 
     if (validWorkIds.length === 0) {
-      return res.status(404).json({
-        message: "Không tìm thấy sách tiếng Việt hợp lệ",
+      return sendResponse(res, 404, "error", "Không tìm thấy sách tiếng Việt hợp lệ", {
         stats: {
           fromPage,
           toPage,
@@ -587,8 +585,7 @@ export const vietnameseBooksController = async (
       `\n🎉 Hoàn tất: ${successResults.length} thành công, ${failedResults.length} thất bại`
     );
 
-    return res.status(200).json({
-      message: `Import hoàn tất: ${successResults.length} sách đã thêm vào database`,
+    return sendResponse(res, 200, "success", {
       stats: {
         fromPage,
         toPage,
@@ -603,6 +600,6 @@ export const vietnameseBooksController = async (
     });
   } catch (err: any) {
     console.error("Import error:", err);
-    return res.status(500).json({ error: err.message });
+    return sendResponse(res, 500, "error", err.message, null);
   }
 };

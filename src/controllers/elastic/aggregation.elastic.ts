@@ -1,24 +1,34 @@
 import { client } from "configs/elastic";
 import { count } from "console";
 import { Request, Response } from "express";
+import { sendResponse } from "src/utils";
+
 const index = process.env.INDEX_N_GRAM_BOOK;
+
 const countLanguage = async (request: Request, res: Response) => {
-  const data: any = await client.search({
-    index,
-    size: 0,
-    aggs: {
-      count_languages: {
-        terms: {
-          field: "language",
-          size: 100,
+  try {
+    const data: any = await client.search({
+      index,
+      size: 0,
+      aggs: {
+        count_languages: {
+          terms: {
+            field: "language",
+            size: 100,
+          },
         },
       },
-    },
-    filter_path: ["aggregations.count_languages.buckets"],
-  });
-  res.status(200).json({
-    data: data.aggregations.count_languages.buckets,
-  });
+      filter_path: ["aggregations.count_languages.buckets"],
+    });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      data.aggregations.count_languages.buckets
+    );
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message, null);
+  }
 };
 
 const countGenres = async (request: Request, res: Response) => {
@@ -34,11 +44,14 @@ const countGenres = async (request: Request, res: Response) => {
         },
       },
     });
-    res.status(200).json({
-      data: data.aggregations.count_genres.buckets,
-    });
-  } catch (err) {
-    res.status(400).json({ message: err.message, data: null });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      data.aggregations.count_genres.buckets
+    );
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 
@@ -57,11 +70,14 @@ const countYearPublishedFromBookCopy = async (req: Request, res: Response) => {
         },
       },
     });
-    res.status(200).json({
-      data: data.aggregations.count_year_published.buckets,
-    });
-  } catch (err) {
-    res.status(400).json({ message: err.message, data: null });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      data.aggregations.count_year_published.buckets
+    );
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 const countStatusFromBookCopy = async (req: Request, res: Response) => {
@@ -78,11 +94,14 @@ const countStatusFromBookCopy = async (req: Request, res: Response) => {
         },
       },
     });
-    res.status(200).json({
-      data: data.aggregations.count_status.buckets,
-    });
-  } catch (err) {
-    res.status(400).json({ message: err.message, data: null });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      data.aggregations.count_status.buckets
+    );
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message, null);
   }
 };
 

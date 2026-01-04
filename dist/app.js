@@ -9,6 +9,7 @@ const app = (0, express_1.default)();
 require("dotenv/config");
 const api_routes_1 = __importDefault(require("routes/api.routes"));
 const seed_1 = __importDefault(require("configs/seed"));
+const cron_1 = require("./jobs/cron"); // Relative path
 require("./config/google");
 const cors_1 = __importDefault(require("cors"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
@@ -21,6 +22,7 @@ app.use(express_1.default.urlencoded({ extended: true }));
 const port = process.env.PORT;
 (0, api_routes_1.default)(app);
 (0, seed_1.default)();
+(0, cron_1.initCronJobs)();
 (0, google_1.default)();
 // Tạo HTTP server cho Socket.IO
 const httpServer = http_1.default.createServer(app);

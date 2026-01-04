@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { sendResponse } from "src/utils";
 
 const DEFAULT_SUBJECTS = [
   "fiction",
@@ -159,11 +160,8 @@ export const postWorksIdOpen = async (
     }
 
     // Trả về tối giản: chỉ mảng work ids
-    res.status(200).json({ works: Array.from(results).slice(0, need) });
+    return sendResponse(res, 200, "success", { works: Array.from(results).slice(0, need) });
   } catch (err: any) {
-    res.status(500).json({
-      error: err?.message || "Open Library fetch failed",
-      works: [],
-    });
+    return sendResponse(res, 500, "error", err?.message || "Open Library fetch failed", { works: [] });
   }
 };

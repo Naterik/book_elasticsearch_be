@@ -1,18 +1,18 @@
 import { Request, Response } from "express";
 import { seedLibraryData } from "services/seed.service";
+import { sendResponse } from "src/utils";
 
 const postSeedData = async (req: Request, res: Response) => {
   try {
     const result = await seedLibraryData();
-    res.status(200).json({
-      message: "Successfully seeded mock data",
-      data: result,
-    });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (e: any) {
-    res.status(500).json({
-      message: "Failed to seed data",
-      error: e.message,
-    });
+    return sendResponse(res, 500, "error", e.message, null);
   }
 };
 

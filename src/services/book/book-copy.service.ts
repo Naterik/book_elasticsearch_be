@@ -1,4 +1,5 @@
 import { prisma } from "configs/client";
+import { client } from "configs/elastic";
 import "dotenv/config";
 
 const getAllBookCopies = async () => {
@@ -29,6 +30,8 @@ const getBookCopies = async (page: number) => {
     },
   };
 };
+
+const indexBookCopy = process.env.INDEX_BOOKCOPY;
 const createBookCopy = async (
   year_published: number,
   copyNumber: string,
@@ -42,8 +45,46 @@ const createBookCopy = async (
       bookId,
       status,
     },
-    include: { books: true },
+    include: {
+      books: {
+        include: {
+          authors: true,
+        },
+      },
+    },
   });
+
+  if (result) {
+    await client.index({
+      index: indexBookCopy,
+      document: {
+        id: result.id,
+        year_published: result.year_published,
+        copyNumber: result.copyNumber,
+        bookId: result.bookId,
+        status: result.status,
+        isbn: result.books.isbn,
+        books: {
+          id: result.books.id,
+          title: result.books.title,
+          isbn: result.books.isbn,
+          shortDesc: result.books.shortDesc,
+          detailDesc: result.books.detailDesc,
+          price: result.books.price,
+          quantity: result.books.quantity,
+          borrowed: result.books.borrowed,
+          pages: result.books.pages,
+          publishDate: result.books.publishDate,
+          language: result.books.language,
+          image: result.books.image,
+          authorId: result.books.authorId,
+          publisherId: result.books.publisherId,
+        },
+        author: result.books.authors.name,
+      },
+      refresh: true,
+    });
+  }
   return result;
 };
 const updateBookCopy = async (
@@ -61,14 +102,68 @@ const updateBookCopy = async (
       bookId,
       status,
     },
-    include: { books: true },
+    include: {
+      books: {
+        include: {
+          authors: true,
+        },
+      },
+    },
   });
+
+  if (result) {
+    await client.index({
+      index: indexBookCopy,
+      id: String(id),
+      document: {
+        id: result.id,
+        year_published: result.year_published,
+        copyNumber: result.copyNumber,
+        bookId: result.bookId,
+        status: result.status,
+        isbn: result.books.isbn,
+        books: {
+          id: result.books.id,
+          title: result.books.title,
+          isbn: result.books.isbn,
+          shortDesc: result.books.shortDesc,
+          detailDesc: result.books.detailDesc,
+          price: result.books.price,
+          quantity: result.books.quantity,
+          borrowed: result.books.borrowed,
+          pages: result.books.pages,
+          publishDate: result.books.publishDate,
+          language: result.books.language,
+          image: result.books.image,
+          authorId: result.books.authorId,
+          publisherId: result.books.publisherId,
+        },
+        author: result.books.authors.name,
+      },
+      refresh: true,
+    });
+  }
   return result;
 };
 const deleteBookCopyService = async (id: number) => {
   const result = await prisma.bookcopy.delete({
     where: { id },
   });
+
+  if (result) {
+    try {
+      await client.delete({
+        index: indexBookCopy,
+        id: String(id),
+        refresh: true,
+      });
+    } catch (error) {
+      console.error(
+        `Failed to delete book copy ${id} from elasticsearch`,
+        error
+      );
+    }
+  }
   return result;
 };
 
@@ -82,6 +177,7 @@ const getBookCopyStatusById = async (bookId: number) => {
 const generateCopiesForBookService = async (bookId: number) => {
   const book = await prisma.book.findUnique({
     where: { id: bookId },
+    include: { authors: true },
   });
 
   if (!book) {
@@ -110,6 +206,38 @@ const generateCopiesForBookService = async (bookId: number) => {
       },
     });
     copies.push(copy);
+
+    if (indexBookCopy) {
+      await client.index({
+        index: indexBookCopy,
+        document: {
+          id: copy.id,
+          year_published: copy.year_published,
+          copyNumber: copy.copyNumber,
+          bookId: copy.bookId,
+          status: copy.status,
+          isbn: book.isbn,
+          books: {
+            id: book.id,
+            title: book.title,
+            isbn: book.isbn,
+            shortDesc: book.shortDesc,
+            detailDesc: book.detailDesc,
+            price: book.price,
+            quantity: book.quantity,
+            borrowed: book.borrowed,
+            pages: book.pages,
+            publishDate: book.publishDate,
+            language: book.language,
+            image: book.image,
+            authorId: book.authorId,
+            publisherId: book.publisherId,
+          },
+          author: book.authors.name,
+        },
+        refresh: true,
+      });
+    }
   }
 
   await prisma.book.update({
@@ -133,12 +261,27 @@ const generateCopiesForAllBooksService = async () => {
   };
 };
 
+const getBookCopiesBatch = async (skip: number, take: number) => {
+  return await prisma.bookcopy.findMany({
+    skip,
+    take,
+    orderBy: { id: "desc" },
+    include: { books: true },
+  });
+};
+
+const countBookCopies = async () => {
+  return await prisma.bookcopy.count();
+};
+
 export {
   getBookCopies,
   createBookCopy,
   updateBookCopy,
   deleteBookCopyService,
   getAllBookCopies,
+  getBookCopiesBatch,
+  countBookCopies,
   getBookCopyStatusById,
   generateCopiesForBookService,
   generateCopiesForAllBooksService,

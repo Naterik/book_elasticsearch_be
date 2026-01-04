@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "configs/client";
+import { sendResponse } from "src/utils";
 
 // ================= CONFIGURATION =================
 const MAX_CONCURRENCY = 10;
@@ -356,9 +357,7 @@ export const deleteImportedVietnameseBooks = async (
     const bookIds = books.map((b) => b.id);
 
     if (bookIds.length === 0) {
-      return res
-        .status(200)
-        .json({ message: "No Vietnamese books found to delete." });
+      return sendResponse(res, 200, "success", null);
     }
 
     // Delete related records in order
@@ -401,12 +400,12 @@ export const deleteImportedVietnameseBooks = async (
       where: { id: { in: bookIds } },
     });
 
-    return res.status(200).json({
-      message: `Deleted ${deleted.count} Vietnamese books and related data.`,
+    return sendResponse(res, 200, "success", {
+      count: deleted.count
     });
   } catch (err: any) {
     console.error("Delete error:", err);
-    return res.status(500).json({ error: err.message });
+    return sendResponse(res, 500, "error", err.message, null);
   }
 };
 
@@ -480,9 +479,7 @@ export const importBooksByLanguage = async (req: Request, res: Response) => {
     );
 
     if (validWorkIds.length === 0) {
-      return res.status(404).json({
-        message: "No valid books found for this language after filtering.",
-      });
+      return sendResponse(res, 404, "error", "No valid books found for this language after filtering.", null);
     }
 
     // 3. Process works
@@ -508,8 +505,7 @@ export const importBooksByLanguage = async (req: Request, res: Response) => {
         reason: r.reason,
       }));
 
-    return res.status(200).json({
-      message: `Import completed.`,
+    return sendResponse(res, 200, "success", {
       stats: {
         requested_limit: limit,
         found_candidates: totalCandidates,
@@ -522,6 +518,6 @@ export const importBooksByLanguage = async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error("Import by language error:", err);
-    return res.status(500).json({ error: err.message });
+    return sendResponse(res, 500, "error", err.message, null);
   }
 };

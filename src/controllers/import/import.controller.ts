@@ -1,6 +1,6 @@
-// src/controllers/book.import.controller.ts
 import { Request, Response } from "express";
 import { prisma } from "configs/client";
+import { sendResponse } from "src/utils";
 
 // ================= CONFIGURATION =================
 const MAX_CONCURRENCY = 20;
@@ -477,9 +477,7 @@ export const autoImportBooksFromGenresList = async (
         : 50;
 
     if (genresList.length === 0) {
-      return res.status(400).json({
-        message:
-          "Vui lòng cung cấp mảng 'genres' và optional 'booksPerGenre' (mặc định: 50)",
+      return sendResponse(res, 400, "error", "Vui lòng cung cấp mảng 'genres' và optional 'booksPerGenre' (mặc định: 50)", {
         example: {
           genres: ["art", "music", "cooking"],
           booksPerGenre: 50,
@@ -594,8 +592,7 @@ export const autoImportBooksFromGenresList = async (
       `\n✅ Auto-import hoàn tất: ${successCount} sách thêm, ${failedCount} thất bại`
     );
 
-    return res.status(200).json({
-      message: `Auto-import từ ${genresList.length} thể loại hoàn tất`,
+    return sendResponse(res, 200, "success", {
       stats: {
         total_genres_requested: genresList.length,
         total_books_requested: allResults.length,
@@ -609,7 +606,7 @@ export const autoImportBooksFromGenresList = async (
     });
   } catch (err: any) {
     console.error("Auto-import error:", err);
-    return res.status(500).json({ error: err.message });
+    return sendResponse(res, 500, "error", err.message, null);
   }
 };
 
@@ -635,10 +632,7 @@ export const autoImportBooksFromGenres = async (
     });
 
     if (allGenres.length === 0) {
-      return res.status(400).json({
-        message:
-          "Không có thể loại nào trong database. Vui lòng thêm thể loại trước.",
-      });
+      return sendResponse(res, 400, "error", "Không có thể loại nào trong database. Vui lòng thêm thể loại trước.", null);
     }
 
     console.log(`📚 Bắt đầu auto-import từ ${allGenres.length} thể loại`);
@@ -740,8 +734,7 @@ export const autoImportBooksFromGenres = async (
       `\n✅ Auto-import hoàn tất: ${successCount} sách thêm, ${failedCount} thất bại`
     );
 
-    return res.status(200).json({
-      message: "Auto-import từ genres hoàn tất",
+    return sendResponse(res, 200, "success", {
       stats: {
         total_genres: allGenres.length,
         total_books_requested: allResults.length,
@@ -755,7 +748,7 @@ export const autoImportBooksFromGenres = async (
     });
   } catch (err: any) {
     console.error("Auto-import error:", err);
-    return res.status(500).json({ error: err.message });
+    return sendResponse(res, 500, "error", err.message, null);
   }
 };
 
@@ -800,10 +793,7 @@ export const createBooksFromOpenLibrary = async (
     }
 
     if (worksInput.length === 0) {
-      return res.status(400).json({
-        message:
-          "Vui lòng cung cấp mảng 'works' (VD: ['OL123W']) hoặc 'subject' + optional 'limit'",
-      });
+      return sendResponse(res, 400, "error", "Vui lòng cung cấp mảng 'works' (VD: ['OL123W']) hoặc 'subject' + optional 'limit'", null);
     }
 
     worksInput = Array.from(new Set(worksInput.map((w) => String(w).trim())));
@@ -977,7 +967,7 @@ export const createBooksFromOpenLibrary = async (
       }
     }
 
-    return res.status(200).json({
+    return sendResponse(res, 200, "success", {
       stats: {
         total_requested: worksInput.length,
         success: successCount,
@@ -990,6 +980,6 @@ export const createBooksFromOpenLibrary = async (
     });
   } catch (err: any) {
     console.error(err);
-    return res.status(500).json({ error: err.message });
+    return sendResponse(res, 500, "error", err.message, null);
   }
 };

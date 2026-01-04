@@ -9,22 +9,28 @@ import {
   getStackedBarChartForRevenue,
 } from "services/dashboard.service";
 import { Timeframe } from "src/types";
+import { sendResponse } from "src/utils";
 
 const getSummary = async (req: Request, res: Response) => {
   try {
     const result = await getDashboardSummary();
-    res.status(200).json({ data: result });
+    return sendResponse(res, 200, "success", result);
   } catch (e: any) {
-    res.status(500).json({ data: null, message: e.message });
+    return sendResponse(res, 500, "error", e.message, null);
   }
 };
 
 const getChartForBookCopiesStatus = async (req: Request, res: Response) => {
   try {
     const result = await getPieChartForBookCopiesStatus();
-    res.status(200).json({ data: result });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (e: any) {
-    res.status(500).json({ data: null, message: e.message });
+    return sendResponse(res, 500, "error", e.message, null);
   }
 };
 
@@ -32,9 +38,9 @@ const getChartForLoanTrends = async (req: Request, res: Response) => {
   try {
     const timeframe = (req.query.timeframe as Timeframe) || "7d";
     const result = await getAreaChartForLoanTrends(timeframe);
-    res.status(200).json({ data: result });
+    return sendResponse(res, 200, "success", result);
   } catch (e: any) {
-    res.status(500).json({ data: null, message: e.message });
+    return sendResponse(res, 500, "error", e.message, null);
   }
 };
 
@@ -42,36 +48,51 @@ const getUserWithCard = async (req: Request, res: Response) => {
   try {
     const timeframe = (req.query.timeframe as Timeframe) || "7d";
     const result = await getListUserWithCard(timeframe);
-    res.status(200).json({ data: result });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (e: any) {
-    res.status(500).json({ data: null, message: e.message });
+    return sendResponse(res, 500, "error", e.message, null);
   }
 };
 
 const getChartForRevenue = async (req: Request, res: Response) => {
   try {
     const result = await getStackedBarChartForRevenue();
-    res.status(200).json({ data: result });
+    return sendResponse(res, 200, "success", result);
   } catch (e: any) {
-    res.status(500).json({ data: null, message: e.message });
+    return sendResponse(res, 500, "error", e.message, null);
   }
 };
 
 const getChartForSearchTerms = async (req: Request, res: Response) => {
   try {
     const result = await getHorizontalBarChartForSearchTerms();
-    res.status(200).json({ data: result });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (e: any) {
-    res.status(500).json({ data: null, message: e.message });
+    return sendResponse(res, 500, "error", e.message, null);
   }
 };
 
 const getPendingReservations = async (req: Request, res: Response) => {
   try {
     const result = await getListPendingReservations();
-    res.status(200).json({ data: result });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (e: any) {
-    res.status(500).json({ data: null, message: e.message });
+    return sendResponse(res, 500, "error", e.message, null);
   }
 };
 

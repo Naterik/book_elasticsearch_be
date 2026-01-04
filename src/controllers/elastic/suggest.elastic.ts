@@ -1,5 +1,7 @@
 import { client } from "configs/elastic";
 import { Request, Response } from "express";
+import { sendResponse } from "src/utils";
+
 const index = process.env.INDEX_N_GRAM_BOOK;
 
 const suggestElastic = async (req: Request, res: Response) => {
@@ -8,7 +10,7 @@ const suggestElastic = async (req: Request, res: Response) => {
     const prefix = String(q || "").trim();
     const limit = Math.min(Number(size) || 5, 10);
 
-    if (!prefix) return res.status(200).json({ data: [] });
+    if (!prefix) return sendResponse(res, 200, "success", []);
 
     // Strategy: Ưu tiên exact match và prefix match cao nhất
     const results: any = await client.search({
@@ -79,14 +81,17 @@ const suggestElastic = async (req: Request, res: Response) => {
     }));
 
     if (suggestions.length === 0) {
-      return res
-        .status(400)
-        .json({ data: null, message: "Not found any result" });
+      return sendResponse(res, 404, "error", "Not found any result", null);
     }
 
-    return res.status(200).json({ data: suggestions });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      suggestions
+    );
   } catch (e: any) {
-    return res.status(400).json({ message: e.message, data: null });
+    return sendResponse(res, 400, "error", e.message, null);
   }
 };
 export { suggestElastic };

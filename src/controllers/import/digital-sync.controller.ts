@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "configs/client";
 import { PreviewStatus } from "@prisma/client";
+import { sendResponse } from "src/utils";
 
 // ================= HELPERS: FETCHING =================
 // Simplified version of getJSON from import.controller.ts
@@ -72,7 +73,7 @@ export const syncDigitalBooks = async (req: Request, res: Response) => {
     });
 
     if (books.length === 0) {
-      return res.status(200).json({ message: "No books found to sync." });
+      return sendResponse(res, 200, "success", null);
     }
 
     console.log(`[DigitalSync] Found ${books.length} books to sync.`);
@@ -160,8 +161,7 @@ export const syncDigitalBooks = async (req: Request, res: Response) => {
       await sleep(200);
     }
 
-    return res.status(200).json({
-      message: "Digital book sync completed.",
+    return sendResponse(res, 200, "success", {
       total: books.length,
       processed: processedCount,
       errors: errorCount,
@@ -170,6 +170,6 @@ export const syncDigitalBooks = async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error("[DigitalSync] Critical failure:", error);
-    return res.status(500).json({ message: "Internal Server Error", error: error.message });
+    return sendResponse(res, 500, "error", "Internal Server Error", error.message);
   }
 };

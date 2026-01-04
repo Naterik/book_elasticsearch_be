@@ -93,3 +93,26 @@ export async function processDigitalPreview(
 
   console.log(`[DigitalPreview] Updated ISBN ${isbn} -> Status: ${status}`);
 }
+
+
+export const previewDigitalBook = async (isbn: string) => {
+  const book = await prisma.book.findUnique({
+    where: { isbn: isbn },
+    select: { id: true }
+  });
+
+  if (!book) {
+    throw new Error(`[DigitalPreview] Book not found in DB with ISBN: ${isbn}`);
+  }
+
+  const digitalBook = await prisma.digitalBook.findUnique({
+    where: { bookId: book.id },
+    select: { status: true, previewUrl: true }
+  });
+
+  if (!digitalBook) {
+    throw new Error(`[DigitalPreview] Digital Book not found for ISBN: ${isbn}`);
+  }
+
+  return digitalBook;
+}

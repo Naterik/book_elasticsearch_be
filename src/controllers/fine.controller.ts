@@ -8,6 +8,7 @@ import {
 } from "services/fine.service";
 import { Fine, TFine } from "validation/fine.schema";
 import { fromError } from "zod-validation-error";
+import { sendResponse } from "src/utils";
 
 const getAllFined = async (req: Request, res: Response) => {
   try {
@@ -15,9 +16,15 @@ const getAllFined = async (req: Request, res: Response) => {
     let currentPage: number = page ? +page : 1;
     if (currentPage <= 0) currentPage = 1;
     const result = await getAllFines(currentPage);
-    res.status(200).json({ data: result });
+    return sendResponse(res, 200, "success", result);
   } catch (error: any) {
-    res.status(400).json({ error: fromError(error).toString(), data: null });
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(error).toString() || error.message,
+      null
+    );
   }
 };
 
@@ -25,9 +32,14 @@ const getFinedByUserId = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await getFinesByUserId(+id);
-    res.status(200).json({ data: result });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
   } catch (e: any) {
-    res.status(404).json({ data: null, message: e.message });
+    return sendResponse(res, 404, "error", e.message, null);
   }
 };
 
@@ -36,9 +48,15 @@ const postFined = async (req: Request, res: Response) => {
     const { amount, reason, isPaid, loanId, userId } = req.body as TFine;
     Fine.omit({ id: true }).parse(req.body);
     const result = await createFine(+amount, reason, isPaid, +loanId, +userId);
-    res.status(201).json({ data: result });
+    return sendResponse(res, 201, "success", result);
   } catch (error: any) {
-    res.status(400).json({ error: fromError(error).toString(), data: null });
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(error).toString() || error.message,
+      null
+    );
   }
 };
 
@@ -54,9 +72,15 @@ const putFined = async (req: Request, res: Response) => {
       +loanId,
       +userId
     );
-    res.status(201).json({ data: result });
+    return sendResponse(res, 201, "success", result);
   } catch (error: any) {
-    res.status(400).json({ error: fromError(error).toString(), data: null });
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(error).toString() || error.message,
+      null
+    );
   }
 };
 
@@ -64,9 +88,15 @@ const deleteFined = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await deleteFine(+id);
-    res.status(200).json({ data: result });
+    return sendResponse(res, 200, "success", result);
   } catch (error: any) {
-    res.status(400).json({ error: fromError(error).toString(), data: null });
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(error).toString() || error.message,
+      null
+    );
   }
 };
 

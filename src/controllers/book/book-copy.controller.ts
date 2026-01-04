@@ -10,6 +10,7 @@ import {
 } from "services/book/book-copy.service";
 import { BookCopy } from "validation/book-copy.schema";
 import { fromError } from "zod-validation-error";
+import { sendResponse } from "src/utils";
 
 const getAllBookCopy = async (req: Request, res: Response) => {
   try {
@@ -17,9 +18,14 @@ const getAllBookCopy = async (req: Request, res: Response) => {
     let currentPage = page ? +page : 1;
     if (currentPage <= 0) currentPage = 1;
     const result = await getBookCopies(+page);
-    res.status(200).json({ data: result });
-  } catch (error) {
-    res.status(400).json({ message: error.message, data: null });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
+  } catch (error: any) {
+    return sendResponse(res, 400, "error", error.message, null);
   }
 };
 const postBookCopy = async (req: Request, res: Response) => {
@@ -30,39 +36,53 @@ const postBookCopy = async (req: Request, res: Response) => {
       +year_published,
       copyNumber,
       +bookId,
-      status,
-
+      status
     );
-    res.status(201).json({ data: result });
-  } catch (error) {
-    res.status(400).json({ message: fromError(error).toString(), data: null });
+    return sendResponse(res, 201, "success", result);
+  } catch (error: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(error).toString() || error.message,
+      null
+    );
   }
 };
 
 const putBookCopy = async (req: Request, res: Response) => {
   try {
-    const { id, year_published, copyNumber, bookId, status } =
-      req.body;
+    const { id, year_published, copyNumber, bookId, status } = req.body;
     BookCopy.parse(req.body);
     const result = await updateBookCopy(
       +id,
       +year_published,
       copyNumber,
       +bookId,
-      status,
-      
+      status
     );
-    res.status(200).json({ data: result });
-  } catch (error) {
-    res.status(400).json({ message: fromError(error).toString(), data: null });
+    return sendResponse(res, 200, "success", result);
+  } catch (error: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(error).toString() || error.message,
+      null
+    );
   }
 };
 const generateCopiesAll = async (req: Request, res: Response) => {
   try {
     const result = await generateCopiesForAllBooksService();
-    res.status(201).json({ data: result });
-  } catch (error) {
-    res.status(400).json({ message: error.message || "Error", data: null });
+    return sendResponse(
+      res,
+      201,
+      "success",
+      result
+    );
+  } catch (error: any) {
+    return sendResponse(res, 400, "error", error.message || "Error", null);
   }
 };
 
@@ -70,9 +90,14 @@ const deleteBookCopy = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await deleteBookCopyService(+id);
-    res.status(200).json({ data: result });
-  } catch (error) {
-    res.status(400).json({ message: error.message, data: null });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
+  } catch (error: any) {
+    return sendResponse(res, 400, "error", error.message, null);
   }
 };
 
@@ -81,11 +106,21 @@ const getBookCopyStatusByBookId = async (req: Request, res: Response) => {
     const { id } = req.params;
     const result = await getBookCopyStatusById(+id);
     if (result === null) {
-      return res.status(200).json({ data: { status: "UNAVAILABLE" } });
+      return sendResponse(
+        res,
+        200,
+        "success",
+        { status: "UNAVAILABLE" }
+      );
     }
-    res.status(200).json({ data: result });
-  } catch (error) {
-    res.status(400).json({ message: error.message, data: null });
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
+  } catch (error: any) {
+    return sendResponse(res, 400, "error", error.message, null);
   }
 };
 export {

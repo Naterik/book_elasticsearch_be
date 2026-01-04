@@ -1,7 +1,11 @@
 import { client } from "configs/elastic";
 import { Request, Response } from "express";
-import { getAllBookCopies } from "services/book/book-copy.service";
-import { getAllBooks } from "services/book/book.service";
+import {
+  countBookCopies,
+  getBookCopiesBatch,
+} from "services/book/book-copy.service";
+import { countBooks, getBooksBatch } from "services/book/book.service";
+import { sendResponse } from "src/utils";
 
 const booksIndex = process.env.INDEX_N_GRAM_BOOK!;
 const bookCopiesIndex = process.env.INDEX_BOOKCOPY!;
@@ -99,24 +103,36 @@ const createBookCopiesIndex = async (req: Request, res: Response) => {
     console.log("Creating book_copies index with ngram tokenizer...");
 
     const exists = await client.indices.exists({ index: bookCopiesIndex });
+    const totalBookCopies = await countBookCopies();
+    console.log(`Total book copies in DB: ${totalBookCopies}`);
+
     if (exists) {
       console.log(
         `Index ${bookCopiesIndex} already exists, keeping existing data...`
       );
 
-      const bookCopies = await getAllBookCopies();
-      console.log(`Fetched ${bookCopies.length} book copies for update`);
+      let totalIndexed = 0;
+      let skip = 0;
+      while (true) {
+        const bookCopies = await getBookCopiesBatch(skip, BATCH_SIZE);
+        if (bookCopies.length === 0) break;
 
-      if (bookCopies.length > 0) {
-        const totalIndexed = await processBatch(bookCopies, bookCopiesIndex);
+        await processBatch(bookCopies, bookCopiesIndex);
+        totalIndexed += bookCopies.length;
+        skip += BATCH_SIZE;
+        console.log(`Progress: ${totalIndexed}/${totalBookCopies}`);
+      }
 
-        return res.status(200).json({
-          message:
-            "Book copies index updated successfully (existing data preserved)",
+      return sendResponse(
+        res,
+        200,
+        "success",
+        {
           index: bookCopiesIndex,
           documentsUpdated: totalIndexed,
-        });
-      }
+          totalInDB: totalBookCopies,
+        }
+      );
     }
 
     // Create new index with ngram settings
@@ -131,12 +147,12 @@ const createBookCopiesIndex = async (req: Request, res: Response) => {
             ngram_analyzer: {
               type: "custom",
               tokenizer: "ngram_tokenizer",
-              filter: ["lowercase", "stop"],
+              filter: ["lowercase", "asciifolding", "stop"],
             },
             standard_analyzer: {
               type: "custom",
               tokenizer: "standard",
-              filter: ["lowercase"],
+              filter: ["lowercase", "asciifolding"],
             },
           },
           tokenizer: {
@@ -247,31 +263,37 @@ const createBookCopiesIndex = async (req: Request, res: Response) => {
     console.log("Book copies index created successfully");
 
     // Fetch and index all book copies
-    const bookCopies = await getAllBookCopies();
-    console.log(`Fetched ${bookCopies.length} book copies`);
+    let totalIndexed = 0;
+    let skip = 0;
+    while (true) {
+      const bookCopies = await getBookCopiesBatch(skip, BATCH_SIZE);
+      if (bookCopies.length === 0) break;
 
-    // Bulk index the documents with batch processing
-    if (bookCopies.length > 0) {
-      const totalIndexed = await processBatch(bookCopies, bookCopiesIndex);
+      await processBatch(bookCopies, bookCopiesIndex);
+      totalIndexed += bookCopies.length;
+      skip += BATCH_SIZE;
+      console.log(`Progress: ${totalIndexed}/${totalBookCopies}`);
+    }
 
-      return res.status(200).json({
-        message: "Book copies index created and populated successfully",
+    return sendResponse(
+      res,
+      200,
+      "success",
+      {
         index: bookCopiesIndex,
         documentsIndexed: totalIndexed,
-      });
-    } else {
-      return res.status(200).json({
-        message:
-          "Book copies index created successfully but no documents to index",
-        index: bookCopiesIndex,
-      });
-    }
+        totalInDB: totalBookCopies,
+      }
+    );
   } catch (error: any) {
     console.error("Error creating book copies index:", error);
-    res.status(500).json({
-      error: "Failed to create book copies index",
-      message: error.message,
-    });
+    return sendResponse(
+      res,
+      500,
+      "error",
+      "Failed to create book copies index",
+      error.message
+    );
   }
 };
 
@@ -303,7 +325,7 @@ const createBooksIndex = async (req: Request, res: Response) => {
 
               tokenizer: "edge_ngram_tokenizer",
 
-              filter: ["lowercase", "stop"],
+              filter: ["lowercase", "asciifolding", "stop"],
             },
 
             autocomplete_search: {
@@ -311,14 +333,14 @@ const createBooksIndex = async (req: Request, res: Response) => {
 
               tokenizer: "standard",
 
-              filter: ["lowercase"],
+              filter: ["lowercase", "asciifolding"],
             },
 
             // Analyzer mới cho exact prefix match
             prefix_analyzer: {
               type: "custom",
               tokenizer: "keyword",
-              filter: ["lowercase"],
+              filter: ["lowercase", "asciifolding"],
             },
           },
 
@@ -471,11 +493,17 @@ const createBooksIndex = async (req: Request, res: Response) => {
     });
 
     console.log("Books index structure created successfully");
-    const books = await getAllBooks();
-    console.log(`Fetched ${books.length} books`);
 
-    if (books.length > 0) {
-      const totalIndexed = await processBatch(books, booksIndex, (doc) => {
+    const totalBooks = await countBooks();
+    console.log(`Total books in DB: ${totalBooks}`);
+
+    let totalIndexed = 0;
+    let skip = 0;
+    while (true) {
+      const books = await getBooksBatch(skip, BATCH_SIZE);
+      if (books.length === 0) break;
+
+      await processBatch(books, booksIndex, (doc) => {
         const suggestInput = [doc.title, doc.authors?.name].filter(
           (item) => item
         );
@@ -484,24 +512,30 @@ const createBooksIndex = async (req: Request, res: Response) => {
           suggest: suggestInput,
         };
       });
+      totalIndexed += books.length;
+      skip += BATCH_SIZE;
+      console.log(`Progress: ${totalIndexed}/${totalBooks}`);
+    }
 
-      return res.status(200).json({
-        message: "Books index created and populated successfully",
+    return sendResponse(
+      res,
+      200,
+      "success",
+      {
         index: booksIndex,
         documentsIndexed: totalIndexed,
-      });
-    } else {
-      return res.status(200).json({
-        message: "Books index created successfully but no documents to index",
-        index: booksIndex,
-      });
-    }
+        totalInDB: totalBooks,
+      }
+    );
   } catch (error: any) {
     console.error("Error creating books index:", error);
-    return res.status(500).json({
-      error: "Failed to create books index",
-      message: error.message,
-    });
+    return sendResponse(
+      res,
+      500,
+      "error",
+      "Failed to create books index",
+      error.message
+    );
   }
 };
 
