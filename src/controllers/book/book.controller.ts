@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import { filterBooks } from "services/book/book.filter.service";
 import {
   deleteBookService,
@@ -33,9 +33,7 @@ const getAllBookForSelect = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(error).toString() || error.message,
-      null
-    );
+      fromError(error).toString() || error.message);
   }
 };
 
@@ -51,9 +49,7 @@ const getAllBook = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(error).toString() || error.message,
-      null
-    );
+      fromError(error).toString() || error.message);
   }
 };
 
@@ -96,9 +92,7 @@ const postBook = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(error).toString() || error.message,
-      null
-    );
+      fromError(error).toString() || error.message);
   }
 };
 
@@ -146,9 +140,7 @@ const putBook = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(error).toString() || error.message,
-      null
-    );
+      fromError(error).toString() || error.message);
   }
 };
 
@@ -162,9 +154,7 @@ const deleteBook = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(error).toString() || error.message,
-      null
-    );
+      fromError(error).toString() || error.message);
   }
 };
 
@@ -174,7 +164,7 @@ const getBookById = async (req: Request, res: Response) => {
     const result = await getBookByIdService(+id);
     return sendResponse(res, 200, "success", result);
   } catch (e: any) {
-    return sendResponse(res, 400, "error", e.message, null);
+    return sendResponse(res, 400, "error", e.message);
   }
 };
 
@@ -213,9 +203,7 @@ const filterBook = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(error).toString() || error.message,
-      null
-    );
+      fromError(error).toString() || error.message);
   }
 };
 
@@ -229,7 +217,7 @@ const getMostBorrowedBooks = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 const getRecommendedBooks = async (req: Request, res: Response) => {
@@ -243,7 +231,7 @@ const getRecommendedBooks = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 const getTrendingBooks = async (req: Request, res: Response) => {
@@ -256,7 +244,7 @@ const getTrendingBooks = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 const getNewArrivals = async (req: Request, res: Response) => {
@@ -269,7 +257,7 @@ const getNewArrivals = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -286,3 +274,4 @@ export {
   getNewArrivals,
   getAllBookForSelect,
 };
+

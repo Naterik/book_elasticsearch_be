@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import {
   getAllPaymentsService,
   getPaymentByIdService,
@@ -24,7 +24,7 @@ const getAllPayments = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -39,7 +39,7 @@ const createPaymentFine = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -54,7 +54,7 @@ const paymentUpdateStatusForFine = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 const paymentUpdateStatusUserForMember = async (
@@ -75,7 +75,7 @@ const paymentUpdateStatusUserForMember = async (
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -85,7 +85,7 @@ const updatePaymentStatus = async (req: Request, res: Response) => {
     const { status } = req.body;
 
     if (!status) {
-      return sendResponse(res, 400, "error", "Status is required", null);
+      return sendResponse(res, 400, "error", "Status is required");
     }
 
     const result = await updatePaymentStatusService(+id, status);
@@ -96,7 +96,7 @@ const updatePaymentStatus = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -111,7 +111,7 @@ const deletePayment = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -126,7 +126,7 @@ const getPaymentById = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -139,3 +139,4 @@ export {
   deletePayment,
   getPaymentById,
 };
+

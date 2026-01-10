@@ -1,4 +1,4 @@
-import { client } from "configs/elastic";
+﻿import { client } from "configs/elastic";
 import { count } from "console";
 import { Request, Response } from "express";
 import { sendResponse } from "src/utils";
@@ -27,7 +27,7 @@ const countLanguage = async (request: Request, res: Response) => {
       data.aggregations.count_languages.buckets
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -51,7 +51,7 @@ const countGenres = async (request: Request, res: Response) => {
       data.aggregations.count_genres.buckets
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -77,7 +77,7 @@ const countYearPublishedFromBookCopy = async (req: Request, res: Response) => {
       data.aggregations.count_year_published.buckets
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 const countStatusFromBookCopy = async (req: Request, res: Response) => {
@@ -101,7 +101,7 @@ const countStatusFromBookCopy = async (req: Request, res: Response) => {
       data.aggregations.count_status.buckets
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -111,3 +111,4 @@ export {
   countYearPublishedFromBookCopy,
   countStatusFromBookCopy,
 };
+

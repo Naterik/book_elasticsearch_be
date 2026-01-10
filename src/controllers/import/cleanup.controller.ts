@@ -1,34 +1,34 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import { prisma } from "configs/client";
 import { sendResponse } from "src/utils";
 
 
 /**
  * Controller: Clean Dirty Book Data
- * Tiêu chí xóa (OR logic):
- *  - ISBN bắt đầu bằng 'OL-'
- *  - ISBN kết thúc bằng 'W'
- *  - ISBN không phải số (chứa chữ cái khác)
- *  - Độ dài khác 13
+ * TiÃªu chÃ­ xÃ³a (OR logic):
+ *  - ISBN báº¯t Ä‘áº§u báº±ng 'OL-'
+ *  - ISBN káº¿t thÃºc báº±ng 'W'
+ *  - ISBN khÃ´ng pháº£i sá»‘ (chá»©a chá»¯ cÃ¡i khÃ¡c)
+ *  - Äá»™ dÃ i khÃ¡c 13
  *
- * Quy trình:
- *  1. Quét toàn bộ Book (Batching nếu cần, nhưng delete where condition cũng được nếu DB mạnh)
- *     Tuy nhiên, do cần check logic string phức tạp mà Prisma raw filtering có thể hạn chế,
- *     ta sẽ fetch all scan hoặc dùng raw query.
- *     NHƯNG: Để an toàn và delete relations, ta nên fetch ID sau đó delete transaction.
+ * Quy trÃ¬nh:
+ *  1. QuÃ©t toÃ n bá»™ Book (Batching náº¿u cáº§n, nhÆ°ng delete where condition cÅ©ng Ä‘Æ°á»£c náº¿u DB máº¡nh)
+ *     Tuy nhiÃªn, do cáº§n check logic string phá»©c táº¡p mÃ  Prisma raw filtering cÃ³ thá»ƒ háº¡n cháº¿,
+ *     ta sáº½ fetch all scan hoáº·c dÃ¹ng raw query.
+ *     NHÆ¯NG: Äá»ƒ an toÃ n vÃ  delete relations, ta nÃªn fetch ID sau Ä‘Ã³ delete transaction.
  */
 export const cleanupBookData = async (req: Request, res: Response) => {
   try {
-    console.log("🧹 Starting Data Cleanup Job...");
+    console.log("ðŸ§¹ Starting Data Cleanup Job...");
 
-    // Bước 1: Tìm các Book ID cần xóa
-    // Do điều kiện phức tạp, ta sẽ fetch ISBN và ID để filter bằng Code (JS) cho linh hoạt
-    // Lưu ý: Nếu DB quá lớn (>100k rows), cần dùng cursor/pagination.
-    // Giả sử DB hiện tại nhỏ trung bình, ta fetch chunk.
+    // BÆ°á»›c 1: TÃ¬m cÃ¡c Book ID cáº§n xÃ³a
+    // Do Ä‘iá»u kiá»‡n phá»©c táº¡p, ta sáº½ fetch ISBN vÃ  ID Ä‘á»ƒ filter báº±ng Code (JS) cho linh hoáº¡t
+    // LÆ°u Ã½: Náº¿u DB quÃ¡ lá»›n (>100k rows), cáº§n dÃ¹ng cursor/pagination.
+    // Giáº£ sá»­ DB hiá»‡n táº¡i nhá» trung bÃ¬nh, ta fetch chunk.
 
-    // Tiêu chí tìm kiếm sơ bộ qua Prisma (để giảm load)
-    // Không dễ filter 'length != 13' hay 'endsWith W' chuẩn xác 100% trong Prisma query standard
-    // mà không dùng Raw Query. Ta sẽ fetch hết các cột id, isbn.
+    // TiÃªu chÃ­ tÃ¬m kiáº¿m sÆ¡ bá»™ qua Prisma (Ä‘á»ƒ giáº£m load)
+    // KhÃ´ng dá»… filter 'length != 13' hay 'endsWith W' chuáº©n xÃ¡c 100% trong Prisma query standard
+    // mÃ  khÃ´ng dÃ¹ng Raw Query. Ta sáº½ fetch háº¿t cÃ¡c cá»™t id, isbn.
     const allBooks = await prisma.book.findMany({
       select: { id: true, isbn: true },
     });
@@ -44,10 +44,10 @@ export const cleanupBookData = async (req: Request, res: Response) => {
       if (isbn.startsWith("OL-")) shouldDelete = true;
       // Rule 2: Ends with 'W'
       else if (isbn.endsWith("W")) shouldDelete = true;
-      // Rule 3: Length !== 13 (Loại bỏ ISBN-10, empty, etc)
+      // Rule 3: Length !== 13 (Loáº¡i bá» ISBN-10, empty, etc)
       else if (isbn.length !== 13) shouldDelete = true;
       // Rule 4: Not numeric (contains non-digits)
-      // Regex check: Nếu chứa ký tự không phải số
+      // Regex check: Náº¿u chá»©a kÃ½ tá»± khÃ´ng pháº£i sá»‘
       else if (!/^\d+$/.test(isbn)) shouldDelete = true;
 
       if (shouldDelete) {
@@ -57,7 +57,7 @@ export const cleanupBookData = async (req: Request, res: Response) => {
     }
 
     const count = idsToDelete.length;
-    console.log(`🔍 Found ${count} invalid books to delete.`);
+    console.log(`ðŸ” Found ${count} invalid books to delete.`);
 
     if (count === 0) {
       return sendResponse(res, 200, "success", {
@@ -65,14 +65,14 @@ export const cleanupBookData = async (req: Request, res: Response) => {
       });
     }
 
-    // Bước 2: Thực hiện Delete an toàn với Transaction
-    // Cần xóa các bảng con trước:
+    // BÆ°á»›c 2: Thá»±c hiá»‡n Delete an toÃ n vá»›i Transaction
+    // Cáº§n xÃ³a cÃ¡c báº£ng con trÆ°á»›c:
     // Book -> BookCopy -> Loan -> (Fine, Payment)
     // Book -> Reservation
     // Book -> BooksOnGenres
-    // Book -> DigitalBook (Cascade có sẵn nhưng cứ include cho chắc)
+    // Book -> DigitalBook (Cascade cÃ³ sáºµn nhÆ°ng cá»© include cho cháº¯c)
 
-    // Chia nhỏ batch để delete nếu số lượng quá lớn (ví dụ > 500)
+    // Chia nhá» batch Ä‘á»ƒ delete náº¿u sá»‘ lÆ°á»£ng quÃ¡ lá»›n (vÃ­ dá»¥ > 500)
     const BATCH_SIZE = 100;
     let deletedCount = 0;
 
@@ -153,7 +153,7 @@ export const cleanupBookData = async (req: Request, res: Response) => {
       });
 
       deletedCount += batchIds.length;
-      console.log(`🗑️ Progress: Deleted ${deletedCount}/${count} records...`);
+      console.log(`ðŸ—‘ï¸ Progress: Deleted ${deletedCount}/${count} records...`);
     }
 
     return sendResponse(res, 200, "success", {
@@ -163,7 +163,7 @@ export const cleanupBookData = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error("Cleanup Error:", error);
-     return sendResponse(res, 500, "error", "Internal Server Error during Cleanup", error.message);
+     return sendResponse(res, 500, "error", error.message);
   }
 };
 
@@ -171,8 +171,8 @@ export const cleanupBookData = async (req: Request, res: Response) => {
 // ================= CLEANUP SPECIFIC GENRES =================
 
 /**
- * Danh sách các genre CHUNG NHẤT cần giữ lại
- * Tất cả genre khác sẽ bị xóa
+ * Danh sÃ¡ch cÃ¡c genre CHUNG NHáº¤T cáº§n giá»¯ láº¡i
+ * Táº¥t cáº£ genre khÃ¡c sáº½ bá»‹ xÃ³a
  */
 const ALLOWED_GENERAL_GENRES = [
   // Main Fiction Categories
@@ -273,11 +273,11 @@ const ALLOWED_GENERAL_GENRES = [
 
 /**
  * Controller: Clean up specific/unnecessary genres
- * Chỉ giữ lại các genre chung nhất, xóa tất cả genre riêng biệt/không cần thiết
+ * Chá»‰ giá»¯ láº¡i cÃ¡c genre chung nháº¥t, xÃ³a táº¥t cáº£ genre riÃªng biá»‡t/khÃ´ng cáº§n thiáº¿t
  */
 export const cleanupSpecificGenres = async (req: Request, res: Response) => {
   try {
-    console.log("🧹 Starting Smart Specific Genre Cleanup...");
+    console.log("ðŸ§¹ Starting Smart Specific Genre Cleanup...");
 
     // Normalize allowed genres for case-insensitive comparison
     const allowedMap = new Map<string, string>(); // lowercase -> original Name
@@ -288,7 +288,7 @@ export const cleanupSpecificGenres = async (req: Request, res: Response) => {
       select: { id: true, name: true },
     });
 
-    console.log(`📚 Total genres in database: ${allGenres.length}`);
+    console.log(`ðŸ“š Total genres in database: ${allGenres.length}`);
 
     const genresToDelete: number[] = [];
     const genresToReassign: { oldId: number; targetName: string }[] = [];
@@ -324,9 +324,9 @@ export const cleanupSpecificGenres = async (req: Request, res: Response) => {
       }
     }
 
-    console.log(`🗑️ Genres to delete entirely: ${genresToDelete.length}`);
-    console.log(`🔄 Genres to reassign & delete: ${genresToReassign.length}`);
-    console.log(`✅ Genres to keep: ${keptGenres.length}`);
+    console.log(`ðŸ—‘ï¸ Genres to delete entirely: ${genresToDelete.length}`);
+    console.log(`ðŸ”„ Genres to reassign & delete: ${genresToReassign.length}`);
+    console.log(`âœ… Genres to keep: ${keptGenres.length}`);
 
     if (genresToDelete.length === 0 && genresToReassign.length === 0) {
       return sendResponse(res, 200, "success", {
@@ -442,8 +442,8 @@ export const cleanupSpecificGenres = async (req: Request, res: Response) => {
       deletedExamples: genresToDelete.slice(0, 5).map(id => allGenres.find(x=>x.id===id)?.name),
     });
   } catch (error: any) {
-    console.error("Genre Cleanup Error:", error);
-    return sendResponse(res, 500, "error", "Internal Server Error during Genre Cleanup", error.message);
+    return sendResponse(res, 500, "error", error.message);
   }
 };
+
 

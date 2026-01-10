@@ -1,4 +1,4 @@
-// src/controllers/author.import.controller.ts
+﻿// src/controllers/author.import.controller.ts
 import { Request, Response } from "express";
 import { createAuthor } from "services/book/author.service";
 import { sendResponse } from "src/utils";
@@ -40,7 +40,7 @@ export const createAuthorFromOpenLibrary = async (
     olids = Array.from(new Set(olids.filter(Boolean)));
     if (olids.length === 0) throw new Error("No valid OLIDs provided.");
 
-    // 2) Hàm import 1 tác giả
+    // 2) HÃ m import 1 tÃ¡c giáº£
     const importOne = async (olid: string) => {
       const ol = await getJSON(`https://openlibrary.org/authors/${olid}.json`);
       const name: string | undefined = ol?.name?.trim();
@@ -81,6 +81,7 @@ export const createAuthorFromOpenLibrary = async (
 
     return sendResponse(res, 201, "success", { data, failed });
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err?.message || String(err), null);
+    return sendResponse(res, 400, "error", err?.message || String(err));
   }
 };
+

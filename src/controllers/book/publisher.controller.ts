@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import {
   deletePublisherService,
   getAllPublishers,
@@ -24,7 +24,7 @@ const getAllPublisher = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -44,9 +44,7 @@ const postPublisher = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(err).toString() || err.message,
-      null
-    );
+      fromError(err).toString() || err.message);
   }
 };
 
@@ -66,9 +64,7 @@ const putPublisher = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(err).toString() || err.message,
-      null
-    );
+      fromError(err).toString() || err.message);
   }
 };
 
@@ -83,8 +79,9 @@ const deletePublisher = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
 export { getAllPublisher, postPublisher, putPublisher, deletePublisher };
+

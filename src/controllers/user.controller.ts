@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import {
   deleteUserService,
   getAllUsers,
@@ -20,7 +20,7 @@ const getAllUser = async (req: Request, res: Response) => {
     const result = await getAllUsers(+currentPage);
     return sendResponse(res, 200, "success", result);
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -34,9 +34,7 @@ const getUserById = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(err).toString() || err.message,
-      null
-    );
+      fromError(err).toString() || err.message);
   }
 };
 
@@ -61,9 +59,7 @@ const postUser = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(err).toString() || err.message,
-      null
-    );
+      fromError(err).toString() || err.message);
   }
 };
 
@@ -88,9 +84,7 @@ const putUser = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(err).toString() || err.message,
-      null
-    );
+      fromError(err).toString() || err.message);
   }
 };
 
@@ -100,7 +94,7 @@ const deleteUser = async (req: Request, res: Response) => {
     const result = await deleteUserService(id);
     return sendResponse(res, 200, "success", result);
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -122,7 +116,7 @@ const createMemberCard = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -134,3 +128,4 @@ export {
   createMemberCard,
   getUserById,
 };
+

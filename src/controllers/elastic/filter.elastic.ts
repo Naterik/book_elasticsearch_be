@@ -1,4 +1,4 @@
-import { client } from "configs/elastic";
+﻿import { client } from "configs/elastic";
 import { Request, Response } from "express";
 import { sendResponse } from "src/utils";
 
@@ -37,7 +37,7 @@ const filterElastic = async (req: Request, res: Response) => {
         {
           bool: {
             should: [
-              // 1. HIGHEST priority: Exact match (toàn bộ title khớp chính xác)
+              // 1. HIGHEST priority: Exact match (toÃ n bá»™ title khá»›p chÃ­nh xÃ¡c)
               {
                 term: {
                   "title.keyword": {
@@ -83,7 +83,7 @@ const filterElastic = async (req: Request, res: Response) => {
                   },
                 },
               },
-              // 6. Lowest priority: Fuzzy match (chỉ khi có > 5 từ)
+              // 6. Lowest priority: Fuzzy match (chá»‰ khi cÃ³ > 5 tá»«)
               ...(wordCount > 5
                 ? [
                     {
@@ -97,7 +97,7 @@ const filterElastic = async (req: Request, res: Response) => {
                   ]
                 : []),
             ],
-            // Yêu cầu ít nhất 1 trong các điều kiện trên phải match
+            // YÃªu cáº§u Ã­t nháº¥t 1 trong cÃ¡c Ä‘iá»u kiá»‡n trÃªn pháº£i match
             minimum_should_match: 1,
           },
         },
@@ -228,7 +228,7 @@ const filterElastic = async (req: Request, res: Response) => {
       },
     });
   } catch (e: any) {
-    return sendResponse(res, 400, "error", e.message, null);
+    return sendResponse(res, 400, "error", e.message);
   }
 };
 
@@ -328,8 +328,9 @@ const filterElasticBookCopy = async (req: Request, res: Response) => {
       },
     });
   } catch (e: any) {
-    return sendResponse(res, 400, "error", e.message, null);
+    return sendResponse(res, 400, "error", e.message);
   }
 };
 
 export { filterElastic, filterElasticBookCopy };
+

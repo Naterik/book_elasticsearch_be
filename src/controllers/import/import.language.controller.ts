@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import { prisma } from "configs/client";
 import { sendResponse } from "src/utils";
 
@@ -50,7 +50,7 @@ const BAD_PATTERNS = [
   /ngzu/i,
   /viu/i,
   /cto/i, // Common typos mentioned
-  /=/, // "Cõi người ta =: Terre des hommes"
+  /=/, // "CÃµi ngÆ°á»i ta =: Terre des hommes"
   /\d+/, // Titles with numbers often indicate volume numbers or dates, which might be fine, but sometimes are messy. Let's keep numbers but be careful.
   /[:;]\s*$/, // Ends with punctuation
 ];
@@ -60,7 +60,7 @@ const BAD_PATTERNS = [
 function isVietnameseWord(word: string): boolean {
   // Common Vietnamese vowels and tones
   const vietnameseChars =
-    /[aăâeêioôơuưyáàảãạắằẳẵặấầẩẫậéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵđ]/i;
+    /[aÄƒÃ¢eÃªioÃ´Æ¡uÆ°yÃ¡Ã áº£Ã£áº¡áº¯áº±áº³áºµáº·áº¥áº§áº©áº«áº­Ã©Ã¨áº»áº½áº¹áº¿á»á»ƒá»…á»‡Ã­Ã¬á»‰Ä©á»‹Ã³Ã²á»Ãµá»á»‘á»“á»•á»—á»™á»›á»á»Ÿá»¡á»£ÃºÃ¹á»§Å©á»¥á»©á»«á»­á»¯á»±Ã½á»³á»·á»¹á»µÄ‘]/i;
   return vietnameseChars.test(word);
 }
 
@@ -76,7 +76,7 @@ function isValidVietnameseTitle(title: string): boolean {
   // 2. Check for "garbage" characters (e.g. too many non-alphanumeric)
   // Allow letters, numbers, spaces, common punctuation, and colons
   if (
-    /[^a-zA-Z0-9\s\.,\-\?!'"\(\):aăâeêioôơuưyáàảãạắằẳẵặấầẩẫậéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵđ]/.test(
+    /[^a-zA-Z0-9\s\.,\-\?!'"\(\):aÄƒÃ¢eÃªioÃ´Æ¡uÆ°yÃ¡Ã áº£Ã£áº¡áº¯áº±áº³áºµáº·áº¥áº§áº©áº«áº­Ã©Ã¨áº»áº½áº¹áº¿á»á»ƒá»…á»‡Ã­Ã¬á»‰Ä©á»‹Ã³Ã²á»Ãµá»á»‘á»“á»•á»—á»™á»›á»á»Ÿá»¡á»£ÃºÃ¹á»§Å©á»¥á»©á»«á»­á»¯á»±Ã½á»³á»·á»¹á»µÄ‘]/.test(
       cleanTitle
     )
   ) {
@@ -92,7 +92,7 @@ function isValidVietnameseTitle(title: string): boolean {
     if (w.length === 0) continue;
 
     // If word has no vowels, it's suspicious (unless it's an abbreviation or number)
-    if (!/[aeiouyăâêôơư]/i.test(w) && isNaN(Number(w))) {
+    if (!/[aeiouyÄƒÃ¢ÃªÃ´Æ¡Æ°]/i.test(w) && isNaN(Number(w))) {
       // "Dr", "Mr", "TV" are okay, but "tx", "ngz" are not.
       // Let's just count "Vietnamese-looking" words.
     }
@@ -357,7 +357,7 @@ export const deleteImportedVietnameseBooks = async (
     const bookIds = books.map((b) => b.id);
 
     if (bookIds.length === 0) {
-      return sendResponse(res, 200, "success", null);
+      return sendResponse(res, 200, "success");
     }
 
     // Delete related records in order
@@ -405,7 +405,7 @@ export const deleteImportedVietnameseBooks = async (
     });
   } catch (err: any) {
     console.error("Delete error:", err);
-    return sendResponse(res, 500, "error", err.message, null);
+    return sendResponse(res, 500, "error", err.message);
   }
 };
 
@@ -420,7 +420,7 @@ export const importBooksByLanguage = async (req: Request, res: Response) => {
     const limit = Math.min(req.body.limit || 50, 1000);
 
     console.log(
-      `🔍 Searching for books in language: ${language} with limit ${limit}`
+      `ðŸ” Searching for books in language: ${language} with limit ${limit}`
     );
 
     // 1. Search for works with pagination
@@ -430,7 +430,7 @@ export const importBooksByLanguage = async (req: Request, res: Response) => {
     let totalScanned = 0;
     let totalCandidates = 0;
 
-    console.log(`🔍 Starting search loop...`);
+    console.log(`ðŸ” Starting search loop...`);
 
     while (validWorkIds.length < limit) {
       // Use q=language:code format to match user's browser search
@@ -479,7 +479,7 @@ export const importBooksByLanguage = async (req: Request, res: Response) => {
     );
 
     if (validWorkIds.length === 0) {
-      return sendResponse(res, 404, "error", "No valid books found for this language after filtering.", null);
+      return sendResponse(res, 404, "error", "No valid books found for this language after filtering.");
     }
 
     // 3. Process works
@@ -518,6 +518,7 @@ export const importBooksByLanguage = async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error("Import by language error:", err);
-    return sendResponse(res, 500, "error", err.message, null);
+    return sendResponse(res, 500, "error", err.message);
   }
 };
+

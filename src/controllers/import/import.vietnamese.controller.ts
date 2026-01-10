@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import { prisma } from "configs/client";
 import { sendResponse } from "src/utils";
 
@@ -45,11 +45,11 @@ async function getJSON<T = any>(url: string, attempt = 1): Promise<T> {
 // ================= VIETNAMESE VALIDATION =================
 
 /**
- * Các tổ hợp phụ âm KHÔNG HỢP LỆ trong tiếng Việt (lỗi OCR)
- * Tiếng Việt chỉ có: tr, ch, gh, gi, kh, ng, ngh, nh, ph, qu, th
+ * CÃ¡c tá»• há»£p phá»¥ Ã¢m KHÃ”NG Há»¢P Lá»† trong tiáº¿ng Viá»‡t (lá»—i OCR)
+ * Tiáº¿ng Viá»‡t chá»‰ cÃ³: tr, ch, gh, gi, kh, ng, ngh, nh, ph, qu, th
  */
 const INVALID_CONSONANT_CLUSTERS = [
-  // Lỗi OCR phổ biến
+  // Lá»—i OCR phá»• biáº¿n
   /ck/i,
   /nz/i,
   /hs/i,
@@ -57,13 +57,13 @@ const INVALID_CONSONANT_CLUSTERS = [
   /sr/i,
   /tl/i,
   /dl/i,
-  /sy/i, // "syu" - lỗi OCR từ "yêu"
-  /đs/i, // "đsau" - lỗi OCR từ "đầu"
-  /mr/i, // "Mroi" - lỗi OCR từ "Mười"
-  /ié̂/i, // dấu kết hợp sai "bié̂c"
-  /á̆/i, // dấu kết hợp sai "Má̆t"
+  /sy/i, // "syu" - lá»—i OCR tá»« "yÃªu"
+  /Ä‘s/i, // "Ä‘sau" - lá»—i OCR tá»« "Ä‘áº§u"
+  /mr/i, // "Mroi" - lá»—i OCR tá»« "MÆ°á»i"
+  /iÃ©Ì‚/i, // dáº¥u káº¿t há»£p sai "biÃ©Ì‚c"
+  /Ã¡Ì†/i, // dáº¥u káº¿t há»£p sai "MÃ¡Ì†t"
 
-  // Tổ hợp không tồn tại trong tiếng Việt
+  // Tá»• há»£p khÃ´ng tá»“n táº¡i trong tiáº¿ng Viá»‡t
   /bn/i,
   /dn/i,
   /cn/i,
@@ -94,31 +94,31 @@ const INVALID_CONSONANT_CLUSTERS = [
   /wk/i,
   /xk/i,
   /zk/i,
-  /[bcdfghjklmnpqrstvwxz]{3,}/i, // 3+ phụ âm liên tiếp
+  /[bcdfghjklmnpqrstvwxz]{3,}/i, // 3+ phá»¥ Ã¢m liÃªn tiáº¿p
 ];
 
 /**
- * Các từ/pattern lỗi OCR cụ thể cần loại bỏ
+ * CÃ¡c tá»«/pattern lá»—i OCR cá»¥ thá»ƒ cáº§n loáº¡i bá»
  */
 const OCR_ERROR_WORDS = [
-  /syu/i, // "Tình syu" thay vì "Tình yêu"
-  /ckua/i, // "ckua" thay vì "của"
-  /đsau/i, // "đsau" thay vì "đầu"
-  /mroi/i, // "Mroi" thay vì "Mười"
-  /bié̂c/i, // lỗi dấu "biếc"
-  /má̆t/i, // lỗi dấu "Mắt"
-  /nhzung/i, // "nhzung" thay vì "những"
-  /hson/i, // lỗi OCR
-  /lseu/i, // "lseu" thay vì "lều"
-  /titeu/i, // "titeu" thay vì "tiểu"
-  /thuyret/i, // "thuyret" thay vì "thuyết"
+  /syu/i, // "TÃ¬nh syu" thay vÃ¬ "TÃ¬nh yÃªu"
+  /ckua/i, // "ckua" thay vÃ¬ "cá»§a"
+  /Ä‘sau/i, // "Ä‘sau" thay vÃ¬ "Ä‘áº§u"
+  /mroi/i, // "Mroi" thay vÃ¬ "MÆ°á»i"
+  /biÃ©Ì‚c/i, // lá»—i dáº¥u "biáº¿c"
+  /mÃ¡Ì†t/i, // lá»—i dáº¥u "Máº¯t"
+  /nhzung/i, // "nhzung" thay vÃ¬ "nhá»¯ng"
+  /hson/i, // lá»—i OCR
+  /lseu/i, // "lseu" thay vÃ¬ "lá»u"
+  /titeu/i, // "titeu" thay vÃ¬ "tiá»ƒu"
+  /thuyret/i, // "thuyret" thay vÃ¬ "thuyáº¿t"
 ];
 
 /**
- * Kiểm tra ký tự Unicode bị hỏng (combining diacritical marks sai vị trí)
- * Ví dụ: "á̆" có 2 dấu kết hợp, "é̂" cũng vậy
+ * Kiá»ƒm tra kÃ½ tá»± Unicode bá»‹ há»ng (combining diacritical marks sai vá»‹ trÃ­)
+ * VÃ­ dá»¥: "Ã¡Ì†" cÃ³ 2 dáº¥u káº¿t há»£p, "Ã©Ì‚" cÅ©ng váº­y
  */
-const BROKEN_UNICODE_PATTERN = /[\u0300-\u036f]{2,}/; // 2+ combining marks liên tiếp
+const BROKEN_UNICODE_PATTERN = /[\u0300-\u036f]{2,}/; // 2+ combining marks liÃªn tiáº¿p
 
 const FORBIDDEN_CHARS = /[=\+\*\#\@\$\%\^\&\{\}\[\]\\|<>~`]/;
 
@@ -126,28 +126,28 @@ const GARBAGE_PATTERNS = [
   /\(\s*\)/,
   /\[\s*\]/,
   /\s{3,}/,
-  /^[^a-zA-ZÀ-ỹ]/,
-  /[^a-zA-ZÀ-ỹ0-9\s]$/,
+  /^[^a-zA-Z\u00C0-\u1EF9]/,
+  /[^a-zA-Z\u00C0-\u1EF90-9\s]$/,
   /:.*:/,
   /=.*:/,
 ];
 
 const VIETNAMESE_VOWELS =
-  /[aàáảãạăằắẳẵặâầấẩẫậeèéẻẽẹêềếểễệiìíỉĩịoòóỏõọôồốổỗộơờớởỡợuùúủũụưừứửữựyỳýỷỹỵ]/i;
+  /[aÃ Ã¡áº£Ã£áº¡Äƒáº±áº¯áº³áºµáº·Ã¢áº§áº¥áº©áº«áº­eÃ¨Ã©áº»áº½áº¹Ãªá»áº¿á»ƒá»…á»‡iÃ¬Ã­á»‰Ä©á»‹oÃ²Ã³á»Ãµá»Ã´á»“á»‘á»•á»—á»™Æ¡á»á»›á»Ÿá»¡á»£uÃ¹Ãºá»§Å©á»¥Æ°á»«á»©á»­á»¯á»±yá»³Ã½á»·á»¹á»µ]/i;
 const VIETNAMESE_DIACRITICS =
-  /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i;
+  /[Ã Ã¡áº£Ã£áº¡Äƒáº±áº¯áº³áºµáº·Ã¢áº§áº¥áº©áº«áº­Ã¨Ã©áº»áº½áº¹Ãªá»áº¿á»ƒá»…á»‡Ã¬Ã­á»‰Ä©á»‹Ã²Ã³á»Ãµá»Ã´á»“á»‘á»•á»—á»™Æ¡á»á»›á»Ÿá»¡á»£Ã¹Ãºá»§Å©á»¥Æ°á»«á»©á»­á»¯á»±á»³Ã½á»·á»¹á»µÄ‘]/i;
 
 function isValidVietnameseSyllable(word: string): boolean {
   if (!word || word.length === 0) return true;
   if (/^\d+$/.test(word) || word.length <= 2) return true;
   if (!VIETNAMESE_VOWELS.test(word)) return false;
 
-  // Kiểm tra lỗi OCR cụ thể trong từ
+  // Kiá»ƒm tra lá»—i OCR cá»¥ thá»ƒ trong tá»«
   for (const pattern of OCR_ERROR_WORDS) {
     if (pattern.test(word)) return false;
   }
 
-  // Kiểm tra tổ hợp phụ âm không hợp lệ
+  // Kiá»ƒm tra tá»• há»£p phá»¥ Ã¢m khÃ´ng há»£p lá»‡
   for (const pattern of INVALID_CONSONANT_CLUSTERS) {
     if (pattern.test(word)) return false;
   }
@@ -158,10 +158,10 @@ function isValidVietnameseTitle(title: string): boolean {
   if (!title || title.trim().length < 2) return false;
   const cleanTitle = title.trim();
 
-  // Kiểm tra Unicode bị hỏng (combining marks sai)
+  // Kiá»ƒm tra Unicode bá»‹ há»ng (combining marks sai)
   if (BROKEN_UNICODE_PATTERN.test(cleanTitle)) return false;
 
-  // Kiểm tra lỗi OCR trong toàn bộ title
+  // Kiá»ƒm tra lá»—i OCR trong toÃ n bá»™ title
   for (const pattern of OCR_ERROR_WORDS) {
     if (pattern.test(cleanTitle)) return false;
   }
@@ -223,7 +223,7 @@ async function ensureAuthor(name: string, bio: string): Promise<number> {
 }
 
 async function ensurePublisher(name: string): Promise<number> {
-  const cleanName = name ? name.trim() : "Nhà xuất bản không xác định";
+  const cleanName = name ? name.trim() : "NhÃ  xuáº¥t báº£n khÃ´ng xÃ¡c Ä‘á»‹nh";
   if (requestCache.publishers.has(cleanName))
     return requestCache.publishers.get(cleanName)!;
   const record = await prisma.publisher.upsert({
@@ -342,7 +342,7 @@ async function processVietnameseWork(workId: string): Promise<ProcessResult> {
 
     const langKey = "/languages/vie";
 
-    // Tìm edition tiếng Việt
+    // TÃ¬m edition tiáº¿ng Viá»‡t
     let edition = entries.find((e: any) => {
       if (!e.languages) return false;
       const hasVieLang = e.languages.some((l: any) => l.key === langKey);
@@ -367,14 +367,14 @@ async function processVietnameseWork(workId: string): Promise<ProcessResult> {
       throw new Error(`Title not valid Vietnamese: ${title}`);
     }
 
-    // Language từ API (không fix cứng)
+    // Language tá»« API (khÃ´ng fix cá»©ng)
     let actualLanguage = "Unknown";
     if (edition.languages && edition.languages.length > 0) {
       actualLanguage = getLanguageName(edition.languages[0].key);
     }
 
     // Author
-    let authorName = "Tác giả không xác định";
+    let authorName = "TÃ¡c giáº£ khÃ´ng xÃ¡c Ä‘á»‹nh";
     let authorBio = "";
     const authorKey = workData.authors?.[0]?.author?.key;
     if (authorKey) {
@@ -410,7 +410,7 @@ async function processVietnameseWork(workId: string): Promise<ProcessResult> {
     const descRaw =
       pickText(workData.description) ||
       pickText(edition.description) ||
-      "Chưa có mô tả.";
+      "ChÆ°a cÃ³ mÃ´ táº£.";
     const pages = edition.number_of_pages || 0;
     const publishDate = edition.publish_date
       ? new Date(edition.publish_date)
@@ -473,15 +473,15 @@ async function processVietnameseWork(workId: string): Promise<ProcessResult> {
   }
 }
 
-// ================= MAIN API: Import sách tiếng Việt =================
+// ================= MAIN API: Import sÃ¡ch tiáº¿ng Viá»‡t =================
 /**
  * POST /api/v1/books/vietnamese
  *
  * Body:
- * - fromPage: trang bắt đầu (default: 1)
- * - toPage: trang kết thúc (default: 10)
+ * - fromPage: trang báº¯t Ä‘áº§u (default: 1)
+ * - toPage: trang káº¿t thÃºc (default: 10)
  *
- * Ví dụ: { "fromPage": 1, "toPage": 5 } => Lấy từ trang 1 đến trang 5
+ * VÃ­ dá»¥: { "fromPage": 1, "toPage": 5 } => Láº¥y tá»« trang 1 Ä‘áº¿n trang 5
  */
 export const vietnameseBooksController = async (
   req: Request,
@@ -494,28 +494,28 @@ export const vietnameseBooksController = async (
     const toPage = Math.min(100, req.body.toPage || 10);
 
     if (fromPage > toPage) {
-      return sendResponse(res, 400, "error", "fromPage phải nhỏ hơn hoặc bằng toPage", null);
+      return sendResponse(res, 400, "error", "fromPage pháº£i nhá» hÆ¡n hoáº·c báº±ng toPage");
     }
 
     console.log(
-      `📚 Import Vietnamese books - Từ trang ${fromPage} đến trang ${toPage}`
+      `ðŸ“š Import Vietnamese books - Tá»« trang ${fromPage} Ä‘áº¿n trang ${toPage}`
     );
 
-    // 1. Thu thập work IDs hợp lệ từ các trang
+    // 1. Thu tháº­p work IDs há»£p lá»‡ tá»« cÃ¡c trang
     const validWorkIds: string[] = [];
     let totalScanned = 0;
 
     for (let page = fromPage; page <= toPage; page++) {
       const searchUrl = `https://openlibrary.org/search.json?q=language:vie&page=${page}&limit=${PAGE_SIZE}&fields=key,title,language`;
 
-      console.log(`  📖 Đang xử lý trang ${page}/${toPage}...`);
+      console.log(`  ðŸ“– Äang xá»­ lÃ½ trang ${page}/${toPage}...`);
 
       try {
         const searchResult = await getJSON(searchUrl);
         const docs: SearchDoc[] = searchResult.docs || [];
 
         if (docs.length === 0) {
-          console.log(`  ⚠️ Trang ${page} không có dữ liệu`);
+          console.log(`  âš ï¸ Trang ${page} khÃ´ng cÃ³ dá»¯ liá»‡u`);
           continue;
         }
 
@@ -532,16 +532,16 @@ export const vietnameseBooksController = async (
 
         await sleep(300); // Rate limiting
       } catch (err) {
-        console.log(`  ❌ Lỗi trang ${page}:`, err);
+        console.log(`  âŒ Lá»—i trang ${page}:`, err);
       }
     }
 
     console.log(
-      `✅ Tìm thấy ${validWorkIds.length} sách hợp lệ từ ${totalScanned} kết quả`
+      `âœ… TÃ¬m tháº¥y ${validWorkIds.length} sÃ¡ch há»£p lá»‡ tá»« ${totalScanned} káº¿t quáº£`
     );
 
     if (validWorkIds.length === 0) {
-      return sendResponse(res, 404, "error", "Không tìm thấy sách tiếng Việt hợp lệ", {
+      return sendResponse(res, 404, "error", {
         stats: {
           fromPage,
           toPage,
@@ -551,13 +551,13 @@ export const vietnameseBooksController = async (
       });
     }
 
-    // 2. Import vào database
+    // 2. Import vÃ o database
     const results: ProcessResult[] = [];
 
     for (let i = 0; i < validWorkIds.length; i += MAX_CONCURRENCY) {
       const chunk = validWorkIds.slice(i, i + MAX_CONCURRENCY);
       console.log(
-        `  🔄 Batch ${Math.floor(i / MAX_CONCURRENCY) + 1}/${Math.ceil(
+        `  ðŸ”„ Batch ${Math.floor(i / MAX_CONCURRENCY) + 1}/${Math.ceil(
           validWorkIds.length / MAX_CONCURRENCY
         )}...`
       );
@@ -569,7 +569,7 @@ export const vietnameseBooksController = async (
       await sleep(500);
     }
 
-    // 3. Tổng hợp kết quả
+    // 3. Tá»•ng há»£p káº¿t quáº£
     const successResults = results.filter((r) => r.status === "fulfilled");
     const failedResults = results.filter((r) => r.status === "rejected");
 
@@ -582,7 +582,7 @@ export const vietnameseBooksController = async (
     }));
 
     console.log(
-      `\n🎉 Hoàn tất: ${successResults.length} thành công, ${failedResults.length} thất bại`
+      `\nðŸŽ‰ HoÃ n táº¥t: ${successResults.length} thÃ nh cÃ´ng, ${failedResults.length} tháº¥t báº¡i`
     );
 
     return sendResponse(res, 200, "success", {
@@ -600,6 +600,7 @@ export const vietnameseBooksController = async (
     });
   } catch (err: any) {
     console.error("Import error:", err);
-    return sendResponse(res, 500, "error", err.message, null);
+    return sendResponse(res, 500, "error", err.message);
   }
 };
+

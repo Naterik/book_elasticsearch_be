@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import {
   deleteFine,
   getAllFines,
@@ -22,9 +22,7 @@ const getAllFined = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(error).toString() || error.message,
-      null
-    );
+      fromError(error).toString() || error.message);
   }
 };
 
@@ -39,7 +37,7 @@ const getFinedByUserId = async (req: Request, res: Response) => {
       result
     );
   } catch (e: any) {
-    return sendResponse(res, 404, "error", e.message, null);
+    return sendResponse(res, 404, "error", e.message);
   }
 };
 
@@ -54,9 +52,7 @@ const postFined = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(error).toString() || error.message,
-      null
-    );
+      fromError(error).toString() || error.message);
   }
 };
 
@@ -78,9 +74,7 @@ const putFined = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(error).toString() || error.message,
-      null
-    );
+      fromError(error).toString() || error.message);
   }
 };
 
@@ -94,10 +88,9 @@ const deleteFined = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(error).toString() || error.message,
-      null
-    );
+      fromError(error).toString() || error.message);
   }
 };
 
 export { getAllFined, getFinedByUserId, postFined, putFined, deleteFined };
+

@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import {
   cancelReservationStatus,
   createReservationService,
@@ -21,7 +21,7 @@ const createReservation = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -38,7 +38,7 @@ const getAllReservations = async (req: Request, res: Response) => {
       result
     );
   } catch (error: any) {
-    return sendResponse(res, 500, "error", error.message, null);
+    return sendResponse(res, 500, "error", error.message);
   }
 };
 
@@ -48,7 +48,7 @@ const getReservationById = async (req: Request, res: Response) => {
     const result = await getReservationByIdService(+id);
     return sendResponse(res, 200, "success", result);
   } catch (e: any) {
-    return sendResponse(res, 404, "error", "Reservation not found", null);
+    return sendResponse(res, 404, "error", "Reservation not found");
   }
 };
 const getReservationByUserId = async (req: Request, res: Response) => {
@@ -62,7 +62,7 @@ const getReservationByUserId = async (req: Request, res: Response) => {
       result
     );
   } catch (e: any) {
-    return sendResponse(res, 404, "error", "Reservation not found", null);
+    return sendResponse(res, 404, "error", "Reservation not found");
   }
 };
 
@@ -78,7 +78,7 @@ const putCancelReservationStatus = async (req: Request, res: Response) => {
       result
     );
   } catch (error: any) {
-    return sendResponse(res, 400, "error", error.message, null);
+    return sendResponse(res, 400, "error", error.message);
   }
 };
 
@@ -94,7 +94,7 @@ const updateReservation = async (req: Request, res: Response) => {
       result
     );
   } catch (error: any) {
-    return sendResponse(res, 400, "error", error.message, null);
+    return sendResponse(res, 400, "error", error.message);
   }
 };
 
@@ -109,7 +109,7 @@ const deleteReservation = async (req: Request, res: Response) => {
       result
     );
   } catch (error: any) {
-    return sendResponse(res, 400, "error", error.message, null);
+    return sendResponse(res, 400, "error", error.message);
   }
 };
 
@@ -122,3 +122,4 @@ export {
   getReservationByUserId,
   putCancelReservationStatus,
 };
+

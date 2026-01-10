@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import { prisma } from "configs/client";
 import { sendResponse } from "src/utils";
 
@@ -46,7 +46,7 @@ async function getJSON<T = any>(url: string, attempt = 1): Promise<T> {
   }
 }
 
-// ================= HELPER: SUBJECT → VALID WORK IDS =================
+// ================= HELPER: SUBJECT â†’ VALID WORK IDS =================
 // Fetches works from a subject and returns only work IDs that have at least one edition.
 async function getValidWorkIdsFromSubject(
   subject: string,
@@ -110,7 +110,7 @@ const requestCache = {
   subjects: new Map<string, number>(),
 };
 
-// 1. Xử lý Tác giả (Có Cache)
+// 1. Xá»­ lÃ½ TÃ¡c giáº£ (CÃ³ Cache)
 async function ensureAuthor(name: string, bio: string): Promise<number> {
   if (requestCache.authors.has(name)) {
     return requestCache.authors.get(name)!;
@@ -126,7 +126,7 @@ async function ensureAuthor(name: string, bio: string): Promise<number> {
   return record.id;
 }
 
-// 2. Xử lý Nhà xuất bản (Có Cache)
+// 2. Xá»­ lÃ½ NhÃ  xuáº¥t báº£n (CÃ³ Cache)
 async function ensurePublisher(name: string): Promise<number> {
   const cleanName = name ? name.trim() : "Unknown Publisher";
 
@@ -147,7 +147,7 @@ async function ensurePublisher(name: string): Promise<number> {
   return record.id;
 }
 
-// 3. Xử lý Thể loại (Có Cache)
+// 3. Xá»­ lÃ½ Thá»ƒ loáº¡i (CÃ³ Cache)
 async function ensureGenres(subjects: string[]): Promise<number[]> {
   if (!subjects || subjects.length === 0) return [];
 
@@ -181,7 +181,7 @@ async function ensureGenres(subjects: string[]): Promise<number[]> {
   return ids;
 }
 
-// 4. Xử lý Subject (Subject từ OpenLibrary - mới thêm)
+// 4. Xá»­ lÃ½ Subject (Subject tá»« OpenLibrary - má»›i thÃªm)
 interface SubjectRecord {
   id: number;
   name: string;
@@ -268,15 +268,15 @@ async function importSubjectsFromWorks(
 let locationCounter = 0;
 
 function getNextLocation(): string {
-  // 26 chữ cái * 100 vị trí = 2600 slots
+  // 26 chá»¯ cÃ¡i * 100 vá»‹ trÃ­ = 2600 slots
   const totalSlots = 26 * 100;
   const current = locationCounter % totalSlots;
 
-  // Tính toán chữ cái (A-Z)
+  // TÃ­nh toÃ¡n chá»¯ cÃ¡i (A-Z)
   const letterIndex = Math.floor(current / 100);
-  const letter = String.fromCharCode(65 + letterIndex); // 65 là mã ASCII của 'A'
+  const letter = String.fromCharCode(65 + letterIndex); // 65 lÃ  mÃ£ ASCII cá»§a 'A'
 
-  // Tính toán số (1-100)
+  // TÃ­nh toÃ¡n sá»‘ (1-100)
   const number = (current % 100) + 1;
 
   locationCounter++;
@@ -298,11 +298,11 @@ function pickText(x: any): string {
 // ================= PROCESS WORK (Shared) =================
 async function processWork(workId: string) {
   try {
-    // --- BƯỚC 1: PARALLEL FETCH (Tối ưu mạng) ---
+    // --- BÆ¯á»šC 1: PARALLEL FETCH (Tá»‘i Æ°u máº¡ng) ---
     const workUrl = `https://openlibrary.org/works/${workId}.json`;
     const edsUrl = `https://openlibrary.org/works/${workId}/editions.json?limit=1`;
 
-    // Gọi song song Work và Edition
+    // Gá»i song song Work vÃ  Edition
     const [workData, edsData] = await Promise.all([
       getJSON(workUrl),
       getJSON(edsUrl),
@@ -311,7 +311,7 @@ async function processWork(workId: string) {
     const edition = edsData.entries?.[0];
     if (!edition) throw new Error("No edition found");
 
-    // --- BƯỚC 2: FETCH AUTHOR (Nếu có) ---
+    // --- BÆ¯á»šC 2: FETCH AUTHOR (Náº¿u cÃ³) ---
     let authorName = "Unknown Author";
     let authorBio = "";
     const authorKey = workData.authors?.[0]?.author?.key;
@@ -331,7 +331,7 @@ async function processWork(workId: string) {
       }
     }
 
-    // --- BƯỚC 3: PREPARE DATA ---
+    // --- BÆ¯á»šC 3: PREPARE DATA ---
     const title = edition.title || workData.title || "Untitled";
     const isbn = (
       edition.isbn_13?.[0] ||
@@ -345,7 +345,7 @@ async function processWork(workId: string) {
       openlibrary_work_url: workUrl,
     };
 
-    // Check existing (Nhanh hơn nếu check trước khi xử lý sâu)
+    // Check existing (Nhanh hÆ¡n náº¿u check trÆ°á»›c khi xá»­ lÃ½ sÃ¢u)
     const existing = await prisma.book.findUnique({ where: { isbn } });
     if (existing) {
       return {
@@ -377,15 +377,15 @@ async function processWork(workId: string) {
       ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`
       : null;
 
-    // --- BƯỚC 4: DB METADATA (Dùng Cache để tối ưu) ---
-    // Chạy song song các tác vụ upsert metadata
+    // --- BÆ¯á»šC 4: DB METADATA (DÃ¹ng Cache Ä‘á»ƒ tá»‘i Æ°u) ---
+    // Cháº¡y song song cÃ¡c tÃ¡c vá»¥ upsert metadata
     const [authorId, publisherId, genreIds] = await Promise.all([
       ensureAuthor(authorName, authorBio),
       ensurePublisher(edition.publishers?.[0]),
       ensureGenres(workData.subjects || []),
     ]);
 
-    // --- BƯỚC 5: CREATE BOOK & COPIES ---
+    // --- BÆ¯á»šC 5: CREATE BOOK & COPIES ---
     const price = Math.floor(Math.random() * (500000 - 50000 + 1)) + 50000;
     const quantity = 5;
 
@@ -455,15 +455,15 @@ function ensureShortDesc(text: string | null | undefined): string {
 
 // ================= AUTO IMPORT FROM SPECIFIC GENRES LIST =================
 /**
- * Tự động import sách từ danh sách genre cụ thể
- * Không cần genre phải tồn tại trong database
+ * Tá»± Ä‘á»™ng import sÃ¡ch tá»« danh sÃ¡ch genre cá»¥ thá»ƒ
+ * KhÃ´ng cáº§n genre pháº£i tá»“n táº¡i trong database
  */
 export const autoImportBooksFromGenresList = async (
   req: Request,
   res: Response
 ) => {
   try {
-    // Reset cache mỗi request mới
+    // Reset cache má»—i request má»›i
     requestCache.authors.clear();
     requestCache.publishers.clear();
     requestCache.genres.clear();
@@ -477,7 +477,8 @@ export const autoImportBooksFromGenresList = async (
         : 50;
 
     if (genresList.length === 0) {
-      return sendResponse(res, 400, "error", "Vui lòng cung cấp mảng 'genres' và optional 'booksPerGenre' (mặc định: 50)", {
+      return sendResponse(res, 400, "error", {
+        message: "Vui lòng cấp mảng)",
         example: {
           genres: ["art", "music", "cooking"],
           booksPerGenre: 50,
@@ -485,29 +486,27 @@ export const autoImportBooksFromGenresList = async (
       });
     }
 
-    // Chuẩn hóa genre list
+    // Chuáº©n hÃ³a genre list
     genresList = Array.from(
       new Set(genresList.map((g) => String(g).trim().toLowerCase()))
     );
 
-    console.log(`📚 Bắt đầu auto-import từ ${genresList.length} thể loại`);
 
     const allResults: any[] = [];
     const genreStats: any[] = [];
 
-    // Xử lý từng genre
+    // Xá»­ lÃ½ tá»«ng genre
     for (const genreName of genresList) {
       try {
-        console.log(`\n🔍 Xử lý thể loại: ${genreName}`);
 
-        // Lấy danh sách WorkID từ subject
+        // Láº¥y danh sÃ¡ch WorkID tá»« subject
         const genreWorkIds = await getValidWorkIdsFromSubject(
           genreName,
           booksPerGenre
         );
 
         if (genreWorkIds.length === 0) {
-          console.log(`⚠️  Không tìm thấy sách cho thể loại: ${genreName}`);
+         
           genreStats.push({
             genre: genreName,
             requested: 0,
@@ -518,12 +517,12 @@ export const autoImportBooksFromGenresList = async (
         }
 
         console.log(
-          `✅ Tìm thấy ${genreWorkIds.length} sách cho: ${genreName}`
+          `âœ… TÃ¬m tháº¥y ${genreWorkIds.length} sÃ¡ch cho: ${genreName}`
         );
 
         const genreResults: any[] = [];
 
-        // Xử lý từng WorkID trong genre
+        // Xá»­ lÃ½ tá»«ng WorkID trong genre
         for (let i = 0; i < genreWorkIds.length; i += MAX_CONCURRENCY) {
           const chunk = genreWorkIds.slice(i, i + MAX_CONCURRENCY);
           const promises = chunk.map((wid) => processWork(wid));
@@ -539,7 +538,7 @@ export const autoImportBooksFromGenresList = async (
         ).length;
 
         console.log(
-          `📊 ${genreName}: ${genreSuccess} thành công, ${genreFailed} thất bại`
+          `ðŸ“Š ${genreName}: ${genreSuccess} thÃ nh cÃ´ng, ${genreFailed} tháº¥t báº¡i`
         );
 
         genreStats.push({
@@ -551,10 +550,9 @@ export const autoImportBooksFromGenresList = async (
 
         allResults.push(...genreResults);
 
-        // Delay giữa các genre để tránh rate limit
+        // Delay giá»¯a cÃ¡c genre Ä‘á»ƒ trÃ¡nh rate limit
         await sleep(500);
       } catch (err: any) {
-        console.error(`❌ Lỗi khi xử lý genre ${genreName}:`, err.message);
         genreStats.push({
           genre: genreName,
           requested: 0,
@@ -575,7 +573,7 @@ export const autoImportBooksFromGenresList = async (
       .filter((r) => r.status === "fulfilled")
       .map((r: any) => r.value);
 
-    // Import subject từ sách thành công
+    // Import subject tá»« sÃ¡ch thÃ nh cÃ´ng
     let importedSubjects: SubjectRecord[] = [];
     if (successCount > 0) {
       try {
@@ -589,7 +587,7 @@ export const autoImportBooksFromGenresList = async (
     }
 
     console.log(
-      `\n✅ Auto-import hoàn tất: ${successCount} sách thêm, ${failedCount} thất bại`
+      `\nâœ… Auto-import hoÃ n táº¥t: ${successCount} sÃ¡ch thÃªm, ${failedCount} tháº¥t báº¡i`
     );
 
     return sendResponse(res, 200, "success", {
@@ -606,50 +604,50 @@ export const autoImportBooksFromGenresList = async (
     });
   } catch (err: any) {
     console.error("Auto-import error:", err);
-    return sendResponse(res, 500, "error", err.message, null);
+    return sendResponse(res, 500, "error", err.message);
   }
 };
 
 // ================= AUTO IMPORT FROM EXISTING GENRES =================
 /**
- * Tự động import sách từ tất cả các Genre (Thể loại) hiện có trong database
- * Không cần truyền qua Postman, tự động quét tất cả Genre và tìm sách
+ * Tá»± Ä‘á»™ng import sÃ¡ch tá»« táº¥t cáº£ cÃ¡c Genre (Thá»ƒ loáº¡i) hiá»‡n cÃ³ trong database
+ * KhÃ´ng cáº§n truyá»n qua Postman, tá»± Ä‘á»™ng quÃ©t táº¥t cáº£ Genre vÃ  tÃ¬m sÃ¡ch
  */
 export const autoImportBooksFromGenres = async (
   req: Request,
   res: Response
 ) => {
   try {
-    // Reset cache mỗi request mới
+    // Reset cache má»—i request má»›i
     requestCache.authors.clear();
     requestCache.publishers.clear();
     requestCache.genres.clear();
     requestCache.subjects.clear();
 
-    // Lấy tất cả genre từ database
+    // Láº¥y táº¥t cáº£ genre tá»« database
     const allGenres = await prisma.genre.findMany({
       select: { id: true, name: true },
     });
 
     if (allGenres.length === 0) {
-      return sendResponse(res, 400, "error", "Không có thể loại nào trong database. Vui lòng thêm thể loại trước.", null);
+      return sendResponse(res, 400, "error", "KhÃ´ng cÃ³ thá»ƒ loáº¡i nÃ o trong database. Vui lÃ²ng thÃªm thá»ƒ loáº¡i trÆ°á»›c.");
     }
 
-    console.log(`📚 Bắt đầu auto-import từ ${allGenres.length} thể loại`);
+    console.log(`ðŸ“š Báº¯t Ä‘áº§u auto-import tá»« ${allGenres.length} thá»ƒ loáº¡i`);
 
     const allResults: any[] = [];
     const genreStats: any[] = [];
 
-    // Xử lý từng genre
+    // Xá»­ lÃ½ tá»«ng genre
     for (const genre of allGenres) {
       try {
-        console.log(`\n🔍 Xử lý thể loại: ${genre.name}`);
+        console.log(`\nðŸ” Xá»­ lÃ½ thá»ƒ loáº¡i: ${genre.name}`);
 
-        // Lấy danh sách WorkID từ subject
-        const genreWorkIds = await getValidWorkIdsFromSubject(genre.name, 50); // 50 sách/genre
+        // Láº¥y danh sÃ¡ch WorkID tá»« subject
+        const genreWorkIds = await getValidWorkIdsFromSubject(genre.name, 50); // 50 sÃ¡ch/genre
 
         if (genreWorkIds.length === 0) {
-          console.log(`⚠️  Không tìm thấy sách cho thể loại: ${genre.name}`);
+          console.log(`âš ï¸  KhÃ´ng tÃ¬m tháº¥y sÃ¡ch cho thá»ƒ loáº¡i: ${genre.name}`);
           genreStats.push({
             genre: genre.name,
             requested: 0,
@@ -660,12 +658,12 @@ export const autoImportBooksFromGenres = async (
         }
 
         console.log(
-          `✅ Tìm thấy ${genreWorkIds.length} sách cho: ${genre.name}`
+          `âœ… TÃ¬m tháº¥y ${genreWorkIds.length} sÃ¡ch cho: ${genre.name}`
         );
 
         const genreResults: any[] = [];
 
-        // Xử lý từng WorkID trong genre
+        // Xá»­ lÃ½ tá»«ng WorkID trong genre
         for (let i = 0; i < genreWorkIds.length; i += MAX_CONCURRENCY) {
           const chunk = genreWorkIds.slice(i, i + MAX_CONCURRENCY);
           const promises = chunk.map((wid) => processWork(wid));
@@ -681,7 +679,7 @@ export const autoImportBooksFromGenres = async (
         ).length;
 
         console.log(
-          `📊 ${genre.name}: ${genreSuccess} thành công, ${genreFailed} thất bại`
+          `ðŸ“Š ${genre.name}: ${genreSuccess} thÃ nh cÃ´ng, ${genreFailed} tháº¥t báº¡i`
         );
 
         genreStats.push({
@@ -693,10 +691,10 @@ export const autoImportBooksFromGenres = async (
 
         allResults.push(...genreResults);
 
-        // Delay giữa các genre để tránh rate limit
+        // Delay giá»¯a cÃ¡c genre Ä‘á»ƒ trÃ¡nh rate limit
         await sleep(500);
       } catch (err: any) {
-        console.error(`❌ Lỗi khi xử lý genre ${genre.name}:`, err.message);
+        console.error(`âŒ Lá»—i khi xá»­ lÃ½ genre ${genre.name}:`, err.message);
         genreStats.push({
           genre: genre.name,
           requested: 0,
@@ -717,7 +715,7 @@ export const autoImportBooksFromGenres = async (
       .filter((r) => r.status === "fulfilled")
       .map((r: any) => r.value);
 
-    // Import subject từ sách thành công
+    // Import subject tá»« sÃ¡ch thÃ nh cÃ´ng
     let importedSubjects: SubjectRecord[] = [];
     if (successCount > 0) {
       try {
@@ -731,7 +729,7 @@ export const autoImportBooksFromGenres = async (
     }
 
     console.log(
-      `\n✅ Auto-import hoàn tất: ${successCount} sách thêm, ${failedCount} thất bại`
+      `\nâœ… Auto-import hoÃ n táº¥t: ${successCount} sÃ¡ch thÃªm, ${failedCount} tháº¥t báº¡i`
     );
 
     return sendResponse(res, 200, "success", {
@@ -748,7 +746,7 @@ export const autoImportBooksFromGenres = async (
     });
   } catch (err: any) {
     console.error("Auto-import error:", err);
-    return sendResponse(res, 500, "error", err.message, null);
+    return sendResponse(res, 500, "error", err.message);
   }
 };
 
@@ -758,7 +756,7 @@ export const createBooksFromOpenLibrary = async (
   res: Response
 ) => {
   try {
-    // Reset cache mỗi request mới
+    // Reset cache má»—i request má»›i
     requestCache.authors.clear();
     requestCache.publishers.clear();
     requestCache.genres.clear();
@@ -793,20 +791,20 @@ export const createBooksFromOpenLibrary = async (
     }
 
     if (worksInput.length === 0) {
-      return sendResponse(res, 400, "error", "Vui lòng cung cấp mảng 'works' (VD: ['OL123W']) hoặc 'subject' + optional 'limit'", null);
+      return sendResponse(res, 400, "error", "Vui lÃ²ng cung cáº¥p máº£ng 'works' (VD: ['OL123W']) hoáº·c 'subject' + optional 'limit'");
     }
 
     worksInput = Array.from(new Set(worksInput.map((w) => String(w).trim())));
     const results: any[] = [];
 
-    // Hàm xử lý từng WorkID
+    // HÃ m xá»­ lÃ½ tá»«ng WorkID
     const processWork = async (workId: string) => {
       try {
-        // --- BƯỚC 1: PARALLEL FETCH (Tối ưu mạng) ---
+        // --- BÆ¯á»šC 1: PARALLEL FETCH (Tá»‘i Æ°u máº¡ng) ---
         const workUrl = `https://openlibrary.org/works/${workId}.json`;
         const edsUrl = `https://openlibrary.org/works/${workId}/editions.json?limit=1`;
 
-        // Gọi song song Work và Edition
+        // Gá»i song song Work vÃ  Edition
         const [workData, edsData] = await Promise.all([
           getJSON(workUrl),
           getJSON(edsUrl),
@@ -815,7 +813,7 @@ export const createBooksFromOpenLibrary = async (
         const edition = edsData.entries?.[0];
         if (!edition) throw new Error("No edition found");
 
-        // --- BƯỚC 2: FETCH AUTHOR (Nếu có) ---
+        // --- BÆ¯á»šC 2: FETCH AUTHOR (Náº¿u cÃ³) ---
         let authorName = "Unknown Author";
         let authorBio = "";
         const authorKey = workData.authors?.[0]?.author?.key;
@@ -835,7 +833,7 @@ export const createBooksFromOpenLibrary = async (
           }
         }
 
-        // --- BƯỚC 3: PREPARE DATA ---
+        // --- BÆ¯á»šC 3: PREPARE DATA ---
         const title = edition.title || workData.title || "Untitled";
         const isbn = (
           edition.isbn_13?.[0] ||
@@ -849,7 +847,7 @@ export const createBooksFromOpenLibrary = async (
           openlibrary_work_url: workUrl,
         };
 
-        // Check existing (Nhanh hơn nếu check trước khi xử lý sâu)
+        // Check existing (Nhanh hÆ¡n náº¿u check trÆ°á»›c khi xá»­ lÃ½ sÃ¢u)
         const existing = await prisma.book.findUnique({ where: { isbn } });
         if (existing) {
           return {
@@ -883,15 +881,15 @@ export const createBooksFromOpenLibrary = async (
           ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`
           : null;
 
-        // --- BƯỚC 4: DB METADATA (Dùng Cache để tối ưu) ---
-        // Chạy song song các tác vụ upsert metadata
+        // --- BÆ¯á»šC 4: DB METADATA (DÃ¹ng Cache Ä‘á»ƒ tá»‘i Æ°u) ---
+        // Cháº¡y song song cÃ¡c tÃ¡c vá»¥ upsert metadata
         const [authorId, publisherId, genreIds] = await Promise.all([
           ensureAuthor(authorName, authorBio),
           ensurePublisher(edition.publishers?.[0]),
           ensureGenres(workData.subjects || []),
         ]);
 
-        // --- BƯỚC 5: CREATE BOOK & COPIES ---
+        // --- BÆ¯á»šC 5: CREATE BOOK & COPIES ---
         const price = Math.floor(Math.random() * (500000 - 50000 + 1)) + 50000;
         const quantity = 5;
 
@@ -941,7 +939,7 @@ export const createBooksFromOpenLibrary = async (
       }
     };
 
-    // Chạy batch với concurrency cao
+    // Cháº¡y batch vá»›i concurrency cao
     for (let i = 0; i < worksInput.length; i += MAX_CONCURRENCY) {
       const chunk = worksInput.slice(i, i + MAX_CONCURRENCY);
       const promises = chunk.map((wid) => processWork(wid));
@@ -980,6 +978,7 @@ export const createBooksFromOpenLibrary = async (
     });
   } catch (err: any) {
     console.error(err);
-    return sendResponse(res, 500, "error", err.message, null);
+    return sendResponse(res, 500, "error", err.message);
   }
 };
+
