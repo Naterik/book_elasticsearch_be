@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import { fromError } from "zod-validation-error";
 import {
   deleteGenreService,
@@ -7,6 +7,7 @@ import {
   createGenre,
   updateGenre,
   performFullGenreCleanup,
+  getGenreByIdService,
 } from "services/book/genre.service";
 import { Genre, TGenre } from "validation/genre.schema";
 import { sendResponse } from "src/utils";
@@ -16,7 +17,7 @@ const getAllGenreDisplay = async (req: Request, res: Response) => {
     const data = await getGenresForDisplay();
     return sendResponse(res, 200, "success", data);
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -30,7 +31,22 @@ const getAllGenre = async (req: Request, res: Response) => {
 
     return sendResponse(res, 200, "success", result);
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
+  }
+};
+
+const getGenreById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await getGenreByIdService(+id);
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message
+    );
   }
 };
 
@@ -45,9 +61,7 @@ const postGenre = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(err).toString() || err.message,
-      null
-    );
+      fromError(err).toString() || err.message);
   }
 };
 
@@ -62,9 +76,7 @@ const putGenre = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(err).toString() || err.message,
-      null
-    );
+      fromError(err).toString() || err.message);
   }
 };
 
@@ -74,26 +86,28 @@ const deleteGenre = async (req: Request, res: Response) => {
     const result = await deleteGenreService(id);
     return sendResponse(res, 200, "success", result);
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
 const cleanupGenresController = async (req: Request, res: Response) => {
   try {
-    console.log("📌 Genre cleanup API called");
+    console.log("ðŸ“Œ Genre cleanup API called");
     const result = await performFullGenreCleanup();
     return sendResponse(res, 200, "success", result);
   } catch (err: any) {
-    console.error("❌ Error in cleanup controller:", err);
-    return sendResponse(res, 500, "error", err.message, null);
+    console.error("âŒ Error in cleanup controller:", err);
+    return sendResponse(res, 500, "error", err.message);
   }
 };
 
 export {
   getAllGenre,
+  getGenreById,
   postGenre,
   putGenre,
   deleteGenre,
   getAllGenreDisplay,
   cleanupGenresController,
 };
+

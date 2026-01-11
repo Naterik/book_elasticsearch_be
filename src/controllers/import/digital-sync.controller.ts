@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import { prisma } from "configs/client";
 import { PreviewStatus } from "@prisma/client";
 import { sendResponse } from "src/utils";
@@ -73,7 +73,7 @@ export const syncDigitalBooks = async (req: Request, res: Response) => {
     });
 
     if (books.length === 0) {
-      return sendResponse(res, 200, "success", null);
+      return sendResponse(res, 200, "success");
     }
 
     console.log(`[DigitalSync] Found ${books.length} books to sync.`);
@@ -169,7 +169,7 @@ export const syncDigitalBooks = async (req: Request, res: Response) => {
     });
 
   } catch (error: any) {
-    console.error("[DigitalSync] Critical failure:", error);
-    return sendResponse(res, 500, "error", "Internal Server Error", error.message);
+    return sendResponse(res, 500, "error", error.message);
   }
 };
+

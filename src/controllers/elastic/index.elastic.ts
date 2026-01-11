@@ -1,4 +1,4 @@
-import { client } from "configs/elastic";
+﻿import { client } from "configs/elastic";
 import { Request, Response } from "express";
 import {
   countBookCopies,
@@ -11,14 +11,14 @@ const booksIndex = process.env.INDEX_N_GRAM_BOOK!;
 const bookCopiesIndex = process.env.INDEX_BOOKCOPY!;
 
 // Batch processing constants
-const BATCH_SIZE = 500; // Giảm kích thước batch để tránh quá tải
+const BATCH_SIZE = 500; // Giáº£m kÃ­ch thÆ°á»›c batch Ä‘á»ƒ trÃ¡nh quÃ¡ táº£i
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 1000; // ms
 
 // Utility function: Sleep
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Utility function: Bulk index với retry logic
+// Utility function: Bulk index vá»›i retry logic
 const bulkIndexWithRetry = async (
   operations: any[],
   indexName: string,
@@ -83,7 +83,7 @@ const processBatch = async (
         `Successfully indexed batch: ${totalIndexed}/${documents.length}`
       );
 
-      // Add delay between batches để Elasticsearch kịp xử lý
+      // Add delay between batches Ä‘á»ƒ Elasticsearch ká»‹p xá»­ lÃ½
       if (i + BATCH_SIZE < documents.length) {
         await sleep(500);
       }
@@ -291,7 +291,6 @@ const createBookCopiesIndex = async (req: Request, res: Response) => {
       res,
       500,
       "error",
-      "Failed to create book copies index",
       error.message
     );
   }
@@ -336,7 +335,7 @@ const createBooksIndex = async (req: Request, res: Response) => {
               filter: ["lowercase", "asciifolding"],
             },
 
-            // Analyzer mới cho exact prefix match
+            // Analyzer má»›i cho exact prefix match
             prefix_analyzer: {
               type: "custom",
               tokenizer: "keyword",
@@ -493,10 +492,7 @@ const createBooksIndex = async (req: Request, res: Response) => {
     });
 
     console.log("Books index structure created successfully");
-
     const totalBooks = await countBooks();
-    console.log(`Total books in DB: ${totalBooks}`);
-
     let totalIndexed = 0;
     let skip = 0;
     while (true) {
@@ -533,10 +529,10 @@ const createBooksIndex = async (req: Request, res: Response) => {
       res,
       500,
       "error",
-      "Failed to create books index",
       error.message
     );
   }
 };
 
 export { createBookCopiesIndex, createBooksIndex };
+

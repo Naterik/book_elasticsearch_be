@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import {
   getAllBookCopies,
   deleteBookCopyService,
@@ -11,6 +11,8 @@ import {
 import { BookCopy } from "validation/book-copy.schema";
 import { fromError } from "zod-validation-error";
 import { sendResponse } from "src/utils";
+
+
 
 const getAllBookCopy = async (req: Request, res: Response) => {
   try {
@@ -25,7 +27,7 @@ const getAllBookCopy = async (req: Request, res: Response) => {
       result
     );
   } catch (error: any) {
-    return sendResponse(res, 400, "error", error.message, null);
+    return sendResponse(res, 400, "error", error.message);
   }
 };
 const postBookCopy = async (req: Request, res: Response) => {
@@ -44,9 +46,7 @@ const postBookCopy = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(error).toString() || error.message,
-      null
-    );
+      fromError(error).toString() || error.message);
   }
 };
 
@@ -67,9 +67,7 @@ const putBookCopy = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(error).toString() || error.message,
-      null
-    );
+      fromError(error).toString() || error.message);
   }
 };
 const generateCopiesAll = async (req: Request, res: Response) => {
@@ -82,7 +80,7 @@ const generateCopiesAll = async (req: Request, res: Response) => {
       result
     );
   } catch (error: any) {
-    return sendResponse(res, 400, "error", error.message || "Error", null);
+    return sendResponse(res, 400, "error", error.message || "Error");
   }
 };
 
@@ -97,7 +95,7 @@ const deleteBookCopy = async (req: Request, res: Response) => {
       result
     );
   } catch (error: any) {
-    return sendResponse(res, 400, "error", error.message, null);
+    return sendResponse(res, 400, "error", error.message);
   }
 };
 
@@ -120,7 +118,7 @@ const getBookCopyStatusByBookId = async (req: Request, res: Response) => {
       result
     );
   } catch (error: any) {
-    return sendResponse(res, 400, "error", error.message, null);
+    return sendResponse(res, 400, "error", error.message);
   }
 };
 export {
@@ -131,3 +129,4 @@ export {
   getBookCopyStatusByBookId,
   generateCopiesAll,
 };
+

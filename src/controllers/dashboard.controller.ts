@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import {
   getAreaChartForLoanTrends,
   getDashboardSummary,
@@ -16,7 +16,7 @@ const getSummary = async (req: Request, res: Response) => {
     const result = await getDashboardSummary();
     return sendResponse(res, 200, "success", result);
   } catch (e: any) {
-    return sendResponse(res, 500, "error", e.message, null);
+    return sendResponse(res, 500, "error", e.message);
   }
 };
 
@@ -30,7 +30,7 @@ const getChartForBookCopiesStatus = async (req: Request, res: Response) => {
       result
     );
   } catch (e: any) {
-    return sendResponse(res, 500, "error", e.message, null);
+    return sendResponse(res, 500, "error", e.message);
   }
 };
 
@@ -40,7 +40,7 @@ const getChartForLoanTrends = async (req: Request, res: Response) => {
     const result = await getAreaChartForLoanTrends(timeframe);
     return sendResponse(res, 200, "success", result);
   } catch (e: any) {
-    return sendResponse(res, 500, "error", e.message, null);
+    return sendResponse(res, 500, "error", e.message);
   }
 };
 
@@ -55,7 +55,7 @@ const getUserWithCard = async (req: Request, res: Response) => {
       result
     );
   } catch (e: any) {
-    return sendResponse(res, 500, "error", e.message, null);
+    return sendResponse(res, 500, "error", e.message);
   }
 };
 
@@ -64,7 +64,7 @@ const getChartForRevenue = async (req: Request, res: Response) => {
     const result = await getStackedBarChartForRevenue();
     return sendResponse(res, 200, "success", result);
   } catch (e: any) {
-    return sendResponse(res, 500, "error", e.message, null);
+    return sendResponse(res, 500, "error", e.message);
   }
 };
 
@@ -78,7 +78,7 @@ const getChartForSearchTerms = async (req: Request, res: Response) => {
       result
     );
   } catch (e: any) {
-    return sendResponse(res, 500, "error", e.message, null);
+    return sendResponse(res, 500, "error", e.message);
   }
 };
 
@@ -92,7 +92,7 @@ const getPendingReservations = async (req: Request, res: Response) => {
       result
     );
   } catch (e: any) {
-    return sendResponse(res, 500, "error", e.message, null);
+    return sendResponse(res, 500, "error", e.message);
   }
 };
 
@@ -105,3 +105,4 @@ export {
   getPendingReservations,
   getChartForLoanTrends,
 };
+

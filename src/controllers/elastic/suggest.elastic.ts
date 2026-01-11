@@ -1,4 +1,4 @@
-import { client } from "configs/elastic";
+﻿import { client } from "configs/elastic";
 import { Request, Response } from "express";
 import { sendResponse } from "src/utils";
 
@@ -12,7 +12,7 @@ const suggestElastic = async (req: Request, res: Response) => {
 
     if (!prefix) return sendResponse(res, 200, "success", []);
 
-    // Strategy: Ưu tiên exact match và prefix match cao nhất
+    // Strategy: Æ¯u tiÃªn exact match vÃ  prefix match cao nháº¥t
     const results: any = await client.search({
       index,
       size: limit,
@@ -81,7 +81,7 @@ const suggestElastic = async (req: Request, res: Response) => {
     }));
 
     if (suggestions.length === 0) {
-      return sendResponse(res, 404, "error", "Not found any result", null);
+      return sendResponse(res, 404, "error", "Not found any result");
     }
 
     return sendResponse(
@@ -91,7 +91,8 @@ const suggestElastic = async (req: Request, res: Response) => {
       suggestions
     );
   } catch (e: any) {
-    return sendResponse(res, 400, "error", e.message, null);
+    return sendResponse(res, 400, "error", e.message);
   }
 };
 export { suggestElastic };
+

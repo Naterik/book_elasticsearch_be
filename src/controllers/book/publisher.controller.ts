@@ -1,9 +1,10 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import {
   deletePublisherService,
   getAllPublishers,
   createPublisher,
   updatePublisher,
+  getPublisherByIdService,
 } from "services/book/publisher.service";
 import { Publisher, TPublisher } from "validation/publisher.schema";
 import { fromError } from "zod-validation-error";
@@ -24,7 +25,24 @@ const getAllPublisher = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
+  }
+};
+
+
+
+const getPublisherById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await getPublisherByIdService(+id);
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message
+    );
   }
 };
 
@@ -44,9 +62,7 @@ const postPublisher = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(err).toString() || err.message,
-      null
-    );
+      fromError(err).toString() || err.message);
   }
 };
 
@@ -66,9 +82,7 @@ const putPublisher = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(err).toString() || err.message,
-      null
-    );
+      fromError(err).toString() || err.message);
   }
 };
 
@@ -83,8 +97,15 @@ const deletePublisher = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
-export { getAllPublisher, postPublisher, putPublisher, deletePublisher };
+export {
+  getAllPublisher,
+  postPublisher,
+  putPublisher,
+  deletePublisher,
+  getPublisherById
+};
+

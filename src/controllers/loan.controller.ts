@@ -1,15 +1,16 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import { prisma } from "configs/client";
 import {
   createLoanService,
   getAllLoansService,
-  getLoanById,
   getLoanReturnByIdService,
   renewalLoan,
   updateLoanService,
   deleteLoanService,
   approveReturnBook,
   processOverdueLoans,
+  getLoanByUserId,
+  getLoanById,
 } from "services/loan.service";
 import { sendResponse } from "src/utils";
 
@@ -21,7 +22,7 @@ const getAllLoans = async (req: Request, res: Response) => {
     const result = await getAllLoansService(+currentPage);
     return sendResponse(res, 200, "success", result);
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 const createLoans = async (req: Request, res: Response) => {
@@ -30,7 +31,7 @@ const createLoans = async (req: Request, res: Response) => {
     const result = await createLoanService(+userId, +bookId, dueDate);
     return sendResponse(res, 201, "success", result);
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -40,33 +41,44 @@ const renewalLoans = async (req: Request, res: Response) => {
     const result = await renewalLoan(+loanId, +userId);
     return sendResponse(res, 200, "success", result);
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
-const getOnLoanById = async (req: Request, res: Response) => {
+const getCurrentLoanByUserId = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await getLoanByUserId(+id);
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message);
+  }
+};
+
+const getCurrentLoanById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await getLoanById(+id);
     return sendResponse(res, 200, "success", result);
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
+
 const getLoanReturnById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await getLoanReturnByIdService(+id);
     return sendResponse(res, 200, "success", result);
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
 const getCheckBookIsLoan = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await getLoanById(+id);
+    const result = await getLoanByUserId(+id);
     return sendResponse(
       res,
       200,
@@ -74,7 +86,7 @@ const getCheckBookIsLoan = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -84,7 +96,7 @@ const updateLoan = async (req: Request, res: Response) => {
     const result = await updateLoanService(+loanId, +userId, dueDate, status);
     return sendResponse(res, 200, "success", result);
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -94,7 +106,7 @@ const deleteLoan = async (req: Request, res: Response) => {
     const result = await deleteLoanService(+id);
     return sendResponse(res, 200, "success", result);
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -109,28 +121,24 @@ const returnBookApprove = async (req: Request, res: Response) => {
       result
     );
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
 const triggerOverdueCheck = async (req: Request, res: Response) => {
   try {
-    console.log("👉 Manual trigger: Checking for overdue loans...");
+    console.log("ðŸ‘‰ Manual trigger: Checking for overdue loans...");
     await processOverdueLoans();
     return sendResponse(
       res,
       200,
-      "success",
-      null
-    );
+      "success");
   } catch (err: any) {
     return sendResponse(
       res,
       500,
       "error",
-      "Error triggering overdue check: " + err.message,
-      null
-    );
+      "Error triggering overdue check: " + err.message);
   }
 };
 
@@ -143,9 +151,7 @@ const seedOverdueLoan = async (req: Request, res: Response) => {
         res,
         400,
         "error",
-        "userId and bookCopyId are required",
-        null
-      );
+        "userId and bookCopyId are required");
     }
 
     // Create an overdue loan (due date was 5 days ago)
@@ -180,9 +186,7 @@ const seedOverdueLoan = async (req: Request, res: Response) => {
       res,
       500,
       "error",
-      "Error creating seed data: " + err.message,
-      null
-    );
+      "Error creating seed data: " + err.message);
   }
 };
 
@@ -190,7 +194,7 @@ export {
   createLoans,
   renewalLoans,
   getAllLoans,
-  getOnLoanById,
+  getCurrentLoanById,
   getLoanReturnById,
   getCheckBookIsLoan,
   updateLoan,
@@ -198,4 +202,6 @@ export {
   returnBookApprove,
   triggerOverdueCheck,
   seedOverdueLoan,
+  getCurrentLoanByUserId
 };
+

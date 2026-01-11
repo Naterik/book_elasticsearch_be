@@ -66,10 +66,20 @@ const deletePublisherService = async (id: string) => {
   return prisma.publisher.delete({ where: { id: +id } });
 };
 
+const getPublisherByIdService = async (id: number) => {
+  return prisma.publisher.findUnique({
+    where: { id },
+    include: {
+      books: true,
+    },
+  });
+};
+
 export {
   getAllPublishers,
   checkPublisherNameExists,
   createPublisher,
   updatePublisher,
   deletePublisherService,
+  getPublisherByIdService,
 };

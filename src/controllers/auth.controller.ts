@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import { Auth, TAuth } from "validation/auth.schema";
 import { fromError } from "zod-validation-error";
 import {
@@ -28,9 +28,7 @@ const loginUser = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(err).toString() || err.message,
-      null
-    );
+      fromError(err).toString() || err.message);
   }
 };
 
@@ -55,9 +53,7 @@ const registerUser = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(err).toString() || err.message,
-      null
-    );
+      fromError(err).toString() || err.message);
   }
 };
 
@@ -70,18 +66,16 @@ const fetchAccount = (req: Request, res: Response) => {
       res,
       400,
       "error",
-      "Fetch error " + (fromError(err).toString() || err.message),
-      null
-    );
+      "Fetch error " + (fromError(err).toString() || err.message));
   }
 };
 
 const logoutUser = (req: Request, res: Response) => {
   try {
     res.clearCookie("access_token");
-    return sendResponse(res, 200, "success", null);
+    return sendResponse(res, 200, "success");
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -97,7 +91,7 @@ const googleAccessToken = async (req: Request, res: Response) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
     });
-    console.log("✅ Google OAuth Success:", {
+    console.log("âœ… Google OAuth Success:", {
       userId: user.id,
       email: user.username,
     });
@@ -119,3 +113,4 @@ const googleAccessToken = async (req: Request, res: Response) => {
 };
 
 export { loginUser, registerUser, googleAccessToken, fetchAccount, logoutUser };
+

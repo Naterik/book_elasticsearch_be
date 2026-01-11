@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import { fromError } from "zod-validation-error";
 import {
   createMultipleAuthors,
@@ -6,6 +6,7 @@ import {
   getAllAuthors,
   createAuthor,
   updateAuthor,
+  getAuthorByIdService,
 } from "services/book/author.service";
 import { Author, TAuthor } from "validation/author.schema";
 import { sendResponse } from "src/utils";
@@ -20,7 +21,24 @@ const getAllAuthor = async (req: Request, res: Response) => {
 
     return sendResponse(res, 200, "success", result);
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
+  }
+};
+
+
+
+const getAuthorById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await getAuthorByIdService(+id);
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message
+    );
   }
 };
 
@@ -35,9 +53,7 @@ const postAuthor = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(err).toString() || err.message,
-      null
-    );
+      fromError(err).toString() || err.message);
   }
 };
 
@@ -52,9 +68,7 @@ const putAuthor = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(err).toString() || err.message,
-      null
-    );
+      fromError(err).toString() || err.message);
   }
 };
 
@@ -64,7 +78,7 @@ const deleteAuthor = async (req: Request, res: Response) => {
     const result = await deleteAuthorService(id);
     return sendResponse(res, 200, "success", result);
   } catch (err: any) {
-    return sendResponse(res, 400, "error", err.message, null);
+    return sendResponse(res, 400, "error", err.message);
   }
 };
 
@@ -85,10 +99,16 @@ const postManyAuthors = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      fromError(err).toString() || err.message,
-      null
-    );
+      fromError(err).toString() || err.message);
   }
 };
 
-export { getAllAuthor, postAuthor, putAuthor, deleteAuthor, postManyAuthors };
+export {
+  getAllAuthor,
+  postAuthor,
+  putAuthor,
+  deleteAuthor,
+  postManyAuthors,
+  getAuthorById,
+};
+

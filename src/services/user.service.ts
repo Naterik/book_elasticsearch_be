@@ -25,6 +25,7 @@ const getAllUsers = async (page: number) => {
 const getUserByIdService = async (id: number) => {
   return prisma.user.findUnique({
     where: { id },
+    include: { role: { select: { name: true } } },
   });
 };
 

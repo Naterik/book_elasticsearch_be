@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import "dotenv/config";
 import {
   cleanupOldNotifications,
@@ -20,7 +20,7 @@ const getNotificationsByUserId = async (req: Request, res: Response) => {
       result
     );
   } catch (e: any) {
-    return sendResponse(res, 500, "error", e.message, null);
+    return sendResponse(res, 500, "error", e.message);
   }
 };
 
@@ -35,7 +35,7 @@ const getUnread = async (req: Request, res: Response) => {
       result
     );
   } catch (e: any) {
-    return sendResponse(res, 500, "error", e.message, null);
+    return sendResponse(res, 500, "error", e.message);
   }
 };
 
@@ -51,7 +51,7 @@ const putSingleNotification = async (req: Request, res: Response) => {
       result
     );
   } catch (e: any) {
-    return sendResponse(res, 500, "error", e.message, null);
+    return sendResponse(res, 500, "error", e.message);
   }
 };
 
@@ -66,7 +66,7 @@ const putBulkNotification = async (req: Request, res: Response) => {
       result
     );
   } catch (e: any) {
-    return sendResponse(res, 500, "error", e.message, null);
+    return sendResponse(res, 500, "error", e.message);
   }
 };
 
@@ -81,7 +81,7 @@ const cleanupNotifications = async (req: Request, res: Response) => {
       result
     );
   } catch (e: any) {
-    return sendResponse(res, 500, "error", e.message, null);
+    return sendResponse(res, 500, "error", e.message);
   }
 };
 
@@ -92,3 +92,4 @@ export {
   putBulkNotification,
   cleanupNotifications,
 };
+

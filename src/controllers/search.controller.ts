@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import {
   getRecentSearchesByUserId,
   deleteSearch,
@@ -23,9 +23,7 @@ const getTrendingSearches = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      err?.message || "An error occurred while fetching trending searches",
-      null
-    );
+      err?.message || "An error occurred while fetching trending searches");
   }
 };
 
@@ -45,9 +43,7 @@ const getUserHistorySearches = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      err?.message || "An error occurred while fetching recent searches",
-      null
-    );
+      err?.message || "An error occurred while fetching recent searches");
   }
 };
 
@@ -67,9 +63,7 @@ const postMergeUserRecentSearches = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      err?.message || "An error occurred while merging recent searches",
-      null
-    );
+      err?.message || "An error occurred while merging recent searches");
   }
 };
 
@@ -89,9 +83,7 @@ const postUserRecentSearch = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      err?.message || "An error occurred while saving search",
-      null
-    );
+      err?.message || "An error occurred while saving search");
   }
 };
 
@@ -111,9 +103,7 @@ const deleteUserSearch = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      err?.message || "An error occurred while deleting search",
-      null
-    );
+      err?.message || "An error occurred while deleting search");
   }
 };
 
@@ -125,9 +115,7 @@ const deleteAllUserSearches = async (req: Request, res: Response) => {
         res,
         401,
         "error",
-        "Unauthorized: User ID not found",
-        null
-      );
+        "Unauthorized: User ID not found");
     }
 
     const result = await clearAllSearches(userId);
@@ -142,9 +130,7 @@ const deleteAllUserSearches = async (req: Request, res: Response) => {
       res,
       400,
       "error",
-      err?.message || "An error occurred while clearing searches",
-      null
-    );
+      err?.message || "An error occurred while clearing searches");
   }
 };
 
@@ -156,3 +142,4 @@ export {
   getUserHistorySearches,
   postMergeUserRecentSearches,
 };
+

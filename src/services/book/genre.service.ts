@@ -209,6 +209,19 @@ const updateGenre = async (id: string, name: string, description?: string) => {
   });
 };
 
+const getGenreByIdService = async (id: number) => {
+  return prisma.genre.findUnique({
+    where: { id },
+    include: {
+      books: {
+        include: {
+          books: true,
+        },
+      },
+    },
+  });
+};
+
 const deleteGenreService = async (id: string) => {
   return prisma.genre.delete({ where: { id: +id } });
 };
@@ -615,4 +628,5 @@ export {
   deleteGenreService,
   getGenresForDisplay,
   performFullGenreCleanup,
+  getGenreByIdService,
 };

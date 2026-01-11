@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import { previewDigitalBook } from "services/digital-preview.service";
 import { sendResponse } from "src/utils";
 
@@ -14,8 +14,9 @@ const previewDigitalBookController = async (req: Request, res: Response) => {
     );
   } catch (error: any) {
     console.log(error);
-    return sendResponse(res, 500, "error", error.message, null);
+    return sendResponse(res, 500, "error", error.message);
   }
 };
 
 export { previewDigitalBookController };
+
