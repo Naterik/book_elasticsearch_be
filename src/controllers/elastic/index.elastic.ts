@@ -1,20 +1,24 @@
-﻿import { client } from 'configs/elastic'
-import { Request, Response } from 'express'
-import { countBookCopies, getBookCopiesBatch } from 'services/book/book-copy.service'
-import { countBooks, getBooksBatch } from 'services/book/book.service'
+﻿import { client } from "configs/elastic";
+import { Request, Response } from "express";
+import {
+  countBookCopies,
+  getBookCopiesBatch,
+} from "services/book/book-copy.service";
+import { countBooks, getBooksBatch } from "services/book/book.service";
+import { sendResponse } from "src/utils";
 
-const booksIndex = process.env.INDEX_N_GRAM_BOOK!
-const bookCopiesIndex = process.env.INDEX_BOOKCOPY!
+const booksIndex = process.env.INDEX_N_GRAM_BOOK!;
+const bookCopiesIndex = process.env.INDEX_BOOKCOPY!;
 
 // Batch processing constants
-const BATCH_SIZE = 500 // Giảm kích thước batch để tránh quá tải
-const MAX_RETRIES = 3
-const INITIAL_RETRY_DELAY = 1000 // ms
+const BATCH_SIZE = 500; // Giáº£m kÃ­ch thÆ°á»›c batch Ä‘á»ƒ trÃ¡nh quÃ¡ táº£i
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000; // ms
 
 // Utility function: Sleep
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Utility function: Bulk index với retry logic
+// Utility function: Bulk index vá»›i retry logic
 const bulkIndexWithRetry = async (
   operations: any[],
   indexName: string,
@@ -24,20 +28,25 @@ const bulkIndexWithRetry = async (
     const response = await client.bulk({
       refresh: true,
       operations,
-    })
-    return response
+    });
+    return response;
   } catch (error: any) {
-    if (retryCount < MAX_RETRIES && error.message?.includes('es_rejected_execution_exception')) {
-      const delay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount)
+    if (
+      retryCount < MAX_RETRIES &&
+      error.message?.includes("es_rejected_execution_exception")
+    ) {
+      const delay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
       console.log(
-        `Bulk indexing failed, retrying in ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})...`
-      )
-      await sleep(delay)
-      return bulkIndexWithRetry(operations, indexName, retryCount + 1)
+        `Bulk indexing failed, retrying in ${delay}ms (attempt ${
+          retryCount + 1
+        }/${MAX_RETRIES})...`
+      );
+      await sleep(delay);
+      return bulkIndexWithRetry(operations, indexName, retryCount + 1);
     }
-    throw error
+    throw error;
   }
-}
+};
 
 // Utility function: Process documents in batches
 const processBatch = async (
@@ -45,72 +54,85 @@ const processBatch = async (
   indexName: string,
   documentMapper: (doc: any) => any = (doc) => doc
 ): Promise<number> => {
-  let totalIndexed = 0
+  let totalIndexed = 0;
 
   for (let i = 0; i < documents.length; i += BATCH_SIZE) {
-    const batch = documents.slice(i, i + BATCH_SIZE)
+    const batch = documents.slice(i, i + BATCH_SIZE);
     console.log(
       `Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(
         documents.length / BATCH_SIZE
       )} (${batch.length} documents)`
-    )
+    );
 
     const operations = batch.flatMap((doc) => [
       { index: { _index: indexName, _id: String(doc.id) } },
       documentMapper(doc),
-    ])
+    ]);
 
     try {
-      const bulkResponse = await bulkIndexWithRetry(operations, indexName)
+      const bulkResponse = await bulkIndexWithRetry(operations, indexName);
 
       if (bulkResponse.errors) {
-        console.warn(`Some documents failed to index in batch, but continuing...`)
+        console.warn(
+          `Some documents failed to index in batch, but continuing...`
+        );
       }
 
-      totalIndexed += batch.length
-      console.log(`Successfully indexed batch: ${totalIndexed}/${documents.length}`)
+      totalIndexed += batch.length;
+      console.log(
+        `Successfully indexed batch: ${totalIndexed}/${documents.length}`
+      );
 
-      // Add delay between batches để Elasticsearch kịp xử lý
+      // Add delay between batches Ä‘á»ƒ Elasticsearch ká»‹p xá»­ lÃ½
       if (i + BATCH_SIZE < documents.length) {
-        await sleep(500)
+        await sleep(500);
       }
     } catch (error: any) {
-      console.error(`Failed to index batch ${Math.floor(i / BATCH_SIZE) + 1}:`, error.message)
-      throw error
+      console.error(
+        `Failed to index batch ${Math.floor(i / BATCH_SIZE) + 1}:`,
+        error.message
+      );
+      throw error;
     }
   }
 
-  return totalIndexed
-}
+  return totalIndexed;
+};
 const createBookCopiesIndex = async (req: Request, res: Response) => {
   try {
-    console.log('Creating book_copies index with ngram tokenizer...')
+    console.log("Creating book_copies index with ngram tokenizer...");
 
-    const exists = await client.indices.exists({ index: bookCopiesIndex })
-    const totalBookCopies = await countBookCopies()
-    console.log(`Total book copies in DB: ${totalBookCopies}`)
+    const exists = await client.indices.exists({ index: bookCopiesIndex });
+    const totalBookCopies = await countBookCopies();
+    console.log(`Total book copies in DB: ${totalBookCopies}`);
 
     if (exists) {
-      console.log(`Index ${bookCopiesIndex} already exists, keeping existing data...`)
+      console.log(
+        `Index ${bookCopiesIndex} already exists, keeping existing data...`
+      );
 
-      let totalIndexed = 0
-      let skip = 0
+      let totalIndexed = 0;
+      let skip = 0;
       while (true) {
-        const bookCopies = await getBookCopiesBatch(skip, BATCH_SIZE)
-        if (bookCopies.length === 0) break
+        const bookCopies = await getBookCopiesBatch(skip, BATCH_SIZE);
+        if (bookCopies.length === 0) break;
 
-        await processBatch(bookCopies, bookCopiesIndex)
-        totalIndexed += bookCopies.length
-        skip += BATCH_SIZE
-        console.log(`Progress: ${totalIndexed}/${totalBookCopies}`)
+        await processBatch(bookCopies, bookCopiesIndex);
+        totalIndexed += bookCopies.length;
+        skip += BATCH_SIZE;
+        console.log(`Progress: ${totalIndexed}/${totalBookCopies}`);
       }
 
-      return res.status(200).json({
-        message: 'Book copies index updated successfully (existing data preserved)',
-        index: bookCopiesIndex,
-        documentsUpdated: totalIndexed,
-        totalInDB: totalBookCopies,
-      })
+      return sendResponse(
+        res,
+        200,
+        "success",
+        {
+          index: bookCopiesIndex,
+          documentsUpdated: totalIndexed,
+          totalInDB: totalBookCopies,
+        }
+      );
     }
 
     // Create new index with ngram settings
@@ -119,162 +141,170 @@ const createBookCopiesIndex = async (req: Request, res: Response) => {
       settings: {
         number_of_shards: 1,
         number_of_replicas: 0,
-        'index.max_ngram_diff': 50,
+        "index.max_ngram_diff": 50,
         analysis: {
           analyzer: {
             ngram_analyzer: {
-              type: 'custom',
-              tokenizer: 'ngram_tokenizer',
-              filter: ['lowercase', 'asciifolding', 'stop'],
+              type: "custom",
+              tokenizer: "ngram_tokenizer",
+              filter: ["lowercase", "asciifolding", "stop"],
             },
             standard_analyzer: {
-              type: 'custom',
-              tokenizer: 'standard',
-              filter: ['lowercase', 'asciifolding'],
+              type: "custom",
+              tokenizer: "standard",
+              filter: ["lowercase", "asciifolding"],
             },
           },
           tokenizer: {
             ngram_tokenizer: {
-              type: 'ngram',
+              type: "ngram",
               min_gram: 2,
               max_gram: 20,
-              token_chars: ['letter', 'digit', 'punctuation', 'symbol'],
+              token_chars: ["letter", "digit", "punctuation", "symbol"],
             },
           },
         },
       },
       mappings: {
         properties: {
-          id: { type: 'long' },
-          bookId: { type: 'long' },
-          barcode: { type: 'keyword' },
+          id: { type: "long" },
+          bookId: { type: "long" },
+          barcode: { type: "keyword" },
           copyNumber: {
-            type: 'text',
+            type: "text",
             fields: {
-              keyword: { type: 'keyword', ignore_above: 256 },
+              keyword: { type: "keyword", ignore_above: 256 },
             },
-            analyzer: 'ngram_analyzer',
-            search_analyzer: 'standard_analyzer',
+            analyzer: "ngram_analyzer",
+            search_analyzer: "standard_analyzer",
           },
-          status: { type: 'keyword' },
-          shelf: { type: 'keyword' },
+          status: { type: "keyword" },
+          shelf: { type: "keyword" },
           location: {
-            type: 'text',
+            type: "text",
             fields: {
-              keyword: { type: 'keyword', ignore_above: 256 },
+              keyword: { type: "keyword", ignore_above: 256 },
             },
-            analyzer: 'ngram_analyzer',
-            search_analyzer: 'standard_analyzer',
+            analyzer: "ngram_analyzer",
+            search_analyzer: "standard_analyzer",
           },
-          branch: { type: 'keyword' },
-          isbn: { type: 'keyword' },
-          acquiredAt: { type: 'date' },
-          year_published: { type: 'long' },
+          branch: { type: "keyword" },
+          isbn: { type: "keyword" },
+          acquiredAt: { type: "date" },
+          year_published: { type: "long" },
           books: {
             properties: {
-              id: { type: 'long' },
+              id: { type: "long" },
               title: {
-                type: 'text',
+                type: "text",
                 fields: {
-                  keyword: { type: 'keyword', ignore_above: 256 },
+                  keyword: { type: "keyword", ignore_above: 256 },
                 },
-                analyzer: 'ngram_analyzer',
-                search_analyzer: 'standard_analyzer',
+                analyzer: "ngram_analyzer",
+                search_analyzer: "standard_analyzer",
               },
               isbn: {
-                type: 'text',
+                type: "text",
                 fields: {
-                  keyword: { type: 'keyword', ignore_above: 256 },
+                  keyword: { type: "keyword", ignore_above: 256 },
                 },
               },
               shortDesc: {
-                type: 'text',
+                type: "text",
                 fields: {
                   keyword: {
-                    type: 'keyword',
+                    type: "keyword",
                     ignore_above: 256,
                   },
                 },
               },
               detailDesc: {
-                type: 'text',
+                type: "text",
                 fields: {
                   keyword: {
-                    type: 'keyword',
+                    type: "keyword",
                     ignore_above: 256,
                   },
                 },
               },
-              price: { type: 'long' },
-              quantity: { type: 'long' },
-              borrowed: { type: 'long' },
-              pages: { type: 'long' },
-              publishDate: { type: 'date' },
+              price: { type: "long" },
+              quantity: { type: "long" },
+              borrowed: { type: "long" },
+              pages: { type: "long" },
+              publishDate: { type: "date" },
               language: {
-                type: 'text',
+                type: "text",
                 fields: {
-                  keyword: { type: 'keyword', ignore_above: 256 },
+                  keyword: { type: "keyword", ignore_above: 256 },
                 },
               },
               image: {
-                type: 'text',
+                type: "text",
                 fields: {
-                  keyword: { type: 'keyword', ignore_above: 256 },
+                  keyword: { type: "keyword", ignore_above: 256 },
                 },
               },
-              authorId: { type: 'long' },
-              publisherId: { type: 'long' },
+              authorId: { type: "long" },
+              publisherId: { type: "long" },
             },
           },
           author: {
-            type: 'text',
+            type: "text",
             fields: {
-              keyword: { type: 'keyword', ignore_above: 256 },
+              keyword: { type: "keyword", ignore_above: 256 },
             },
-            analyzer: 'ngram_analyzer',
-            search_analyzer: 'standard_analyzer',
+            analyzer: "ngram_analyzer",
+            search_analyzer: "standard_analyzer",
           },
         },
       },
-    })
+    });
 
-    console.log('Book copies index created successfully')
+    console.log("Book copies index created successfully");
 
     // Fetch and index all book copies
-    let totalIndexed = 0
-    let skip = 0
+    let totalIndexed = 0;
+    let skip = 0;
     while (true) {
-      const bookCopies = await getBookCopiesBatch(skip, BATCH_SIZE)
-      if (bookCopies.length === 0) break
+      const bookCopies = await getBookCopiesBatch(skip, BATCH_SIZE);
+      if (bookCopies.length === 0) break;
 
-      await processBatch(bookCopies, bookCopiesIndex)
-      totalIndexed += bookCopies.length
-      skip += BATCH_SIZE
-      console.log(`Progress: ${totalIndexed}/${totalBookCopies}`)
+      await processBatch(bookCopies, bookCopiesIndex);
+      totalIndexed += bookCopies.length;
+      skip += BATCH_SIZE;
+      console.log(`Progress: ${totalIndexed}/${totalBookCopies}`);
     }
 
-    return res.status(200).json({
-      message: 'Book copies index created and populated successfully',
-      index: bookCopiesIndex,
-      documentsIndexed: totalIndexed,
-      totalInDB: totalBookCopies,
-    })
+    return sendResponse(
+      res,
+      200,
+      "success",
+      {
+        index: bookCopiesIndex,
+        documentsIndexed: totalIndexed,
+        totalInDB: totalBookCopies,
+      }
+    );
   } catch (error: any) {
-    console.error('Error creating book copies index:', error)
-    res.status(500).json({
-      error: 'Failed to create book copies index',
-      message: error.message,
-    })
+    console.error("Error creating book copies index:", error);
+    return sendResponse(
+      res,
+      500,
+      "error",
+      error.message
+    );
   }
-}
+};
 
 const createBooksIndex = async (req: Request, res: Response) => {
   try {
-    const booksIndex = process.env.INDEX_N_GRAM_BOOK || 'books_index'
-    const exists = await client.indices.exists({ index: booksIndex })
+    const booksIndex = process.env.INDEX_N_GRAM_BOOK || "books_index";
+    const exists = await client.indices.exists({ index: booksIndex });
     if (exists) {
-      await client.indices.delete({ index: booksIndex })
-      console.log(`Deleted existing index: ${booksIndex} to apply new settings.`)
+      await client.indices.delete({ index: booksIndex });
+      console.log(
+        `Deleted existing index: ${booksIndex} to apply new settings.`
+      );
     }
 
     await client.indices.create({
@@ -285,43 +315,43 @@ const createBooksIndex = async (req: Request, res: Response) => {
 
         number_of_replicas: 0,
 
-        'index.max_ngram_diff': 50,
+        "index.max_ngram_diff": 50,
 
         analysis: {
           analyzer: {
             autocomplete_index: {
-              type: 'custom',
+              type: "custom",
 
-              tokenizer: 'edge_ngram_tokenizer',
+              tokenizer: "edge_ngram_tokenizer",
 
-              filter: ['lowercase', 'asciifolding', 'stop'],
+              filter: ["lowercase", "asciifolding", "stop"],
             },
 
             autocomplete_search: {
-              type: 'custom',
+              type: "custom",
 
-              tokenizer: 'standard',
+              tokenizer: "standard",
 
-              filter: ['lowercase', 'asciifolding'],
+              filter: ["lowercase", "asciifolding"],
             },
 
-            // Analyzer mới cho exact prefix match
+            // Analyzer má»›i cho exact prefix match
             prefix_analyzer: {
-              type: 'custom',
-              tokenizer: 'keyword',
-              filter: ['lowercase', 'asciifolding'],
+              type: "custom",
+              tokenizer: "keyword",
+              filter: ["lowercase", "asciifolding"],
             },
           },
 
           tokenizer: {
             edge_ngram_tokenizer: {
-              type: 'edge_ngram',
+              type: "edge_ngram",
 
               min_gram: 2,
 
               max_gram: 20,
 
-              token_chars: ['letter', 'digit', 'punctuation'],
+              token_chars: ["letter", "digit", "punctuation"],
             },
           },
         },
@@ -329,31 +359,31 @@ const createBooksIndex = async (req: Request, res: Response) => {
 
       mappings: {
         properties: {
-          authorId: { type: 'long' },
+          authorId: { type: "long" },
 
           authors: {
             properties: {
               name: {
-                type: 'text',
+                type: "text",
 
-                analyzer: 'autocomplete_index',
+                analyzer: "autocomplete_index",
 
-                search_analyzer: 'autocomplete_search',
+                search_analyzer: "autocomplete_search",
 
                 fields: {
-                  keyword: { type: 'keyword', ignore_above: 256 },
+                  keyword: { type: "keyword", ignore_above: 256 },
                 },
               },
             },
           },
 
-          borrowed: { type: 'long' },
+          borrowed: { type: "long" },
 
           detailDesc: {
-            type: 'text',
+            type: "text",
 
             fields: {
-              keyword: { type: 'keyword', ignore_above: 256 },
+              keyword: { type: "keyword", ignore_above: 256 },
             },
           },
 
@@ -361,17 +391,17 @@ const createBooksIndex = async (req: Request, res: Response) => {
             properties: {
               genres: {
                 properties: {
-                  id: { type: 'long' },
+                  id: { type: "long" },
 
                   name: {
-                    type: 'text',
+                    type: "text",
 
-                    analyzer: 'autocomplete_index',
+                    analyzer: "autocomplete_index",
 
-                    search_analyzer: 'autocomplete_search',
+                    search_analyzer: "autocomplete_search",
 
                     fields: {
-                      keyword: { type: 'keyword', ignore_above: 256 },
+                      keyword: { type: "keyword", ignore_above: 256 },
                     },
                   },
                 },
@@ -379,124 +409,130 @@ const createBooksIndex = async (req: Request, res: Response) => {
             },
           },
 
-          id: { type: 'long' },
+          id: { type: "long" },
 
-          image: { type: 'text' },
+          image: { type: "text" },
 
           isbn: {
-            type: 'text',
+            type: "text",
 
-            analyzer: 'autocomplete_index',
+            analyzer: "autocomplete_index",
 
-            search_analyzer: 'autocomplete_search',
+            search_analyzer: "autocomplete_search",
 
             fields: {
-              keyword: { type: 'keyword', ignore_above: 256 },
+              keyword: { type: "keyword", ignore_above: 256 },
             },
           },
 
           language: {
-            type: 'keyword',
+            type: "keyword",
 
             ignore_above: 256,
           },
 
-          pages: { type: 'long' },
+          pages: { type: "long" },
 
-          price: { type: 'long' },
+          price: { type: "long" },
 
-          publishDate: { type: 'date' },
+          publishDate: { type: "date" },
 
-          publisherId: { type: 'long' },
+          publisherId: { type: "long" },
 
           publishers: {
             properties: {
               name: {
-                type: 'text',
+                type: "text",
 
-                analyzer: 'autocomplete_index',
+                analyzer: "autocomplete_index",
 
-                search_analyzer: 'autocomplete_search',
+                search_analyzer: "autocomplete_search",
 
                 fields: {
-                  keyword: { type: 'keyword', ignore_above: 256 },
+                  keyword: { type: "keyword", ignore_above: 256 },
                 },
               },
             },
           },
 
-          quantity: { type: 'long' },
+          quantity: { type: "long" },
 
           shortDesc: {
-            type: 'text',
+            type: "text",
 
             fields: {
-              keyword: { type: 'keyword', ignore_above: 256 },
+              keyword: { type: "keyword", ignore_above: 256 },
             },
           },
 
           title: {
-            type: 'text',
+            type: "text",
 
-            analyzer: 'autocomplete_index',
+            analyzer: "autocomplete_index",
 
-            search_analyzer: 'autocomplete_search',
+            search_analyzer: "autocomplete_search",
 
             fields: {
-              keyword: { type: 'keyword', ignore_above: 256 },
+              keyword: { type: "keyword", ignore_above: 256 },
               prefix: {
-                type: 'text',
-                analyzer: 'prefix_analyzer',
-                search_analyzer: 'prefix_analyzer',
+                type: "text",
+                analyzer: "prefix_analyzer",
+                search_analyzer: "prefix_analyzer",
               },
             },
           },
 
           suggest: {
-            type: 'completion',
+            type: "completion",
 
             preserve_separators: true,
           },
         },
       },
-    })
+    });
 
-    console.log('Books index structure created successfully')
-
-    const totalBooks = await countBooks()
-    console.log(`Total books in DB: ${totalBooks}`)
-
-    let totalIndexed = 0
-    let skip = 0
+    console.log("Books index structure created successfully");
+    const totalBooks = await countBooks();
+    let totalIndexed = 0;
+    let skip = 0;
     while (true) {
-      const books = await getBooksBatch(skip, BATCH_SIZE)
-      if (books.length === 0) break
+      const books = await getBooksBatch(skip, BATCH_SIZE);
+      if (books.length === 0) break;
 
       await processBatch(books, booksIndex, (doc) => {
-        const suggestInput = [doc.title, doc.authors?.name].filter((item) => item)
+        const suggestInput = [doc.title, doc.authors?.name].filter(
+          (item) => item
+        );
         return {
           ...doc,
           suggest: suggestInput,
-        }
-      })
-      totalIndexed += books.length
-      skip += BATCH_SIZE
-      console.log(`Progress: ${totalIndexed}/${totalBooks}`)
+        };
+      });
+      totalIndexed += books.length;
+      skip += BATCH_SIZE;
+      console.log(`Progress: ${totalIndexed}/${totalBooks}`);
     }
 
-    return res.status(200).json({
-      message: 'Books index created and populated successfully',
-      index: booksIndex,
-      documentsIndexed: totalIndexed,
-      totalInDB: totalBooks,
-    })
+    return sendResponse(
+      res,
+      200,
+      "success",
+      {
+        index: booksIndex,
+        documentsIndexed: totalIndexed,
+        totalInDB: totalBooks,
+      }
+    );
   } catch (error: any) {
-    console.error('Error creating books index:', error)
-    return res.status(500).json({
-      error: 'Failed to create books index',
-      message: error.message,
-    })
+    console.error("Error creating books index:", error);
+    return sendResponse(
+      res,
+      500,
+      "error",
+      error.message
+    );
   }
-}
+};
 
-export { createBookCopiesIndex, createBooksIndex }
+export { createBookCopiesIndex, createBooksIndex };
+

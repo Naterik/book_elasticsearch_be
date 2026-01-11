@@ -273,7 +273,6 @@ const getBookCopiesBatch = async (skip: number, take: number) => {
 const countBookCopies = async () => {
   return await prisma.bookcopy.count();
 };
-
 export {
   getBookCopies,
   createBookCopy,

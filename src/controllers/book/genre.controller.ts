@@ -7,6 +7,7 @@ import {
   createGenre,
   updateGenre,
   performFullGenreCleanup,
+  getGenreByIdService,
 } from "services/book/genre.service";
 import { Genre, TGenre } from "validation/genre.schema";
 import { sendResponse } from "src/utils";
@@ -31,6 +32,21 @@ const getAllGenre = async (req: Request, res: Response) => {
     return sendResponse(res, 200, "success", result);
   } catch (err: any) {
     return sendResponse(res, 400, "error", err.message);
+  }
+};
+
+const getGenreById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await getGenreByIdService(+id);
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message
+    );
   }
 };
 
@@ -87,6 +103,7 @@ const cleanupGenresController = async (req: Request, res: Response) => {
 
 export {
   getAllGenre,
+  getGenreById,
   postGenre,
   putGenre,
   deleteGenre,

@@ -6,6 +6,7 @@ import {
   getAllAuthors,
   createAuthor,
   updateAuthor,
+  getAuthorByIdService,
 } from "services/book/author.service";
 import { Author, TAuthor } from "validation/author.schema";
 import { sendResponse } from "src/utils";
@@ -21,6 +22,23 @@ const getAllAuthor = async (req: Request, res: Response) => {
     return sendResponse(res, 200, "success", result);
   } catch (err: any) {
     return sendResponse(res, 400, "error", err.message);
+  }
+};
+
+
+
+const getAuthorById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await getAuthorByIdService(+id);
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message
+    );
   }
 };
 
@@ -85,5 +103,12 @@ const postManyAuthors = async (req: Request, res: Response) => {
   }
 };
 
-export { getAllAuthor, postAuthor, putAuthor, deleteAuthor, postManyAuthors };
+export {
+  getAllAuthor,
+  postAuthor,
+  putAuthor,
+  deleteAuthor,
+  postManyAuthors,
+  getAuthorById,
+};
 

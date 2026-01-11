@@ -1,9 +1,9 @@
 import { fetchAccount } from 'controllers/auth.controller';
-import { deleteAuthor, getAllAuthor, postAuthor, postManyAuthors, putAuthor } from 'controllers/book/author.controller';
+import { deleteAuthor, getAllAuthor, getAuthorById, postAuthor, postManyAuthors, putAuthor } from 'controllers/book/author.controller';
 import { deleteBookCopy, generateCopiesAll, getAllBookCopy, postBookCopy, putBookCopy } from 'controllers/book/book-copy.controller';
 import { deleteBook, getRecommendedBooks, postBook, putBook } from 'controllers/book/book.controller';
-import { cleanupGenresController, deleteGenre, getAllGenre, getAllGenreDisplay, postGenre, putGenre } from 'controllers/book/genre.controller';
-import { deletePublisher, getAllPublisher, postPublisher, putPublisher } from 'controllers/book/publisher.controller';
+import { cleanupGenresController, deleteGenre, getAllGenre, getAllGenreDisplay, getGenreById, postGenre, putGenre } from 'controllers/book/genre.controller';
+import { deletePublisher, getAllPublisher, getPublisherById, postPublisher, putPublisher } from 'controllers/book/publisher.controller';
 import { deleteFined, getAllFined, getFinedByUserId, postFined, putFined } from 'controllers/fine.controller';
 import { createAuthorFromOpenLibrary } from 'controllers/import/import.authors.controller';
 import { autoImportBooksFromGenres, autoImportBooksFromGenresList, createBooksFromOpenLibrary } from 'controllers/import/import.controller';
@@ -12,8 +12,9 @@ import {
   deleteLoan,
   getAllLoans,
   getCheckBookIsLoan,
+  getCurrentLoanById,
+  getCurrentLoanByUserId,
   getLoanReturnById,
-  getOnLoanById,
   renewalLoans,
   returnBookApprove,
   seedOverdueLoan,
@@ -126,8 +127,9 @@ privateRouter.post('/users/fine/update-status', paymentUpdateStatusForFine);
 privateRouter.get('/loans', getAllLoans);
 privateRouter.post('/loans', createLoans);
 privateRouter.put('/loans/renewal', renewalLoans);
-privateRouter.get('/loans/:id', getOnLoanById);
+privateRouter.get('/loans/:id', getCurrentLoanById);
 privateRouter.get('/loans/returned/:id', getLoanReturnById);
+privateRouter.get('/loans/user/:id', getCurrentLoanByUserId);
 privateRouter.put('/loans', updateLoan);
 privateRouter.delete('/loans/:id', deleteLoan);
 privateRouter.put('/loans/return-book', returnBookApprove);
@@ -157,6 +159,9 @@ privateRouter.post('/notifications/cleanup', cleanupNotifications);
 privateRouter.delete('/payments/:id', deletePayment);
 privateRouter.get('/payments', getAllPayments);
 privateRouter.get('/payments/:id', getPaymentById);
+privateRouter.get('/authors/:id', getAuthorById);
+privateRouter.get('/publishers/:id', getPublisherById);
+privateRouter.get('/genres/:id', getGenreById);
 
 privateRouter.get('/book-copies', getAllBookCopy);
 privateRouter.post('/book-copies', postBookCopy);

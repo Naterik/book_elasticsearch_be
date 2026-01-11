@@ -4,6 +4,7 @@ import {
   getAllPublishers,
   createPublisher,
   updatePublisher,
+  getPublisherByIdService,
 } from "services/book/publisher.service";
 import { Publisher, TPublisher } from "validation/publisher.schema";
 import { fromError } from "zod-validation-error";
@@ -25,6 +26,23 @@ const getAllPublisher = async (req: Request, res: Response) => {
     );
   } catch (err: any) {
     return sendResponse(res, 400, "error", err.message);
+  }
+};
+
+
+
+const getPublisherById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await getPublisherByIdService(+id);
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(
+      res,
+      400,
+      "error",
+      fromError(err).toString() || err.message
+    );
   }
 };
 
@@ -83,5 +101,11 @@ const deletePublisher = async (req: Request, res: Response) => {
   }
 };
 
-export { getAllPublisher, postPublisher, putPublisher, deletePublisher };
+export {
+  getAllPublisher,
+  postPublisher,
+  putPublisher,
+  deletePublisher,
+  getPublisherById
+};
 

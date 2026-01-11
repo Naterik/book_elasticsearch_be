@@ -3,13 +3,14 @@ import { prisma } from "configs/client";
 import {
   createLoanService,
   getAllLoansService,
-  getLoanById,
   getLoanReturnByIdService,
   renewalLoan,
   updateLoanService,
   deleteLoanService,
   approveReturnBook,
   processOverdueLoans,
+  getLoanByUserId,
+  getLoanById,
 } from "services/loan.service";
 import { sendResponse } from "src/utils";
 
@@ -44,7 +45,17 @@ const renewalLoans = async (req: Request, res: Response) => {
   }
 };
 
-const getOnLoanById = async (req: Request, res: Response) => {
+const getCurrentLoanByUserId = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await getLoanByUserId(+id);
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message);
+  }
+};
+
+const getCurrentLoanById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await getLoanById(+id);
@@ -53,6 +64,7 @@ const getOnLoanById = async (req: Request, res: Response) => {
     return sendResponse(res, 400, "error", err.message);
   }
 };
+
 const getLoanReturnById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -66,7 +78,7 @@ const getLoanReturnById = async (req: Request, res: Response) => {
 const getCheckBookIsLoan = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await getLoanById(+id);
+    const result = await getLoanByUserId(+id);
     return sendResponse(
       res,
       200,
@@ -182,7 +194,7 @@ export {
   createLoans,
   renewalLoans,
   getAllLoans,
-  getOnLoanById,
+  getCurrentLoanById,
   getLoanReturnById,
   getCheckBookIsLoan,
   updateLoan,
@@ -190,5 +202,6 @@ export {
   returnBookApprove,
   triggerOverdueCheck,
   seedOverdueLoan,
+  getCurrentLoanByUserId
 };
 

@@ -64,6 +64,15 @@ const deleteAuthorService = async (id: string) => {
   return prisma.author.delete({ where: { id: +id } });
 };
 
+const getAuthorByIdService = async (id: number) => {
+  return prisma.author.findUnique({
+    where: { id },
+    include: {
+      books: true,
+    },
+  });
+};
+
 const createMultipleAuthors = async (
   authors: { name: string; bio?: string }[]
 ) => {
@@ -80,4 +89,5 @@ export {
   updateAuthor,
   deleteAuthorService,
   createMultipleAuthors,
+  getAuthorByIdService,
 };
