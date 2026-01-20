@@ -5,6 +5,8 @@ import {
   createPublisher,
   updatePublisher,
   getPublisherByIdService,
+  getAllPublishersNoPagination,
+  performFullPublisherCleanup,
 } from "services/book/publisher.service";
 import { Publisher, TPublisher } from "validation/publisher.schema";
 import { fromError } from "zod-validation-error";
@@ -12,11 +14,11 @@ import { sendResponse } from "src/utils";
 
 const getAllPublisher = async (req: Request, res: Response) => {
   try {
-    const { page } = req.query;
+    const { page, name } = req.query;
     let currentPage: number = page ? +page : 1;
     if (currentPage <= 0) currentPage = 1;
 
-    const result = await getAllPublishers(currentPage);
+    const result = await getAllPublishers(currentPage, name as string);
 
     return sendResponse(
       res,
@@ -101,11 +103,31 @@ const deletePublisher = async (req: Request, res: Response) => {
   }
 };
 
+const getAllPublisherNoPagination = async (req: Request, res: Response) => {
+  try {
+    const result = await getAllPublishersNoPagination();
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message);
+  }
+};
+
 export {
   getAllPublisher,
   postPublisher,
   putPublisher,
   deletePublisher,
-  getPublisherById
+  getPublisherById,
+  getAllPublisherNoPagination,
+  cleanupPublishersController,
+};
+
+const cleanupPublishersController = async (req: Request, res: Response) => {
+  try {
+    const result = await performFullPublisherCleanup();
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(res, 500, "error", err.message);
+  }
 };
 

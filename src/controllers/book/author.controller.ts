@@ -7,17 +7,19 @@ import {
   createAuthor,
   updateAuthor,
   getAuthorByIdService,
+  getAllAuthorsNoPagination,
+  performFullAuthorCleanup,
 } from "services/book/author.service";
 import { Author, TAuthor } from "validation/author.schema";
 import { sendResponse } from "src/utils";
 
 const getAllAuthor = async (req: Request, res: Response) => {
   try {
-    const { page } = req.query;
+    const { page ,name} = req.query;
     let currentPage: number = page ? +page : 1;
     if (currentPage <= 0) currentPage = 1;
 
-    const result = await getAllAuthors(currentPage);
+    const result = await getAllAuthors(currentPage,name as string);
 
     return sendResponse(res, 200, "success", result);
   } catch (err: any) {
@@ -103,6 +105,15 @@ const postManyAuthors = async (req: Request, res: Response) => {
   }
 };
 
+const getAllAuthorNoPagination = async (req: Request, res: Response) => {
+  try {
+    const result = await getAllAuthorsNoPagination();
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message);
+  }
+};
+
 export {
   getAllAuthor,
   postAuthor,
@@ -110,5 +121,16 @@ export {
   deleteAuthor,
   postManyAuthors,
   getAuthorById,
+  getAllAuthorNoPagination,
+  cleanupAuthorsController,
+};
+
+const cleanupAuthorsController = async (req: Request, res: Response) => {
+  try {
+    const result = await performFullAuthorCleanup();
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(res, 500, "error", err.message);
+  }
 };
 

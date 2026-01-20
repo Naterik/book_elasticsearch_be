@@ -1,12 +1,11 @@
-import { fetchAccount } from 'controllers/auth.controller';
-import { deleteAuthor, getAllAuthor, getAuthorById, postAuthor, postManyAuthors, putAuthor } from 'controllers/book/author.controller';
+import { cleanupAuthorsController, deleteAuthor, getAllAuthor, getAllAuthorNoPagination, getAuthorById, postAuthor, postManyAuthors, putAuthor } from 'controllers/book/author.controller';
 import { deleteBookCopy, generateCopiesAll, getAllBookCopy, postBookCopy, putBookCopy } from 'controllers/book/book-copy.controller';
 import { deleteBook, getRecommendedBooks, postBook, putBook } from 'controllers/book/book.controller';
-import { cleanupGenresController, deleteGenre, getAllGenre, getAllGenreDisplay, getGenreById, postGenre, putGenre } from 'controllers/book/genre.controller';
-import { deletePublisher, getAllPublisher, getPublisherById, postPublisher, putPublisher } from 'controllers/book/publisher.controller';
+import { cleanupGenresController, deleteGenre, getAllGenre, getAllGenreDisplay, getAllGenreNoPagination, getGenreById, postGenre, putGenre } from 'controllers/book/genre.controller';
+import { cleanupPublishersController, deletePublisher, getAllPublisher, getAllPublisherNoPagination, getPublisherById, postPublisher, putPublisher } from 'controllers/book/publisher.controller';
 import { deleteFined, getAllFined, getFinedByUserId, postFined, putFined } from 'controllers/fine.controller';
-import { createAuthorFromOpenLibrary } from 'controllers/import/import.authors.controller';
-import { autoImportBooksFromGenres, autoImportBooksFromGenresList, createBooksFromOpenLibrary } from 'controllers/import/import.controller';
+import { importBooksToReachTarget } from 'controllers/import/import.controller';
+
 import {
   createLoans,
   deleteLoan,
@@ -36,15 +35,7 @@ import {
   paymentUpdateStatusForFine,
   paymentUpdateStatusUserForMember,
 } from 'controllers/payment.controller';
-import {
-  createReservation,
-  deleteReservation,
-  getAllReservations,
-  getReservationById,
-  getReservationByUserId,
-  putCancelReservationStatus,
-  updateReservation,
-} from 'controllers/reservation.controller';
+
 import {
   deleteAllUserSearches,
   deleteUserSearch,
@@ -55,25 +46,24 @@ import {
 import { createMemberCard, deleteUser, getAllUser, getUserById, postUser, putUser } from 'controllers/user.controller';
 import express from 'express';
 import fileUploadMiddleware from 'middleware/multer.middleware';
-
 import {
   getChartForBookCopiesStatus,
   getChartForLoanTrends,
   getChartForRevenue,
   getChartForSearchTerms,
-  getPendingReservations,
+
   getSummary,
   getUserWithCard,
 } from 'controllers/dashboard.controller';
 import { deleteImportedVietnameseBooks, importBooksByLanguage } from 'controllers/import/import.language.controller';
-
 import { previewDigitalBookController } from 'controllers/book/digital.controller';
 import { countStatusFromBookCopy, countYearPublishedFromBookCopy } from 'controllers/elastic/aggregation.elastic';
 import { filterElasticBookCopy } from 'controllers/elastic/filter.elastic';
-import { cleanupBookData, cleanupSpecificGenres } from 'controllers/import/cleanup.controller';
+import { cleanupBookData, cleanupBooksNoGenres, cleanupSpecificGenres } from 'controllers/import/cleanup.controller';
 import { syncDigitalBooks } from 'controllers/import/digital-sync.controller';
 import { vietnameseBooksController } from 'controllers/import/import.vietnamese.controller';
 import { postSeedData } from 'controllers/seed.controller';
+import { fetchAccount } from 'controllers/auth.controller';
 
 const privateRouter = express.Router();
 
@@ -84,7 +74,7 @@ privateRouter.get('/dashboard/chart/book-copies-status', getChartForBookCopiesSt
 privateRouter.get('/dashboard/chart/loan-trends', getChartForLoanTrends);
 privateRouter.get('/dashboard/chart/revenue', getChartForRevenue);
 privateRouter.get('/dashboard/chart/search-terms', getChartForSearchTerms);
-privateRouter.get('/dashboard/pending-reservations', getPendingReservations);
+
 privateRouter.get('/dashboard/user-with-card', getUserWithCard);
 
 privateRouter.get('/users', getAllUser);
@@ -95,23 +85,30 @@ privateRouter.delete('/users/:id', deleteUser);
 privateRouter.get('/users/check-loan/:id', getCheckBookIsLoan);
 
 privateRouter.get('/authors', getAllAuthor);
+privateRouter.get('/authors/cleanup', cleanupAuthorsController);
+privateRouter.get('/authors/all', getAllAuthorNoPagination);
 privateRouter.post('/authors', postAuthor);
 privateRouter.post('/authors/bulk', postManyAuthors);
 privateRouter.put('/authors', putAuthor);
 privateRouter.delete('/authors/:id', deleteAuthor);
+privateRouter.get('/authors/:id', getAuthorById);
 
 privateRouter.get('/publishers', getAllPublisher);
+privateRouter.get('/publishers/cleanup', cleanupPublishersController);
+privateRouter.get('/publishers/all', getAllPublisherNoPagination);
 privateRouter.post('/publishers', postPublisher);
 privateRouter.put('/publishers', putPublisher);
 privateRouter.delete('/publishers/:id', deletePublisher);
+privateRouter.get('/publishers/:id', getPublisherById);
 
 privateRouter.get('/genres', getAllGenre);
+privateRouter.get('/genres/all', getAllGenreNoPagination);
 privateRouter.post('/genres', postGenre);
 privateRouter.put('/genres', putGenre);
 privateRouter.delete('/genres/:id', deleteGenre);
 privateRouter.get('/genres/display', getAllGenreDisplay);
-
 privateRouter.get('/genres/cleanup', cleanupGenresController);
+privateRouter.get('/genres/:id', getGenreById);
 
 privateRouter.get('/books/recommend/:id', getRecommendedBooks);
 privateRouter.post('/books', fileUploadMiddleware('image', 'books'), postBook);
@@ -142,14 +139,6 @@ privateRouter.post('/fines', postFined);
 privateRouter.put('/fines', putFined);
 privateRouter.delete('/fines/:id', deleteFined);
 
-privateRouter.post('/reservations', createReservation);
-privateRouter.get('/reservations', getAllReservations);
-privateRouter.get('/reservations/:id', getReservationById);
-privateRouter.get('/reservations/users/:id', getReservationByUserId);
-privateRouter.put('/reservations/:id', putCancelReservationStatus);
-privateRouter.put('/reservations', updateReservation);
-privateRouter.delete('/reservations/:id', deleteReservation);
-
 privateRouter.get('/notifications/:userId', getNotificationsByUserId);
 privateRouter.get('/notifications/unread/:userId', getUnreadNotifications);
 privateRouter.put('/notifications/:userId', putSingleNotification);
@@ -159,9 +148,6 @@ privateRouter.post('/notifications/cleanup', cleanupNotifications);
 privateRouter.delete('/payments/:id', deletePayment);
 privateRouter.get('/payments', getAllPayments);
 privateRouter.get('/payments/:id', getPaymentById);
-privateRouter.get('/authors/:id', getAuthorById);
-privateRouter.get('/publishers/:id', getPublisherById);
-privateRouter.get('/genres/:id', getGenreById);
 
 privateRouter.get('/book-copies', getAllBookCopy);
 privateRouter.post('/book-copies', postBookCopy);
@@ -177,21 +163,23 @@ privateRouter.post('/history-searches/recent', postUserRecentSearch);
 privateRouter.post('/history-searches/merge', postMergeUserRecentSearches);
 privateRouter.delete('/history-searches/:searchId', deleteUserSearch);
 privateRouter.delete('/history-searches', deleteAllUserSearches);
-
-privateRouter.get('/digitals/preview/:isbn', previewDigitalBookController);
 //openLibrary
-privateRouter.post('/authors/openlibrary', createAuthorFromOpenLibrary);
-privateRouter.post('/books/open', createBooksFromOpenLibrary);
-privateRouter.post('/books/auto-import/genres', autoImportBooksFromGenres);
-privateRouter.post('/books/auto-import/genres-list', autoImportBooksFromGenresList);
+
+privateRouter.post('/books/auto-import/10k', importBooksToReachTarget);
 
 privateRouter.post('/books/import-by-language', importBooksByLanguage);
 privateRouter.post('/books/delete-by-language', deleteImportedVietnameseBooks);
 
 privateRouter.post('/books/vietnamese', vietnameseBooksController);
 privateRouter.post('/books/cleanup', cleanupBookData);
+privateRouter.post('/books/cleanup-no-genres', cleanupBooksNoGenres);
 privateRouter.post('/books/cleanup-specific-genres', cleanupSpecificGenres);
 privateRouter.post('/books/sync-digital', syncDigitalBooks);
+
+// Inventory Management
+import { checkInventoryConsistency, syncInventory } from 'controllers/inventory.controller';
+privateRouter.get('/inventory/check', checkInventoryConsistency);
+privateRouter.post('/inventory/sync', syncInventory);
 
 privateRouter.post('/seed/loans', postSeedData);
 

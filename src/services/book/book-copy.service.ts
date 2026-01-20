@@ -38,6 +38,15 @@ const createBookCopy = async (
   bookId: number,
   status: string
 ) => {
+  // 1. Validation: Check if copyNumber already exists (avoid duplicate barcodes)
+  const existingCopy = await prisma.bookcopy.findFirst({
+    where: { copyNumber: copyNumber }
+  });
+
+  if (existingCopy) {
+    throw new Error(`Copy number '${copyNumber}' already exists. Please check the barcode.`);
+  }
+
   const result = await prisma.bookcopy.create({
     data: {
       year_published,

@@ -9,6 +9,7 @@ const getAllUsers = async (page: number) => {
   const result = await prisma.user.findMany({
     skip: skip,
     take: pageSize,
+    orderBy: { createdAt: "desc" },
     include: { role: { select: { name: true } } },
   });
   return {

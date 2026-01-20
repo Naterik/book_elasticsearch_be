@@ -50,58 +50,25 @@ const createLoanService = async (
       );
     }
 
-    // Ưu tiên 1: Tìm cuốn sách đang được giữ (ON_HOLD) cho CHÍNH user này
-    let targetCopy = await tx.bookcopy.findFirst({
-      where: {
-        bookId,
-        status: "ON_HOLD",
-        heldByUserId: userId,
-        holdExpiryDate: { gte: now }, // Phải còn hạn giữ sách
-      },
+    // Find any available copy
+    const targetCopy = await tx.bookcopy.findFirst({
+        where: { bookId, status: "AVAILABLE" },
     });
 
-    let isFromReservation = true;
-
-    // Ưu tiên 2: Nếu không có sách giữ riêng, tìm cuốn AVAILABLE bất kỳ
-    if (!targetCopy) {
-      isFromReservation = false;
-      targetCopy = await tx.bookcopy.findFirst({
-        where: { bookId, status: "AVAILABLE" },
-      });
-
-      //Nếu tìm thấy sách Available, phải check xem có ai đang xếp hàng đợi không?
-      if (targetCopy) {
-        const pendingReservations = await tx.reservation.count({
-          where: { bookId, status: { in: ["PENDING", "NOTIFIED"] } },
-        });
-
-        // Nếu có người đang đợi mà sách lại Available (có thể do lỗi quy trình trả sách chưa gán hold),
-        // ta nên chặn hoặc cảnh báo. Ở đây chọn cách chặn để bảo vệ quyền lợi người đặt trước.
-        if (pendingReservations > 0) {
-          throw new Error(
-            "This book has pending reservations. Staff needs to process it for the queue."
-          );
-        }
-      }
-    }
-
-    // Nếu vẫn không tìm thấy copy nào
     if (!targetCopy) {
       throw new Error(
-        "No copies available directly or held for you. Please make a reservation."
+        "No copies available for loan."
       );
     }
 
-    // Dùng updateMany với where clause chi tiết để đảm bảo trạng thái không bị đổi bởi request khác giữa chừng
+    // Update copy status
     const updateCopyResult = await tx.bookcopy.updateMany({
       where: {
         id: targetCopy.id,
-        status: targetCopy.status, // status phải y nguyên như lúc find
+        status: "AVAILABLE",
       },
       data: {
         status: "ON_LOAN",
-        heldByUserId: null, // Xóa người giữ
-        holdExpiryDate: null, // Xóa hạn giữ
       },
     });
 
@@ -110,7 +77,8 @@ const createLoanService = async (
         "System conflict: The book copy was taken by someone else just now. Please try again."
       );
     }
-    // 4. Tạo bản ghi Loan
+
+    // Create Loan
     const loan = await tx.loan.create({
       data: {
         userId,
@@ -121,25 +89,12 @@ const createLoanService = async (
       },
     });
 
-    // 5. Cập nhật số lượng đã mượn
+    // Update borrowed count
     await tx.book.update({
       where: { id: bookId },
       data: { borrowed: { increment: 1 } },
     });
 
-    // 6. Xử lý đóng Reservation (Nếu mượn từ nguồn ON_HOLD)
-    if (isFromReservation) {
-      // Tìm reservation tương ứng và đóng lại
-      const reservation = await tx.reservation.findFirst({
-        where: { userId, bookId, status: "NOTIFIED" },
-      });
-      if (reservation) {
-        await tx.reservation.update({
-          where: { id: reservation.id },
-          data: { status: "COMPLETED" },
-        });
-      }
-    }
     await tx.notification.create({
       data: {
         userId,
@@ -183,17 +138,7 @@ const renewalLoan = async (loanId: number, userId: number) => {
       },
     });
     if (!checkLoan) throw new Error("User doesn't have any loan book");
-    const pendingReservations = await tx.reservation.count({
-      where: {
-        bookId: checkLoan.bookCopy.bookId,
-        status: { in: ["PENDING", "NOTIFIED"] },
-        userId: { not: userId },
-      },
-    });
-
-    if (pendingReservations > 0) {
-      throw new Error("Cannot renew. Other users are waiting for this book.");
-    }
+    
     if (checkLoan.renewalCount >= 2) throw new Error("Max renewal time");
 
     let newDueDate = checkLoan.dueDate;
@@ -436,51 +381,11 @@ const approveReturnBook = async (loanId: number, userId: number) => {
         borrowed: { decrement: 1 },
       },
     });
-    let heldForUser = null;
-    let holdExpires: Date | null = null;
-
-    if (newLoanStatus !== "LOST") {
-      const nextReservation = await tx.reservation.findFirst({
-        where: {
-          bookId: loan.bookCopy.bookId,
-          status: "PENDING",
-        },
-        orderBy: {
-          requestDate: "asc",
-        },
-      });
-
-      if (nextReservation) {
-        newBookCopyStatus = "ON_HOLD";
-        heldForUser = nextReservation.userId;
-        holdExpires = new Date();
-        holdExpires.setDate(holdExpires.getDate() + 3);
-
-        await tx.reservation.update({
-          where: { id: nextReservation.id },
-          data: { status: "NOTIFIED" },
-        });
-
-        await tx.notification.create({
-          data: {
-            userId: nextReservation.userId,
-            type: "RESERVATION_READY",
-            content: `This book "${
-              loan.bookCopy.books.title
-            }" is now available. Please pick it up before ${holdExpires.toLocaleDateString(
-              "vi-VN"
-            )}.`,
-            sentAt: new Date(),
-          },
-        });
-      }
-    }
-
+    
     await tx.bookcopy.update({
       where: { id: loan.bookCopy.id },
       data: {
         status: newBookCopyStatus,
-        heldByUserId: null,
       },
     });
 

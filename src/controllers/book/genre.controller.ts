@@ -8,6 +8,7 @@ import {
   updateGenre,
   performFullGenreCleanup,
   getGenreByIdService,
+  getAllGenresNoPagination,
 } from "services/book/genre.service";
 import { Genre, TGenre } from "validation/genre.schema";
 import { sendResponse } from "src/utils";
@@ -101,6 +102,15 @@ const cleanupGenresController = async (req: Request, res: Response) => {
   }
 };
 
+const getAllGenreNoPagination = async (req: Request, res: Response) => {
+  try {
+    const result = await getAllGenresNoPagination();
+    return sendResponse(res, 200, "success", result);
+  } catch (err: any) {
+    return sendResponse(res, 400, "error", err.message);
+  }
+};
+
 export {
   getAllGenre,
   getGenreById,
@@ -109,5 +119,6 @@ export {
   deleteGenre,
   getAllGenreDisplay,
   cleanupGenresController,
+  getAllGenreNoPagination,
 };
 

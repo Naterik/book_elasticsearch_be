@@ -29,6 +29,8 @@ import {
 } from "controllers/elastic/aggregation.elastic";
 import { getBookCopyStatusByBookId } from "controllers/book/book-copy.controller";
 import { suggestElastic } from "controllers/elastic/suggest.elastic";
+import { searchBooksInstant } from "controllers/elastic/search.controller";
+import { previewDigitalBookController } from "controllers/book/digital.controller";
 
 const publicRouter = express.Router();
 
@@ -46,15 +48,17 @@ publicRouter.get("/books/select-name", getAllBookForSelect);
 publicRouter.get("/books/:id", getBookById);
 
 publicRouter.get("/genres/display", getAllGenreDisplay);
-
+publicRouter.get('/digitals/preview/:isbn', previewDigitalBookController);
 publicRouter.get("/search/trending", getTrendingSearches);
-
 publicRouter.get("/filter/elastic", filterElastic);
 publicRouter.get("/languages/elastic", countLanguage);
 publicRouter.get("/genres/elastic", countGenres);
 publicRouter.get("/index/elastic/book-copies", createBookCopiesIndex);
 publicRouter.get("/index/elastic/books", createBooksIndex);
 publicRouter.get("/suggest/elastic", suggestElastic);
+publicRouter.get("/search/instant", searchBooksInstant);
+
+// Existing oauth routes...
 publicRouter.get(
   "/auth/google",
   passport.authenticate("google", { scope: ["profile", "email"] })

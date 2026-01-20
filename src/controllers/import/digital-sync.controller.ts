@@ -2,46 +2,7 @@
 import { prisma } from "configs/client";
 import { PreviewStatus } from "@prisma/client";
 import { sendResponse } from "src/utils";
-
-// ================= HELPERS: FETCHING =================
-// Simplified version of getJSON from import.controller.ts
-async function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-const RETRIES = 3;
-const RETRY_BASE_MS = 1000;
-
-async function getJSON<T = any>(url: string, attempt = 1): Promise<T> {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
-    const r = await fetch(url, {
-      headers: { "User-Agent": "LMS-Importer/1.0", Accept: "application/json" },
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    if (!r.ok) {
-      if ((r.status === 429 || r.status >= 500) && attempt < RETRIES) {
-        const backoff = RETRY_BASE_MS * Math.pow(2, attempt - 1);
-        await sleep(backoff);
-        return getJSON<T>(url, attempt + 1);
-      }
-      // Return null or empty object explicitly if not found or other non-retriable error
-      // to avoid crashing the batch
-      throw new Error(`OpenLibrary Status ${r.status}`);
-    }
-    return (await r.json()) as T;
-  } catch (err) {
-    if (attempt < RETRIES) {
-      await sleep(RETRY_BASE_MS);
-      return getJSON<T>(url, attempt + 1);
-    }
-    throw err;
-  }
-}
+import { getJSON, sleep } from "./import.helpers";
 
 /**
  * Syncs digital preview status for all books using OpenLibrary API.
@@ -57,7 +18,7 @@ async function getJSON<T = any>(url: string, attempt = 1): Promise<T> {
  */
 export const syncDigitalBooks = async (req: Request, res: Response) => {
   try {
-    const BATCH_SIZE = 20; // Lower batch size to be safe with fetch/concurrency
+    const BATCH_SIZE = 20; // safe batch size
     
     // 1. Get all ISBNs
     const books = await prisma.book.findMany({
@@ -66,9 +27,7 @@ export const syncDigitalBooks = async (req: Request, res: Response) => {
         isbn: true,
       },
       where: {
-        isbn: {
-          not: "",
-        },
+        isbn: { not: "" },
       },
     });
 
@@ -92,14 +51,11 @@ export const syncDigitalBooks = async (req: Request, res: Response) => {
 
             const apiUrl = `https://openlibrary.org/api/volumes/brief/isbn/${book.isbn}.json`;
             
-            // External API Call using fetch helper
+            // External API Call using helper
             let data: any = {};
             try {
                data = await getJSON(apiUrl);
             } catch (fetchErr) {
-               // If fetch fails (after retries), we treat it as no data found for this book
-               // but we don't necessarily want to count it as a hard error for the whole process
-               // unless status is critical. For now, logging and skipping.
                console.warn(`[DigitalSync] Failed to fetch for ISBN ${book.isbn}`);
                return; 
             }
@@ -121,7 +77,6 @@ export const syncDigitalBooks = async (req: Request, res: Response) => {
                   } else if (preview === "full") {
                     status = PreviewStatus.FULL;
                   } else {
-                    // "restricted" or any other value
                     status = PreviewStatus.RESTRICTED;
                   }
                 }
@@ -129,12 +84,8 @@ export const syncDigitalBooks = async (req: Request, res: Response) => {
             }
 
             // Database Update (Upsert)
-            // Note: updatedAt is automatically handled by @updatedAt in prisma if defined, 
-            // but we can explicitly set it to be sure or if req allows.
             await prisma.digitalBook.upsert({
-              where: {
-                bookId: book.id,
-              },
+              where: { bookId: book.id },
               create: {
                 bookId: book.id,
                 status: status,
@@ -154,10 +105,7 @@ export const syncDigitalBooks = async (req: Request, res: Response) => {
         }
       });
 
-      // Wait for the current batch to finish
       await Promise.all(batchPromises);
-      
-      // Optional: Add a small delay between batches to be nice to the external API
       await sleep(200);
     }
 
@@ -172,4 +120,3 @@ export const syncDigitalBooks = async (req: Request, res: Response) => {
     return sendResponse(res, 500, "error", error.message);
   }
 };
-

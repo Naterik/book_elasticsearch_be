@@ -61,7 +61,7 @@ model Notification {
   id        Int      @id @default(autoincrement())
   sentAt    DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
-  type      String   @db.VarChar(255) // LOAN, RESERVATION, FINE, PAYMENT, SYSTEM
+  type      String   @db.VarChar(255) // LOAN, FINE, PAYMENT, SYSTEM
   title     String   @default("Notification") @db.VarChar(255)
   content   String   @db.Text
   isRead    Boolean  @default(false)
@@ -95,7 +95,6 @@ model User {
   role   Role @relation(fields: [roleId], references: [id])
 
   loans         Loan[]
-  reservations  Reservation[]
   notifications Notification[]
   fines         Fine[]
   payments      Payment[]
@@ -121,10 +120,7 @@ model Bookcopy {
   id             Int    @id @default(autoincrement())
   year_published Int    @db.Year
   copyNumber     String @db.VarChar(25)
-  status         String @default("AVAILABLE") @db.VarChar(25) // AVAILABLE, ON_LOAN, ON_HOLD, LOST
-
-  heldByUserId   Int?
-  holdExpiryDate DateTime?
+  status         String @default("AVAILABLE") @db.VarChar(25) // AVAILABLE, ON_LOAN, LOST
 
   books  Book @relation(fields: [bookId], references: [id])
   bookId Int
@@ -150,20 +146,6 @@ model Loan {
   fine Fine?
 
   @@map("loans")
-}
-
-model Reservation {
-  id          Int       @id @default(autoincrement())
-  requestDate DateTime?
-  status      String    @db.VarChar(255) // PENDING, NOTIFIED, COMPLETED, CANCELLED
-
-  book   Book @relation(fields: [bookId], references: [id])
-  bookId Int
-
-  user   User @relation(fields: [userId], references: [id])
-  userId Int
-
-  @@map("reservations")
 }
 
 model Fine {
@@ -221,7 +203,6 @@ model Book {
 
   bookCopies   Bookcopy[]
   genres       BooksOnGenres[]
-  reservations Reservation[]
   digitalBook  DigitalBook?
 
   @@map("books")
