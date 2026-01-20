@@ -620,6 +620,12 @@ const performFullGenreCleanup = async () => {
   }
 };
 
+const getAllGenresNoPagination = async () => {
+  return prisma.genre.findMany({
+    orderBy: { name: "asc" },
+  });
+};
+
 export {
   getAllGenres,
   checkGenreNameExists,
@@ -629,4 +635,5 @@ export {
   getGenresForDisplay,
   performFullGenreCleanup,
   getGenreByIdService,
+  getAllGenresNoPagination,
 };

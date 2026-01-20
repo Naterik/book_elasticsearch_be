@@ -12,14 +12,15 @@ const suggestElastic = async (req: Request, res: Response) => {
 
     if (!prefix) return sendResponse(res, 200, "success", []);
 
-    // Strategy: Æ¯u tiÃªn exact match vÃ  prefix match cao nháº¥t
+    // Strategy: Option 2 (Strict Phrase Prefix) - Cleaner & "Google-like"
+    // Removes loose fuzzy matching that causes "dc" -> "Sandman" issues.
     const results: any = await client.search({
       index,
       size: limit,
       query: {
         bool: {
           should: [
-            // 1. HIGHEST: Exact title match
+            // 1. HIGHEST: Exact title match (Case Insensitive via Normalizer if set, or Keyword)
             {
               term: {
                 "title.keyword": {
@@ -28,44 +29,27 @@ const suggestElastic = async (req: Request, res: Response) => {
                 },
               },
             },
-            // 2. Very High: Exact phrase match
+            // 2. High: Starts strictly with this Prefix (e.g. "Har" -> "Harry...")
             {
-              match_phrase: {
-                title: {
-                  query: prefix,
-                  boost: 500,
-                },
-              },
+              prefix: {
+                "title.keyword": {
+                  value: prefix,
+                  boost: 500
+                }
+              }
             },
-            // 3. High: Title starts with prefix
+            // 3. Medium: Phrase Prefix (Finds "Potter" in "Harry Potter", but respects word boundaries)
             {
               match_phrase_prefix: {
                 title: {
                   query: prefix,
                   boost: 100,
-                },
-              },
-            },
-            // 4. Medium: Prefix query
-            {
-              prefix: {
-                "title.prefix": {
-                  value: prefix.toLowerCase(),
-                  boost: 50,
-                },
-              },
-            },
-            // 5. Lower: Author name starts with prefix
-            {
-              match_phrase_prefix: {
-                "authors.name": {
-                  query: prefix,
-                  boost: 20,
+                  slop: 5 // Allows few words between, but keeps order
                 },
               },
             },
           ],
-          minimum_should_match: 1,
+          minimum_should_match: 1, // Must match at least one of the above strictly
         },
       },
       _source: ["title", "authors.name", "id"],
@@ -78,6 +62,7 @@ const suggestElastic = async (req: Request, res: Response) => {
       text: hit._source.title,
       score: hit._score,
       author: hit._source.authors?.name || "",
+      id: hit._source.id, // Include ID for Absolute Search
     }));
 
     if (suggestions.length === 0) {

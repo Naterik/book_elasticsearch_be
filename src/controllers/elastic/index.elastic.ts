@@ -1,4 +1,5 @@
 ﻿import { client } from "configs/elastic";
+import { BOOK_INDEX_SETTINGS, BOOK_INDEX_MAPPING, BOOK_COPY_INDEX_MAPPING } from "src/config/elastic.schema";
 import { Request, Response } from "express";
 import {
   countBookCopies,
@@ -100,164 +101,26 @@ const processBatch = async (
 };
 const createBookCopiesIndex = async (req: Request, res: Response) => {
   try {
-    console.log("Creating book_copies index with ngram tokenizer...");
+    console.log("Creating book_copies index with smart search settings...");
 
     const exists = await client.indices.exists({ index: bookCopiesIndex });
     const totalBookCopies = await countBookCopies();
     console.log(`Total book copies in DB: ${totalBookCopies}`);
 
     if (exists) {
-      console.log(
-        `Index ${bookCopiesIndex} already exists, keeping existing data...`
-      );
-
-      let totalIndexed = 0;
-      let skip = 0;
-      while (true) {
-        const bookCopies = await getBookCopiesBatch(skip, BATCH_SIZE);
-        if (bookCopies.length === 0) break;
-
-        await processBatch(bookCopies, bookCopiesIndex);
-        totalIndexed += bookCopies.length;
-        skip += BATCH_SIZE;
-        console.log(`Progress: ${totalIndexed}/${totalBookCopies}`);
-      }
-
-      return sendResponse(
-        res,
-        200,
-        "success",
-        {
-          index: bookCopiesIndex,
-          documentsUpdated: totalIndexed,
-          totalInDB: totalBookCopies,
-        }
-      );
+        // If re-indexing strategy is DELETE -> CREATE, uncomment delete line. 
+        // For now, if it exists, clear it to apply new settings (Development mode)
+        // OR: Just return existing if you don't want to wipe.
+        // Assuming user wants to apply new schema:
+        console.log(`Index ${bookCopiesIndex} exists. Deleting to apply new Smart Search schema...`);
+        await client.indices.delete({ index: bookCopiesIndex });
     }
 
-    // Create new index with ngram settings
+    // Create new index with SHARED settings from Books (Edge N-gram)
     await client.indices.create({
       index: bookCopiesIndex,
-      settings: {
-        number_of_shards: 1,
-        number_of_replicas: 0,
-        "index.max_ngram_diff": 50,
-        analysis: {
-          analyzer: {
-            ngram_analyzer: {
-              type: "custom",
-              tokenizer: "ngram_tokenizer",
-              filter: ["lowercase", "asciifolding", "stop"],
-            },
-            standard_analyzer: {
-              type: "custom",
-              tokenizer: "standard",
-              filter: ["lowercase", "asciifolding"],
-            },
-          },
-          tokenizer: {
-            ngram_tokenizer: {
-              type: "ngram",
-              min_gram: 2,
-              max_gram: 20,
-              token_chars: ["letter", "digit", "punctuation", "symbol"],
-            },
-          },
-        },
-      },
-      mappings: {
-        properties: {
-          id: { type: "long" },
-          bookId: { type: "long" },
-          barcode: { type: "keyword" },
-          copyNumber: {
-            type: "text",
-            fields: {
-              keyword: { type: "keyword", ignore_above: 256 },
-            },
-            analyzer: "ngram_analyzer",
-            search_analyzer: "standard_analyzer",
-          },
-          status: { type: "keyword" },
-          shelf: { type: "keyword" },
-          location: {
-            type: "text",
-            fields: {
-              keyword: { type: "keyword", ignore_above: 256 },
-            },
-            analyzer: "ngram_analyzer",
-            search_analyzer: "standard_analyzer",
-          },
-          branch: { type: "keyword" },
-          isbn: { type: "keyword" },
-          acquiredAt: { type: "date" },
-          year_published: { type: "long" },
-          books: {
-            properties: {
-              id: { type: "long" },
-              title: {
-                type: "text",
-                fields: {
-                  keyword: { type: "keyword", ignore_above: 256 },
-                },
-                analyzer: "ngram_analyzer",
-                search_analyzer: "standard_analyzer",
-              },
-              isbn: {
-                type: "text",
-                fields: {
-                  keyword: { type: "keyword", ignore_above: 256 },
-                },
-              },
-              shortDesc: {
-                type: "text",
-                fields: {
-                  keyword: {
-                    type: "keyword",
-                    ignore_above: 256,
-                  },
-                },
-              },
-              detailDesc: {
-                type: "text",
-                fields: {
-                  keyword: {
-                    type: "keyword",
-                    ignore_above: 256,
-                  },
-                },
-              },
-              price: { type: "long" },
-              quantity: { type: "long" },
-              borrowed: { type: "long" },
-              pages: { type: "long" },
-              publishDate: { type: "date" },
-              language: {
-                type: "text",
-                fields: {
-                  keyword: { type: "keyword", ignore_above: 256 },
-                },
-              },
-              image: {
-                type: "text",
-                fields: {
-                  keyword: { type: "keyword", ignore_above: 256 },
-                },
-              },
-              authorId: { type: "long" },
-              publisherId: { type: "long" },
-            },
-          },
-          author: {
-            type: "text",
-            fields: {
-              keyword: { type: "keyword", ignore_above: 256 },
-            },
-            analyzer: "ngram_analyzer",
-            search_analyzer: "standard_analyzer",
-          },
-        },
-      },
+      settings: BOOK_INDEX_SETTINGS as any, // Reuse the same analyzer settings!
+      mappings: BOOK_COPY_INDEX_MAPPING as any,
     });
 
     console.log("Book copies index created successfully");
@@ -310,185 +173,8 @@ const createBooksIndex = async (req: Request, res: Response) => {
     await client.indices.create({
       index: booksIndex,
 
-      settings: {
-        number_of_shards: 1,
-
-        number_of_replicas: 0,
-
-        "index.max_ngram_diff": 50,
-
-        analysis: {
-          analyzer: {
-            autocomplete_index: {
-              type: "custom",
-
-              tokenizer: "edge_ngram_tokenizer",
-
-              filter: ["lowercase", "asciifolding", "stop"],
-            },
-
-            autocomplete_search: {
-              type: "custom",
-
-              tokenizer: "standard",
-
-              filter: ["lowercase", "asciifolding"],
-            },
-
-            // Analyzer má»›i cho exact prefix match
-            prefix_analyzer: {
-              type: "custom",
-              tokenizer: "keyword",
-              filter: ["lowercase", "asciifolding"],
-            },
-          },
-
-          tokenizer: {
-            edge_ngram_tokenizer: {
-              type: "edge_ngram",
-
-              min_gram: 2,
-
-              max_gram: 20,
-
-              token_chars: ["letter", "digit", "punctuation"],
-            },
-          },
-        },
-      },
-
-      mappings: {
-        properties: {
-          authorId: { type: "long" },
-
-          authors: {
-            properties: {
-              name: {
-                type: "text",
-
-                analyzer: "autocomplete_index",
-
-                search_analyzer: "autocomplete_search",
-
-                fields: {
-                  keyword: { type: "keyword", ignore_above: 256 },
-                },
-              },
-            },
-          },
-
-          borrowed: { type: "long" },
-
-          detailDesc: {
-            type: "text",
-
-            fields: {
-              keyword: { type: "keyword", ignore_above: 256 },
-            },
-          },
-
-          genres: {
-            properties: {
-              genres: {
-                properties: {
-                  id: { type: "long" },
-
-                  name: {
-                    type: "text",
-
-                    analyzer: "autocomplete_index",
-
-                    search_analyzer: "autocomplete_search",
-
-                    fields: {
-                      keyword: { type: "keyword", ignore_above: 256 },
-                    },
-                  },
-                },
-              },
-            },
-          },
-
-          id: { type: "long" },
-
-          image: { type: "text" },
-
-          isbn: {
-            type: "text",
-
-            analyzer: "autocomplete_index",
-
-            search_analyzer: "autocomplete_search",
-
-            fields: {
-              keyword: { type: "keyword", ignore_above: 256 },
-            },
-          },
-
-          language: {
-            type: "keyword",
-
-            ignore_above: 256,
-          },
-
-          pages: { type: "long" },
-
-          price: { type: "long" },
-
-          publishDate: { type: "date" },
-
-          publisherId: { type: "long" },
-
-          publishers: {
-            properties: {
-              name: {
-                type: "text",
-
-                analyzer: "autocomplete_index",
-
-                search_analyzer: "autocomplete_search",
-
-                fields: {
-                  keyword: { type: "keyword", ignore_above: 256 },
-                },
-              },
-            },
-          },
-
-          quantity: { type: "long" },
-
-          shortDesc: {
-            type: "text",
-
-            fields: {
-              keyword: { type: "keyword", ignore_above: 256 },
-            },
-          },
-
-          title: {
-            type: "text",
-
-            analyzer: "autocomplete_index",
-
-            search_analyzer: "autocomplete_search",
-
-            fields: {
-              keyword: { type: "keyword", ignore_above: 256 },
-              prefix: {
-                type: "text",
-                analyzer: "prefix_analyzer",
-                search_analyzer: "prefix_analyzer",
-              },
-            },
-          },
-
-          suggest: {
-            type: "completion",
-
-            preserve_separators: true,
-          },
-        },
-      },
+      settings: BOOK_INDEX_SETTINGS as any,
+      mappings: BOOK_INDEX_MAPPING as any,
     });
 
     console.log("Books index structure created successfully");

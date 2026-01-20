@@ -20,8 +20,6 @@ const getDashboardSummary = async () => {
     previousUserWithCard,
     currentOverdueLoans,
     previousOverdueLoans,
-    currentPendingReservations,
-    previousPendingReservations,
   ] = await Promise.all([
     prisma.payment.aggregate({
       _sum: { amount: true },
@@ -76,22 +74,6 @@ const getDashboardSummary = async () => {
         },
       },
     }),
-
-    prisma.reservation.count({
-      where: {
-        status: "PENDING",
-      },
-    }),
-
-    prisma.reservation.count({
-      where: {
-        status: "PENDING",
-        requestDate: {
-          gte: previousMonth.start,
-          lte: previousMonth.end,
-        },
-      },
-    }),
   ]);
 
   const calculatePercentageChange = (
@@ -129,17 +111,6 @@ const getDashboardSummary = async () => {
         previousOverdueLoans
       ),
       trend: currentOverdueLoans >= previousOverdueLoans ? "up" : "down",
-    },
-    pendingReservations: {
-      value: currentPendingReservations,
-      change: calculatePercentageChange(
-        currentPendingReservations,
-        previousPendingReservations
-      ),
-      trend:
-        currentPendingReservations >= previousPendingReservations
-          ? "up"
-          : "down",
     },
   };
 };
@@ -219,59 +190,7 @@ const getHorizontalBarChartForSearchTerms = async () => {
   }));
 };
 
-const getListPendingReservations = async () => {
-  const pendingReservations = await prisma.reservation.findMany({
-    where: {
-      status: "PENDING",
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          fullName: true,
-          username: true,
-          avatar: true,
-        },
-      },
-      book: {
-        select: {
-          id: true,
-          title: true,
-          image: true,
-          bookCopies: {
-            where: {
-              status: "AVAILABLE",
-            },
-            select: {
-              id: true,
-              copyNumber: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: {
-      requestDate: "asc",
-    },
-  });
 
-  return pendingReservations.map((res) => ({
-    id: res.id,
-    requestDate: res.requestDate,
-    user: {
-      id: res.user.id,
-      name: res.user.fullName || res.user.username,
-      avatar: res.user.avatar,
-    },
-    book: {
-      id: res.book.id,
-      title: res.book.title,
-      image: res.book.image,
-      availableCopiesCount: res.book.bookCopies.length,
-      availableCopies: res.book.bookCopies,
-    },
-  }));
-};
 
 const getListUserWithCard = async (timeframe: Timeframe = "1m") => {
   const start = filterWithDate(timeframe);
@@ -294,6 +213,5 @@ export {
   getAreaChartForLoanTrends,
   getStackedBarChartForRevenue,
   getHorizontalBarChartForSearchTerms,
-  getListPendingReservations,
   getListUserWithCard,
 };

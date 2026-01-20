@@ -6,7 +6,7 @@ type IFilterBookInput = {
   publisherId?: string;
   search?: string;
   priceRange?: number[];
-  genres?: string;
+  genres?: string | string[];
   yearRange?: number[];
   language?: string;
   page?: number;
@@ -25,144 +25,105 @@ const filterElastic = async (req: Request, res: Response) => {
       page,
       order,
     } = req.query as IFilterBookInput;
-    let must = [];
-    let filter = [];
+    let must: any[] = [];
+    let filter: any[] = [];
     let sort = [];
 
+    // --- 1. SEARCH LOGIC (Absolute ID or Smart Text) ---
     if (search && (search as string).trim().length > 0) {
-      const searchWords = (search as string).trim().split(/\s+/);
-      const wordCount = searchWords.length;
+      // CASE 2: Smart Keyword Search (Typo Tolerance + Suggestions)
+      const rawQ = (search as string) || "";
+      const q = rawQ.replace(/\s+/g, " ").trim();
+      const isPhraseMode = rawQ.endsWith(" ");
+      const operator = isPhraseMode ? "and" : "or";
 
-      must = [
-        {
-          bool: {
-            should: [
-              // 1. HIGHEST priority: Exact match (toÃ n bá»™ title khá»›p chÃ­nh xÃ¡c)
-              {
-                term: {
-                  "title.keyword": {
-                    value: search as string,
-                    boost: 1000,
-                  },
-                },
-              },
-              // 2. Very high priority: Exact phrase match (case-insensitive)
-              {
-                match_phrase: {
-                  title: {
-                    query: search as string,
-                    boost: 500,
-                  },
-                },
-              },
-              // 3. High priority: All words must match (AND operator)
-              {
-                match: {
-                  title: {
-                    query: search as string,
-                    operator: "and",
-                    boost: 100,
-                  },
-                },
-              },
-              // 4. Medium priority: Title starts with search query
-              {
-                match_phrase_prefix: {
-                  title: {
-                    query: search as string,
-                    boost: 50,
-                  },
-                },
-              },
-              // 5. Lower priority: Author exact phrase
-              {
-                match_phrase: {
-                  "authors.name": {
-                    query: search as string,
-                    boost: 20,
-                  },
-                },
-              },
-              // 6. Lowest priority: Fuzzy match (chá»‰ khi cÃ³ > 5 tá»«)
-              ...(wordCount > 5
-                ? [
-                    {
-                      multi_match: {
-                        query: search as string,
-                        fields: ["title^2", "authors.name"],
-                        fuzziness: "1",
-                        boost: 1,
-                      },
-                    },
-                  ]
-                : []),
-            ],
-            // YÃªu cáº§u Ã­t nháº¥t 1 trong cÃ¡c Ä‘iá»u kiá»‡n trÃªn pháº£i match
-            minimum_should_match: 1,
-          },
-        },
-      ];
+      must.push({
+        bool: {
+          should: [
+            // A. Prefix Match (Highest Priority) - "Search-as-you-type" Logic
+            {
+              multi_match: {
+                query: q,
+                fields: [
+                  "title.prefix^15",   // Exact prefix is absolute king
+                  "title.keyword^20",  // Exact title match is God
+                  "title^10",          // Standard title match
+                  "authors.name^5",
+                ],
+                type: "bool_prefix",
+                operator: "and" // FORCE AND: All terms must appear (e.g. "One Punch" -> must provide both)
+              }
+            },
+            // B. Fuzzy Match (Typo Tolerance) - "Forgiveness"
+            {
+              multi_match: {
+                query: q,
+                fields: ["title.clean^3", "authors.name^2", "shortDesc"],
+                fuzziness: "AUTO",
+                prefix_length: 2,
+                operator: "and" // FORCE AND: Even with typos, all words must be present
+              }
+            }
+          ],
+          minimum_should_match: 1
+        }
+      });
+    } else {
+        // CASE 3: No Search Term (Show All)
+        must.push({ match_all: {} });
     }
 
+    // --- 2. FILTER LOGIC (Existing Facets) ---
     if (priceRange) {
-      filter = [
-        {
-          range: {
+      filter.push({
+        range: {
             price: {
-              gte: +priceRange[0],
-              lte: +priceRange[1],
+            gte: +priceRange[0],
+            lte: +priceRange[1],
             },
-          },
         },
-      ];
-    }
-    if (yearRange) {
-      filter = [
-        ...filter,
-        {
-          range: {
-            publishDate: {
-              gte: `${+yearRange[0]}-01-01`,
-              lte: `${+yearRange[1]}-12-31`,
-              format: "yyyy-MM-dd",
-            },
-          },
-        },
-      ];
-    }
-    if (language) {
-      filter = [
-        ...filter,
-        {
-          term: { language },
-        },
-      ];
-    }
-    if (publisherId) {
-      filter = [
-        ...filter,
-        {
-          term: {
-            publisherId: publisherId,
-          },
-        },
-      ];
-    }
-    if (genres) {
-      const genreNames: Array<string> = (genres as string).split(",");
-      filter = [
-        ...filter,
-        {
-          terms_set: {
-            "genres.genres.name.keyword": {
-              terms: genreNames,
-              minimum_should_match_script: { source: `${genreNames.length}` },
-            },
-          },
-        },
-      ];
+      });
     }
 
+    if (yearRange) {
+      filter.push({
+        range: {
+            publishDate: {
+            gte: `${+yearRange[0]}-01-01`,
+            lte: `${+yearRange[1]}-12-31`,
+            format: "yyyy-MM-dd",
+            },
+        },
+      });
+    }
+
+    if (language) {
+      filter.push({ term: { language } });
+    }
+
+    if (publisherId) {
+      filter.push({ term: { publisherId } });
+    }
+
+    if (genres) {
+      // Robust handling for String OR Array inputs
+      // ?genres=A,B (String) OR ?genres=A&genres=B (Array)
+      let genreNames: string[] = [];
+      
+      if (Array.isArray(genres)) {
+          genreNames = genres.map(g => String(g));
+      } else if (typeof genres === "string") {
+          genreNames = genres.split(",");
+      }
+
+      if (genreNames.length > 0) {
+          filter.push({
+            terms: { "genres.genres.name.keyword": genreNames }
+          });
+      }
+    }
+
+    // --- 3. SORTING ---
     if (order) {
       if (order === "newest") {
         sort = [{ publishDate: { order: "desc" } }];
@@ -173,18 +134,25 @@ const filterElastic = async (req: Request, res: Response) => {
       if (order === "title") {
         sort = [{ "title.keyword": { order: "asc" } }];
       }
+      if (order === "price_asc") {
+        sort = [{ price: { order: "asc" } }];
+      }
+      if (order === "price_desc") {
+        sort = [{ price: { order: "desc" } }];
+      }
     }
+
+    // --- 4. EXECUTION ---
+    const pageSize = Number(req.query.limit) || Number(process.env.ITEM_PER_PAGE) || 10;
+    let currentPage = +page ? +page : 1;
+    const skip = (currentPage - 1) * pageSize;
 
     const query = {
       bool: {
-        must: must.length > 0 ? must : [{ match_all: {} }],
-        ...(filter.length > 0 ? { filter: filter } : {}),
+        must: must,
+        filter: filter,
       },
     };
-
-    const pageSize = +process.env.ITEM_PER_PAGE;
-    let currentPage = +page ? +page : 1;
-    const skip = (currentPage - 1) * pageSize;
 
     const results: any = await client.search({
       index,
@@ -193,12 +161,20 @@ const filterElastic = async (req: Request, res: Response) => {
       query,
       sort,
       track_total_hits: true,
-      filter_path: ["hits.hits._source", "hits.hits._score", "hits.total"],
+      highlight: {
+        pre_tags: ["<em>"],
+        post_tags: ["</em>"],
+        fields: {
+          "title": {},
+          "shortDesc": {},
+          "authors.name": {}
+        }
+      },
+      filter_path: ["hits.hits._source", "hits.hits._score", "hits.hits.highlight", "hits.total"],
     });
 
-    const total: number = results.hits.total.value;
-
-    if (total === 0) {
+    // Handle Empty Results
+    if (!results.hits || !results.hits.total || results.hits.total.value === 0) {
       return sendResponse(res, 200, "success", {
         result: [],
         pagination: {
@@ -210,11 +186,14 @@ const filterElastic = async (req: Request, res: Response) => {
       });
     }
 
+    const total: number = results.hits.total.value;
     const totalPages = Math.ceil(total / pageSize);
-    const result = results.hits.hits.map((data) => {
+
+    let result = results.hits.hits.map((data: any) => {
       return {
         score: data._score,
         ...data._source,
+        highlight: data.highlight // Include highlight in filter results too!
       };
     });
 
@@ -228,6 +207,7 @@ const filterElastic = async (req: Request, res: Response) => {
       },
     });
   } catch (e: any) {
+    console.error("Filter Search Error:", e);
     return sendResponse(res, 400, "error", e.message);
   }
 };
@@ -240,48 +220,66 @@ type IFilterBookcopyInput = {
 };
 const filterElasticBookCopy = async (req: Request, res: Response) => {
   try {
-    const index_c = process.env.INDEX_BOOKCOPY;
-    const { page, search, yearPublished, status } =
-      req.query as IFilterBookcopyInput;
-    const pageSize = +process.env.ITEM_PER_PAGE;
+    const index_c = process.env.INDEX_BOOKCOPY!;
+    const { page, search, yearPublished, status } = req.query as IFilterBookcopyInput;
+    const pageSize = Number(process.env.ITEM_PER_PAGE) || 10;
+    
     let currentPage = +page ? +page : 1;
     const skip = (currentPage - 1) * pageSize;
 
-    // Build query: show all if no search, otherwise search by location
-    let must = [];
-    let filter = [];
+    // --- SMART INVENTORY SEARCH ---
+    let must: any[] = [];
+    let filter: any[] = [];
+
     if (search && search.trim().length > 0) {
-      must = [
-        {
-          multi_match: {
-            query: search,
-            fields: ["location", "books.title^2", "copyNumber"],
-          },
-        },
-      ];
+      const q = search.trim();
+      const isPhraseMode = q.endsWith(" ");
+      const operator = isPhraseMode ? "and" : "or";
+
+      must.push({
+        bool: {
+           should: [
+             // 1. BARCODE / COPY NUMBER (Absolute Priority for Inventory)
+             // Case A: Exact Match (High Boost)
+             { term: { "copyNumber.keyword": { value: q, boost: 100 } } },
+             // Case B: Prefix Match (e.g. "ABC12" finds "ABC1234") - Crucial for bar scanner
+             { prefix: { "copyNumber.keyword": { value: q, boost: 50 } } },
+             // Case C: N-gram Match (e.g. "123" finds "ABC12345")
+             { match: { "copyNumber": { query: q, boost: 20 } } },
+
+             // 2. BOOK TITLE (Contextual Logic)
+             // If not a barcode, maybe they are searching by Title?
+             {
+                multi_match: {
+                    query: q,
+                    fields: ["books.title.prefix^10", "books.title^5"],
+                    type: "bool_prefix",
+                    operator: operator // Respect user's typing flow
+                }
+             },
+             
+
+           ],
+           minimum_should_match: 1
+        }
+      });
+    } else {
+        must.push({ match_all: {} });
     }
 
+    // --- FILTERS ---
     if (yearPublished) {
-      filter = [
-        {
-          term: { year_published: yearPublished },
-        },
-      ];
+      filter.push({ term: { year_published: yearPublished } });
     }
 
     if (status) {
-      filter = [
-        ...filter,
-        {
-          term: { status: status },
-        },
-      ];
+      filter.push({ term: { status: status } });
     }
 
     const query = {
       bool: {
-        must: must.length > 0 ? must : [{ match_all: {} }],
-        ...(filter.length > 0 ? { filter: filter } : {}),
+        must: must,
+        filter: filter,
       },
     };
 
@@ -296,7 +294,6 @@ const filterElasticBookCopy = async (req: Request, res: Response) => {
 
     const total: number = results.hits.total.value;
 
-    // Return empty result set with pagination if no results, instead of throwing error
     if (total === 0 || results.hits.hits.length === 0) {
       return sendResponse(res, 200, "success", {
         result: [],
@@ -310,8 +307,7 @@ const filterElasticBookCopy = async (req: Request, res: Response) => {
     }
 
     const totalPages = Math.ceil(total / pageSize);
-
-    const result = results.hits.hits.map((data) => {
+    const result = results.hits.hits.map((data: any) => {
       return {
         score: data._score,
         ...data._source,
@@ -328,9 +324,12 @@ const filterElasticBookCopy = async (req: Request, res: Response) => {
       },
     });
   } catch (e: any) {
+    console.error("BookCopy Filter Error:", e);
     return sendResponse(res, 400, "error", e.message);
   }
 };
 
 export { filterElastic, filterElasticBookCopy };
+
+
 

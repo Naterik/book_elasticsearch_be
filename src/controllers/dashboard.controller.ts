@@ -3,7 +3,6 @@ import {
   getAreaChartForLoanTrends,
   getDashboardSummary,
   getHorizontalBarChartForSearchTerms,
-  getListPendingReservations,
   getListUserWithCard,
   getPieChartForBookCopiesStatus,
   getStackedBarChartForRevenue,
@@ -82,19 +81,7 @@ const getChartForSearchTerms = async (req: Request, res: Response) => {
   }
 };
 
-const getPendingReservations = async (req: Request, res: Response) => {
-  try {
-    const result = await getListPendingReservations();
-    return sendResponse(
-      res,
-      200,
-      "success",
-      result
-    );
-  } catch (e: any) {
-    return sendResponse(res, 500, "error", e.message);
-  }
-};
+
 
 export {
   getSummary,
@@ -102,7 +89,7 @@ export {
   getUserWithCard,
   getChartForRevenue,
   getChartForSearchTerms,
-  getPendingReservations,
+
   getChartForLoanTrends,
 };
 

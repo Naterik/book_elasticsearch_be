@@ -1,34 +1,35 @@
 ﻿import { Request, Response } from "express";
 import { prisma } from "configs/client";
 import { sendResponse } from "src/utils";
+import { ALLOWED_GENERAL_GENRES } from "./import.helpers";
 
 
 /**
  * Controller: Clean Dirty Book Data
- * TiÃªu chÃ­ xÃ³a (OR logic):
- *  - ISBN báº¯t Ä‘áº§u báº±ng 'OL-'
- *  - ISBN káº¿t thÃºc báº±ng 'W'
- *  - ISBN khÃ´ng pháº£i sá»‘ (chá»©a chá»¯ cÃ¡i khÃ¡c)
- *  - Äá»™ dÃ i khÃ¡c 13
+ * Tiêu chí xóa (OR logic):
+ *  - ISBN bắt đầu bằng 'OL-'
+ *  - ISBN kết thúc bằng 'W'
+ *  - ISBN không phải số (chứa chữ cái khác)
+ *  - Độ dài khác 13
  *
- * Quy trÃ¬nh:
- *  1. QuÃ©t toÃ n bá»™ Book (Batching náº¿u cáº§n, nhÆ°ng delete where condition cÅ©ng Ä‘Æ°á»£c náº¿u DB máº¡nh)
- *     Tuy nhiÃªn, do cáº§n check logic string phá»©c táº¡p mÃ  Prisma raw filtering cÃ³ thá»ƒ háº¡n cháº¿,
- *     ta sáº½ fetch all scan hoáº·c dÃ¹ng raw query.
- *     NHÆ¯NG: Äá»ƒ an toÃ n vÃ  delete relations, ta nÃªn fetch ID sau Ä‘Ã³ delete transaction.
+ * Quy trình:
+ *  1. Quét toàn bộ Book (Batching nếu cần, nhưng delete where condition cũng được nếu DB mạnh)
+ *     Tuy nhiên, do cần check logic string phức tạp mà Prisma raw filtering có thể hạn chế,
+ *     ta sẽ fetch all scan hoặc dùng raw query.
+ *     NHƯNG: Để an toàn và delete relations, ta nên fetch ID sau đó delete transaction.
  */
 export const cleanupBookData = async (req: Request, res: Response) => {
   try {
-    console.log("ðŸ§¹ Starting Data Cleanup Job...");
+    console.log("🧹 Starting Data Cleanup Job...");
 
-    // BÆ°á»›c 1: TÃ¬m cÃ¡c Book ID cáº§n xÃ³a
-    // Do Ä‘iá»u kiá»‡n phá»©c táº¡p, ta sáº½ fetch ISBN vÃ  ID Ä‘á»ƒ filter báº±ng Code (JS) cho linh hoáº¡t
-    // LÆ°u Ã½: Náº¿u DB quÃ¡ lá»›n (>100k rows), cáº§n dÃ¹ng cursor/pagination.
-    // Giáº£ sá»­ DB hiá»‡n táº¡i nhá» trung bÃ¬nh, ta fetch chunk.
+    // Bước 1: Tìm các Book ID cần xóa
+    // Do điều kiện phức tạp, ta sẽ fetch ISBN và ID để filter bằng Code (JS) cho linh hoạt
+    // Lưu ý: Nếu DB quá lớn (>100k rows), cần dùng cursor/pagination.
+    // Giả sử DB hiện tại nhỏ trung bình, ta fetch chunk.
 
-    // TiÃªu chÃ­ tÃ¬m kiáº¿m sÆ¡ bá»™ qua Prisma (Ä‘á»ƒ giáº£m load)
-    // KhÃ´ng dá»… filter 'length != 13' hay 'endsWith W' chuáº©n xÃ¡c 100% trong Prisma query standard
-    // mÃ  khÃ´ng dÃ¹ng Raw Query. Ta sáº½ fetch háº¿t cÃ¡c cá»™t id, isbn.
+    // Tiêu chí tìm kiếm sơ bộ qua Prisma (để giảm load)
+    // Không dễ filter 'length != 13' hay 'endsWith W' chuẩn xác 100% trong Prisma query standard
+    // mà không dùng Raw Query. Ta sẽ fetch hết các cột id, isbn.
     const allBooks = await prisma.book.findMany({
       select: { id: true, isbn: true },
     });
@@ -44,10 +45,10 @@ export const cleanupBookData = async (req: Request, res: Response) => {
       if (isbn.startsWith("OL-")) shouldDelete = true;
       // Rule 2: Ends with 'W'
       else if (isbn.endsWith("W")) shouldDelete = true;
-      // Rule 3: Length !== 13 (Loáº¡i bá» ISBN-10, empty, etc)
+      // Rule 3: Length !== 13 (Loại bỏ ISBN-10, empty, etc)
       else if (isbn.length !== 13) shouldDelete = true;
       // Rule 4: Not numeric (contains non-digits)
-      // Regex check: Náº¿u chá»©a kÃ½ tá»± khÃ´ng pháº£i sá»‘
+      // Regex check: Nếu chứa ký tự không phải số
       else if (!/^\d+$/.test(isbn)) shouldDelete = true;
 
       if (shouldDelete) {
@@ -57,7 +58,7 @@ export const cleanupBookData = async (req: Request, res: Response) => {
     }
 
     const count = idsToDelete.length;
-    console.log(`ðŸ” Found ${count} invalid books to delete.`);
+    console.log(`🔍 Found ${count} invalid books to delete.`);
 
     if (count === 0) {
       return sendResponse(res, 200, "success", {
@@ -65,14 +66,13 @@ export const cleanupBookData = async (req: Request, res: Response) => {
       });
     }
 
-    // BÆ°á»›c 2: Thá»±c hiá»‡n Delete an toÃ n vá»›i Transaction
-    // Cáº§n xÃ³a cÃ¡c báº£ng con trÆ°á»›c:
+    // Bước 2: Thực hiện Delete an toàn với Transaction
+    // Cần xóa các bảng con trước:
     // Book -> BookCopy -> Loan -> (Fine, Payment)
-    // Book -> Reservation
     // Book -> BooksOnGenres
-    // Book -> DigitalBook (Cascade cÃ³ sáºµn nhÆ°ng cá»© include cho cháº¯c)
+    // Book -> DigitalBook (Cascade có sẵn nhưng cứ include cho chắc)
 
-    // Chia nhá» batch Ä‘á»ƒ delete náº¿u sá»‘ lÆ°á»£ng quÃ¡ lá»›n (vÃ­ dá»¥ > 500)
+    // Chia nhỏ batch để delete nếu số lượng quá lớn (ví dụ > 500)
     const BATCH_SIZE = 100;
     let deletedCount = 0;
 
@@ -80,80 +80,11 @@ export const cleanupBookData = async (req: Request, res: Response) => {
       const batchIds = idsToDelete.slice(i, i + BATCH_SIZE);
 
       await prisma.$transaction(async (tx) => {
-        // 1. Find BookCopies to delete Loans first
-        const copies = await tx.bookcopy.findMany({
-          where: { bookId: { in: batchIds } },
-          select: { id: true },
-        });
-        const copyIds = copies.map((c) => c.id);
-
-        if (copyIds.length > 0) {
-          // Find Loans
-          const loans = await tx.loan.findMany({
-            where: { bookcopyId: { in: copyIds } },
-            select: { id: true },
-          });
-          const loanIds = loans.map((l) => l.id);
-
-          if (loanIds.length > 0) {
-            // Delete Loan Relations (Fines, Payments usually linked to user/loan)
-            // Check schema: Fine has loanId (unique), Payment has fineId (unique) or userId.
-            // Payment -> User, Fine.
-            // Fine -> Loan.
-
-            // Delete Payments linked to Fines of these Loans
-            // Find fines for these loans
-            const fines = await tx.fine.findMany({
-              where: { loanId: { in: loanIds } },
-              select: { id: true },
-            });
-            const fineIds = fines.map((f) => f.id);
-
-            if (fineIds.length > 0) {
-              await tx.payment.deleteMany({
-                where: { fineId: { in: fineIds } },
-              });
-
-              await tx.fine.deleteMany({
-                where: { id: { in: fineIds } },
-              });
-            }
-
-            // Delete Loans
-            await tx.loan.deleteMany({
-              where: { id: { in: loanIds } },
-            });
-          }
-
-          // Delete BookCopies
-          await tx.bookcopy.deleteMany({
-            where: { id: { in: copyIds } },
-          });
-        }
-
-        // 2. Delete Reservations
-        await tx.reservation.deleteMany({
-          where: { bookId: { in: batchIds } },
-        });
-
-        // 3. Delete BooksOnGenres
-        await tx.booksOnGenres.deleteMany({
-          where: { bookId: { in: batchIds } },
-        });
-
-        // 4. Delete DigitalBooks (if manual needed, though Cascade is set)
-        await tx.digitalBook.deleteMany({
-          where: { bookId: { in: batchIds } },
-        });
-
-        // 5. Finally Delete Books
-        await tx.book.deleteMany({
-          where: { id: { in: batchIds } },
-        });
+        await deleteBookRelations(tx, batchIds);
       });
 
       deletedCount += batchIds.length;
-      console.log(`ðŸ—‘ï¸ Progress: Deleted ${deletedCount}/${count} records...`);
+      console.log(`🗑️ Progress: Deleted ${deletedCount}/${count} records...`);
     }
 
     return sendResponse(res, 200, "success", {
@@ -171,113 +102,12 @@ export const cleanupBookData = async (req: Request, res: Response) => {
 // ================= CLEANUP SPECIFIC GENRES =================
 
 /**
- * Danh sÃ¡ch cÃ¡c genre CHUNG NHáº¤T cáº§n giá»¯ láº¡i
- * Táº¥t cáº£ genre khÃ¡c sáº½ bá»‹ xÃ³a
- */
-const ALLOWED_GENERAL_GENRES = [
-  // Main Fiction Categories
-  "Fiction",
-  "Nonfiction",
-  "Science Fiction",
-  "Fantasy",
-  "Romance",
-  "Mystery",
-  "Horror",
-  "Thriller",
-  "Suspense",
-  "Adventure",
-  "Drama",
-  "Comedy",
-  "Humor",
-
-  // Literary Categories
-  "Classics",
-  "Classic Literature",
-  "Literature",
-  "Poetry",
-  "Short Stories",
-  "Essays",
-
-  // Genre Fiction
-  "Historical Fiction",
-  "Crime Fiction",
-  "Mystery Fiction",
-  "Fantasy Fiction",
-  "Romance Fiction",
-  "Horror Fiction",
-  "Suspense Fiction",
-  "Psychological Fiction",
-  "Gothic Fiction",
-
-  // Age Categories
-  "Children's Fiction",
-  "Children's Stories",
-  "Young Adult",
-  "Young Adult Fiction",
-  "Adult",
-
-  // Non-Fiction Categories
-  "History",
-  "Biography",
-  "Biography & Autobiography",
-  "Autobiography",
-  "Science",
-  "Philosophy",
-  "Psychology",
-  "Religion",
-  "Art",
-  "Music",
-  "Travel",
-  "Education",
-  "Business",
-  "Economics",
-  "Politics",
-  "Law",
-  "Health",
-  "Medicine",
-  "Technology",
-  "Computers",
-  "Mathematics",
-
-  // Special Categories
-  "Graphic Novels",
-  "Comics & Graphic Novels",
-  "Manga",
-  "Picture Books",
-  "Fairy Tales",
-  "Folklore",
-  "Mythology",
-
-  // Popular Themes
-  "Action & Adventure",
-  "True Crime",
-  "Self-Help",
-  "Cooking",
-  "Sports",
-  "Nature",
-  "Animals",
-  "War Stories",
-  "Love",
-  "Family",
-  "Friendship",
-
-  // Format/Style
-  "Contemporary",
-  "Humorous Fiction",
-  "Humorous Stories",
-  "Ghost Stories",
-  "Horror Stories",
-  "Detective And Mystery Stories",
-  "Adventure Stories",
-];
-
-/**
  * Controller: Clean up specific/unnecessary genres
- * Chá»‰ giá»¯ láº¡i cÃ¡c genre chung nháº¥t, xÃ³a táº¥t cáº£ genre riÃªng biá»‡t/khÃ´ng cáº§n thiáº¿t
+ * Chỉ giữ lại các genre chung nhất, xóa tất cả genre riêng biệt/không cần thiết
  */
 export const cleanupSpecificGenres = async (req: Request, res: Response) => {
   try {
-    console.log("ðŸ§¹ Starting Smart Specific Genre Cleanup...");
+    console.log("🧹 Starting Smart Specific Genre Cleanup...");
 
     // Normalize allowed genres for case-insensitive comparison
     const allowedMap = new Map<string, string>(); // lowercase -> original Name
@@ -288,7 +118,7 @@ export const cleanupSpecificGenres = async (req: Request, res: Response) => {
       select: { id: true, name: true },
     });
 
-    console.log(`ðŸ“š Total genres in database: ${allGenres.length}`);
+    console.log(`📚 Total genres in database: ${allGenres.length}`);
 
     const genresToDelete: number[] = [];
     const genresToReassign: { oldId: number; targetName: string }[] = [];
@@ -324,9 +154,9 @@ export const cleanupSpecificGenres = async (req: Request, res: Response) => {
       }
     }
 
-    console.log(`ðŸ—‘ï¸ Genres to delete entirely: ${genresToDelete.length}`);
-    console.log(`ðŸ”„ Genres to reassign & delete: ${genresToReassign.length}`);
-    console.log(`âœ… Genres to keep: ${keptGenres.length}`);
+    console.log(`🗑️ Genres to delete entirely: ${genresToDelete.length}`);
+    console.log(`🔄 Genres to reassign & delete: ${genresToReassign.length}`);
+    console.log(`✅ Genres to keep: ${keptGenres.length}`);
 
     if (genresToDelete.length === 0 && genresToReassign.length === 0) {
       return sendResponse(res, 200, "success", {
@@ -422,11 +252,6 @@ export const cleanupSpecificGenres = async (req: Request, res: Response) => {
       }
     );
 
-    // 4c. Orphan Cleanup (Optional but good) - Remove any genres with 0 books?
-    // User didn't explicitly ask, but "tidy up" implies it.
-    // The previous logic already deleted specific genres.
-    // We can run a quick orphan check or just return.
-
     // 5. Response
     const finalGenres = await prisma.genre.findMany({
       select: { name: true },
@@ -444,6 +269,129 @@ export const cleanupSpecificGenres = async (req: Request, res: Response) => {
   } catch (error: any) {
     return sendResponse(res, 500, "error", error.message);
   }
+
 };
 
+/**
+ * Controller: Clean up books that have NO genres
+ * Finds books with empty 'genres' (BooksOnGenres) and deletes them using the standard safe deletion logic.
+ */
+export const cleanupBooksNoGenres = async (req: Request, res: Response) => {
+  try {
+    console.log("🧹 Starting Cleanup of Books with NO Genres...");
 
+    // 1. Find Books with 0 Genres
+    const booksToDelete = await prisma.book.findMany({
+      where: {
+        genres: {
+          none: {},
+        },
+      },
+      select: { id: true },
+    });
+
+    const count = booksToDelete.length;
+    console.log(`🔍 Found ${count} books with NO genres.`);
+
+    if (count === 0) {
+      return sendResponse(res, 200, "success", {
+        found: 0,
+        deletedCount: 0,
+      });
+    }
+
+    const idsToDelete = booksToDelete.map((b) => b.id);
+    const BATCH_SIZE = 100;
+    let deletedCount = 0;
+
+    // 2. Execute Deletion with Batching
+    for (let i = 0; i < count; i += BATCH_SIZE) {
+      const batchIds = idsToDelete.slice(i, i + BATCH_SIZE);
+
+      await prisma.$transaction(async (tx) => {
+        await deleteBookRelations(tx, batchIds);
+      });
+
+      deletedCount += batchIds.length;
+      console.log(`🗑️ Progress: Deleted ${deletedCount}/${count} books without genres...`);
+    }
+
+    return sendResponse(res, 200, "success", {
+      found: count,
+      deletedCount: deletedCount,
+    });
+  } catch (error: any) {
+    console.error("Cleanup No Genres Error:", error);
+    return sendResponse(res, 500, "error", error.message);
+  }
+};
+
+/**
+ * Shared Helper: Delete Books and their Relations transactionally
+ * Can be reused by any cleanup controller.
+ */
+const deleteBookRelations = async (tx: any, bookIds: number[]) => {
+  // 1. Find BookCopies to delete Loans first
+  const copies = await tx.bookcopy.findMany({
+    where: { bookId: { in: bookIds } },
+    select: { id: true },
+  });
+  const copyIds = copies.map((c: any) => c.id);
+
+  if (copyIds.length > 0) {
+    // Find Loans
+    const loans = await tx.loan.findMany({
+      where: { bookcopyId: { in: copyIds } },
+      select: { id: true },
+    });
+    const loanIds = loans.map((l: any) => l.id);
+
+    if (loanIds.length > 0) {
+      // Delete Loan Relations (Fines, Payments)
+
+      // Find fines for these loans
+      const fines = await tx.fine.findMany({
+        where: { loanId: { in: loanIds } },
+        select: { id: true },
+      });
+      const fineIds = fines.map((f: any) => f.id);
+
+      if (fineIds.length > 0) {
+        // Delete Payments linked to Fines
+        await tx.payment.deleteMany({
+          where: { fineId: { in: fineIds } },
+        });
+
+        // Delete Fines
+        await tx.fine.deleteMany({
+          where: { id: { in: fineIds } },
+        });
+      }
+
+      // Delete Loans
+      await tx.loan.deleteMany({
+        where: { id: { in: loanIds } },
+      });
+    }
+
+    // Delete BookCopies
+    await tx.bookcopy.deleteMany({
+      where: { id: { in: copyIds } },
+    });
+  }
+
+  // 3. Delete BooksOnGenres
+  await tx.booksOnGenres.deleteMany({
+    where: { bookId: { in: bookIds } },
+  });
+
+  // 4. Delete DigitalBooks
+  await tx.digitalBook.deleteMany({
+    where: { bookId: { in: bookIds } },
+  });
+
+  // 5. Finally Delete Books
+  await tx.book.deleteMany({
+    where: { id: { in: bookIds } },
+  });
+};

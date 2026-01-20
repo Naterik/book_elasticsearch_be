@@ -223,6 +223,23 @@ const getBookByIdService = async (id: number) => {
 };
 
 const deleteBookService = async (id: number) => {
+  // 1. Safety Check: Check for existing physical copies
+  // We should not delete the Catalog Entry (Title) if we still have Books on the shelf.
+  const activeCopies = await prisma.bookcopy.count({
+    where: {
+      bookId: id,
+      // If you want to allow deleting books that only have "LOST" copies, you can filter status
+      // status: { not: "LOST" } 
+      // But generally, for data integrity, if any copy history exists, we should warn first.
+    },
+  });
+
+  if (activeCopies > 0) {
+    throw new Error(
+      `Cannot delete this book because there are ${activeCopies} physical copies associated with it. Please remove the copies first.`
+    );
+  }
+
   const deleteBookOnGenres = await prisma.booksOnGenres.deleteMany({
     where: { bookId: id },
   });

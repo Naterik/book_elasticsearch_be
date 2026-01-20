@@ -29,7 +29,7 @@ export const seedLibraryData = async () => {
 
   const createdData = {
     loans: 0,
-    reservations: 0,
+
     fines: 0,
     payments: 0,
   };
@@ -172,31 +172,7 @@ export const seedLibraryData = async () => {
     }
   }
 
-  // 3. Sinh dữ liệu Reservation (Đặt trước) - Khoảng 30 records
-  for (let i = 0; i < 30; i++) {
-    const user = getRandomItem(users);
-    const book = getRandomItem(books);
-    const statusRand = Math.random();
-    let status = "PENDING";
 
-    if (statusRand < 0.5) status = "PENDING";
-    else if (statusRand < 0.7) status = "NOTIFIED";
-    else if (statusRand < 0.9) status = "COMPLETED";
-    else status = "CANCELLED";
-
-    await prisma.reservation.create({
-      data: {
-        userId: user.id,
-        bookId: book.id,
-        requestDate: getRandomDate(
-          dayjs().subtract(1, "month").toDate(),
-          new Date()
-        ),
-        status,
-      },
-    });
-    createdData.reservations++;
-  }
 
   // 4. Sinh dữ liệu Membership Payment (Phí thành viên) - Khoảng 20 records
   for (let i = 0; i < 20; i++) {
