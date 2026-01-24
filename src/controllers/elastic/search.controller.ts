@@ -1,15 +1,8 @@
+
 import { Request, Response } from "express";
 import { client } from "configs/elastic";
 import { sendResponse } from "src/utils";
 
-/**
- * Thin Proxy for Instant Search (Meilisearch-like experience)
- * Bypasses Database, connects directly to Elasticsearch
- */
-/**
- * Thin Proxy for Instant Search (Hybrid: Search + Suggest + Filter)
- * Bypasses Database, connects directly to Elasticsearch
- */
 export const searchBooksInstant = async (req: Request, res: Response) => {
   try {
     // 1. Sanitize Input (Pre-processing)
@@ -26,6 +19,7 @@ export const searchBooksInstant = async (req: Request, res: Response) => {
     const { authors, genres } = req.query; // Expect comma-separated IDs or values
 
     const bookIndex = process.env.INDEX_N_GRAM_BOOK || "books_index";
+    // const bookCopyIndex = process.env.INDEX_BOOKCOPY || "book_copies"; // Cleaned up for Client Separation
 
     // Base Bool Query
     const mustQuery: any[] = [];
@@ -110,11 +104,28 @@ export const searchBooksInstant = async (req: Request, res: Response) => {
         highlight: {
           pre_tags: ["<em>"],
           post_tags: ["</em>"],
+          require_field_match: false,
           fields: {
-            "title": {},
+            "title": {
+              highlight_query: {
+                bool: {
+                  should: [
+                    { match: { "title": { query: q, operator: "and" } } },
+                  ]
+                }
+              }
+            },
             "shortDesc": {},
-            "detailDesc": {}, // Added highlight for detail
-            "authors.name": {}
+            "detailDesc": {},
+            "authors.name": {
+              highlight_query: {
+                bool: {
+                  should: [
+                    { match: { "authors.name": { query: q, operator: "and" } } }
+                  ]
+                }
+              }
+            }
           }
         },
         // We use aggregation to find "Top Recursive Titles" if we wanted distinct titles,
@@ -147,6 +158,166 @@ export const searchBooksInstant = async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error("Instant Search Error:", error);
+    return sendResponse(res, 500, "error", error.message);
+  }
+};
+
+/**
+ * Admin Inventory Search
+ * Focus: Precision, Barcode Parsing, Inventory Management
+ */
+export const searchBooksAdmin = async (req: Request, res: Response) => {
+  try {
+    const rawQ = (req.query.q as string) || "";
+    const q = rawQ.replace(/\s+/g, " ").trim();
+    const limit = Number(req.query.limit) || 20; 
+    const page = Number(req.query.page) || 1;
+    const from = (page - 1) * limit;
+    
+    const bookIndex = process.env.INDEX_N_GRAM_BOOK || "books_index";
+    const bookCopyIndex = process.env.INDEX_BOOKCOPY || "book_copies";
+
+    // --- 1. Priority Rule: Check Barcode / Copy ID first ---
+    // Admin often scans a barcode with a handheld scanner
+    if (q && (q.toUpperCase().startsWith("CP-") || /^\d+$/.test(q))) {
+       const copyResult = await client.search({
+         index: bookCopyIndex,
+         body: {
+           query: {
+             term: { "copyNumber.keyword": q } 
+           }
+         }
+       });
+
+       // Logic: If Admin scans a barcode, they want THAT specific item, nothing else.
+       if (copyResult.hits.total && (typeof copyResult.hits.total === 'number' ? copyResult.hits.total : copyResult.hits.total.value) > 0) {
+          const copyHit = copyResult.hits.hits[0]._source as any;
+          return sendResponse(res, 200, "success", {
+            result: [{
+              id: copyHit.books.id,
+              ...copyHit.books,
+              matchedCopyId: copyHit.id,
+              isDirectBarcodeMatch: true // Signal for UI
+            }],
+            pagination: {
+                currentPage: 1,
+                totalPages: 1,
+                pageSize: limit,
+                totalItems: 1
+            }
+          });
+       }
+    }
+
+    // --- 2. Fallback: Standard Administrative Search ---
+    // User is searching by Title/Author to manage the catalog
+    const mustQuery: any[] = [];
+
+    if (q) {
+      mustQuery.push({
+        multi_match: {
+          query: q,
+          fields: [
+            "title.keyword^10", // Admin needs exact title lookup often
+            "title^5",
+            "authors.name^3", 
+            "isbn^10"
+          ],
+          operator: "and" // Admin usually knows what they are typing, "OR" creates noise
+        }
+      });
+    }
+
+    const result = await client.search({
+      index: bookIndex,
+      size: limit,
+      from: from,
+      body: {
+        query: {
+          bool: {
+            must: mustQuery,
+            filter: [
+               // 1. Stock Status Filter
+               ...(req.query.stock
+                 ? [
+                     req.query.stock === "out_of_stock"
+                       ? { term: { quantity: 0 } }
+                       : { range: { quantity: { gt: 0 } } },
+                   ]
+                 : []),
+
+               // 2. Language Filter
+               ...(req.query.language
+                 ? [{ term: { language: req.query.language } }]
+                 : []),
+
+               // 3. Genre Filter (Nested/Object Array)
+               ...(req.query.genreIds
+                 ? [
+                     {
+                       terms: {
+                         "genres.genres.id": (req.query.genreIds as string)
+                           .split(",")
+                           .map(Number),
+                       },
+                     },
+                   ]
+                 : []),
+
+               // 4. Author Filter (Root ID)
+                ...(req.query.authorIds
+                  ? [
+                      {
+                        terms: {
+                          authorId: (req.query.authorIds as string)
+                            .split(",")
+                            .map(Number),
+                        },
+                      },
+                    ]
+                  : []),
+            ]          }
+        },
+        _source: ["id", "title", "image", "authors", "genres", "isbn", "quantity", "borrowed", "publishers", "digitalBook"]
+      }
+    });
+
+    const hits = result.hits.hits.map((hit: any) => {
+      const source = hit._source;
+      return {
+        id: hit._id,
+        ...source,
+        // Ensure publishers matches Prisma's return style: { name: string }
+        publishers: source.publishers ? { name: source.publishers.name } : null,
+        // Ensure digitalBook matches Prisma's return style: { status: string }
+        digitalBook: source.digitalBook ? { status: source.digitalBook.status } : null,
+        // Ensure genres matches Prisma's return style: [{ genres: { id, name } }]
+        // Elastic already stores it as nested object array, but we ensure structure.
+        genres: source.genres?.map((g: any) => ({
+             genres: {
+                 id: g.genres?.id || g.id,
+                 name: g.genres?.name || g.name
+             }
+        })) || []
+      };
+    });
+
+    const total = typeof result.hits.total === 'number' ? result.hits.total : result.hits.total?.value || 0;
+    const totalPages = Math.ceil(total / limit);
+
+    return sendResponse(res, 200, "success", {
+        result: hits,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          pageSize: limit,
+          totalItems: total,
+        },
+    });
+
+
+  } catch (error: any) {
+    console.error("Admin Search Error:", error);
     return sendResponse(res, 500, "error", error.message);
   }
 };

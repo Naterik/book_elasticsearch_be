@@ -120,6 +120,12 @@ export const BOOK_INDEX_MAPPING = {
     price: { type: "long" },
     quantity: { type: "long" },
     language: { type: "keyword" },
+    borrowed: { type: "long" },
+    digitalBook: {
+        properties: {
+             status: { type: "keyword" }
+        }
+    },
     image: { type: "keyword", index: false }, 
     suggest: {
       type: "completion",

@@ -115,6 +115,10 @@ const createBookService = async (
         publishers: {
           name: result.publishers.name,
         },
+        digitalBook: {
+            status: result.digitalBook?.status
+        },
+        borrowed: 0, // Initial state
         suggest: [result.title, result.authors.name].filter((item) => item),
       },
       refresh: true,
@@ -201,6 +205,10 @@ const updateBookService = async (
         publishers: {
           name: result.publishers.name,
         },
+        digitalBook: {
+            status: result.digitalBook?.status
+        },
+        borrowed: result.borrowed,
         suggest: [result.title, result.authors.name].filter((item) => item),
       },
       refresh: true,

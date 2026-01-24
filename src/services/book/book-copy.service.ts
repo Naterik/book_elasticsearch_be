@@ -183,6 +183,23 @@ const getBookCopyStatusById = async (bookId: number) => {
   return bookcopy;
 };
 
+const getBookCopiesByBookId = async (bookId: number) => {
+  const result = await prisma.bookcopy.findMany({
+    where: { bookId: bookId },
+    orderBy: { id: "desc" },
+    include: {
+        books: {
+            select: {
+                title: true,
+                image: true,
+                authors: { select: { name: true } }
+            }
+        }
+    }
+  });
+  return result;
+};
+
 const generateCopiesForBookService = async (bookId: number) => {
   const book = await prisma.book.findUnique({
     where: { id: bookId },
@@ -293,4 +310,5 @@ export {
   getBookCopyStatusById,
   generateCopiesForBookService,
   generateCopiesForAllBooksService,
+  getBookCopiesByBookId,
 };

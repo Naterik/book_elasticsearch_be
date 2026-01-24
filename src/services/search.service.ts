@@ -1,13 +1,13 @@
 import { prisma } from "configs/client";
 import "dotenv/config";
 
-const recentLimt = +process.env.LIMIT_RECENT_SEARCH;
-const trendingLimit = +process.env.ITEM_PER_SECTION;
+const recentLimit = +process.env.LIMIT_RECENT_SEARCH || 10;
+const trendingLimit = +process.env.ITEM_PER_SECTION || 5;
 const getRecentSearchesByUserId = async (userId: number) => {
   const searches = await prisma.historysearch.findMany({
     where: { userId },
     orderBy: { updatedAt: "desc" },
-    take: recentLimt,
+    take: recentLimit,
     omit: { userId: true, updatedAt: true },
   });
 
@@ -17,6 +17,11 @@ const getRecentSearchesByUserId = async (userId: number) => {
 const getTrendingSearchesService = async () => {
   const trendingSearches = await prisma.historysearch.groupBy({
     by: ["term"],
+    where: {
+      updatedAt: {
+        gte: new Date(new Date().setDate(new Date().getDate() - 30)),
+      },
+    },
     _count: {
       id: true,
     },
@@ -52,6 +57,26 @@ const addRecentSearch = async (userId: number, term: string) => {
     omit: { userId: true, updatedAt: true },
   });
 
+  // Cleanup old searches if limit exceeded
+  const count = await prisma.historysearch.count({ where: { userId } });
+  if (count > recentLimit) {
+    const excess = count - recentLimit;
+    const OldestSearches = await prisma.historysearch.findMany({
+      where: { userId },
+      orderBy: { updatedAt: "asc" },
+      take: excess,
+      select: { id: true },
+    });
+    
+    if (OldestSearches.length > 0) {
+       await prisma.historysearch.deleteMany({
+        where: {
+          id: { in: OldestSearches.map((s) => s.id) },
+        },
+      });
+    }
+  }
+
   return historysearch;
 };
 
@@ -76,6 +101,27 @@ const mergeRecentSearches = async (userId: number, terms: string[]) => {
     });
     result.push(upserted);
   }
+
+  // Cleanup old searches if limit exceeded
+  const count = await prisma.historysearch.count({ where: { userId } });
+  if (count > recentLimit) {
+    const excess = count - recentLimit;
+    const OldestSearches = await prisma.historysearch.findMany({
+      where: { userId },
+      orderBy: { updatedAt: "asc" },
+      take: excess,
+      select: { id: true },
+    });
+
+    if (OldestSearches.length > 0) {
+      await prisma.historysearch.deleteMany({
+        where: {
+          id: { in: OldestSearches.map((s) => s.id) },
+        },
+      });
+    }
+  }
+
   return result;
 };
 

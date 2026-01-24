@@ -1,5 +1,5 @@
 import { cleanupAuthorsController, deleteAuthor, getAllAuthor, getAllAuthorNoPagination, getAuthorById, postAuthor, postManyAuthors, putAuthor } from 'controllers/book/author.controller';
-import { deleteBookCopy, generateCopiesAll, getAllBookCopy, postBookCopy, putBookCopy } from 'controllers/book/book-copy.controller';
+import { deleteBookCopy, generateCopiesAll, getAllBookCopy, getCopiesByBook, postBookCopy, putBookCopy } from 'controllers/book/book-copy.controller';
 import { deleteBook, getRecommendedBooks, postBook, putBook } from 'controllers/book/book.controller';
 import { cleanupGenresController, deleteGenre, getAllGenre, getAllGenreDisplay, getAllGenreNoPagination, getGenreById, postGenre, putGenre } from 'controllers/book/genre.controller';
 import { cleanupPublishersController, deletePublisher, getAllPublisher, getAllPublisherNoPagination, getPublisherById, postPublisher, putPublisher } from 'controllers/book/publisher.controller';
@@ -43,6 +43,7 @@ import {
   postMergeUserRecentSearches,
   postUserRecentSearch,
 } from 'controllers/search.controller';
+import { searchBooksAdmin } from 'controllers/elastic/search.controller';
 import { createMemberCard, deleteUser, getAllUser, getUserById, postUser, putUser } from 'controllers/user.controller';
 import express from 'express';
 import fileUploadMiddleware from 'middleware/multer.middleware';
@@ -57,6 +58,7 @@ import {
 } from 'controllers/dashboard.controller';
 import { deleteImportedVietnameseBooks, importBooksByLanguage } from 'controllers/import/import.language.controller';
 import { previewDigitalBookController } from 'controllers/book/digital.controller';
+import { cleanupInvalidTitles, createBookCopiesIndex, createBooksIndex, updateBooksIndexMapping } from 'controllers/elastic/index.elastic';
 import { countStatusFromBookCopy, countYearPublishedFromBookCopy } from 'controllers/elastic/aggregation.elastic';
 import { filterElasticBookCopy } from 'controllers/elastic/filter.elastic';
 import { cleanupBookData, cleanupBooksNoGenres, cleanupSpecificGenres } from 'controllers/import/cleanup.controller';
@@ -76,6 +78,7 @@ privateRouter.get('/dashboard/chart/revenue', getChartForRevenue);
 privateRouter.get('/dashboard/chart/search-terms', getChartForSearchTerms);
 
 privateRouter.get('/dashboard/user-with-card', getUserWithCard);
+privateRouter.get('/admin/books/search', searchBooksAdmin); // Separate endpoint for Dashboard
 
 privateRouter.get('/users', getAllUser);
 privateRouter.get('/users/:id', getUserById);
@@ -157,6 +160,7 @@ privateRouter.post('/book-copies/generate-all', generateCopiesAll);
 privateRouter.get('/book-copies/filter', filterElasticBookCopy);
 privateRouter.get('/book-copies/count-year-published', countYearPublishedFromBookCopy);
 privateRouter.get('/book-copies/count-status', countStatusFromBookCopy);
+privateRouter.get('/books/:id/copies', getCopiesByBook);
 
 privateRouter.get('/history-searches/full/:userId', getUserHistorySearches);
 privateRouter.post('/history-searches/recent', postUserRecentSearch);
@@ -171,10 +175,9 @@ privateRouter.post('/books/import-by-language', importBooksByLanguage);
 privateRouter.post('/books/delete-by-language', deleteImportedVietnameseBooks);
 
 privateRouter.post('/books/vietnamese', vietnameseBooksController);
-privateRouter.post('/books/cleanup', cleanupBookData);
-privateRouter.post('/books/cleanup-no-genres', cleanupBooksNoGenres);
-privateRouter.post('/books/cleanup-specific-genres', cleanupSpecificGenres);
+
 privateRouter.post('/books/sync-digital', syncDigitalBooks);
+privateRouter.post('/books/update-index-mapping', updateBooksIndexMapping);
 
 // Inventory Management
 import { checkInventoryConsistency, syncInventory } from 'controllers/inventory.controller';

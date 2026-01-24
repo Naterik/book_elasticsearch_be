@@ -7,6 +7,7 @@ import {
   updateBookCopy,
   getBookCopyStatusById,
   generateCopiesForAllBooksService,
+  getBookCopiesByBookId,
 } from "services/book/book-copy.service";
 import { BookCopy } from "validation/book-copy.schema";
 import { fromError } from "zod-validation-error";
@@ -121,6 +122,21 @@ const getBookCopyStatusByBookId = async (req: Request, res: Response) => {
     return sendResponse(res, 400, "error", error.message);
   }
 };
+
+const getCopiesByBook = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await getBookCopiesByBookId(+id);
+    return sendResponse(
+      res,
+      200,
+      "success",
+      result
+    );
+  } catch (error: any) {
+    return sendResponse(res, 400, "error", error.message);
+  }
+};
 export {
   getAllBookCopy,
   postBookCopy,
@@ -128,5 +144,6 @@ export {
   deleteBookCopy,
   getBookCopyStatusByBookId,
   generateCopiesAll,
+  getCopiesByBook,
 };
 
