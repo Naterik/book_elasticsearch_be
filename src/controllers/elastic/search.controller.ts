@@ -45,8 +45,7 @@ export const searchBooksInstant = async (req: Request, res: Response) => {
                   "title.prefix^15",   // Exact prefix is absolute king
                   "title.keyword^20",  // Perfect match is god
                   "title^10",          // Standard title match
-                  "authors.name^5",
-                  "isbn^10"
+                  // "authors.name^5",
                 ],
                 type: "bool_prefix",
                 operator: "and" 
@@ -58,8 +57,8 @@ export const searchBooksInstant = async (req: Request, res: Response) => {
                 query: q,
                 fields: [
                   "title.clean^3", 
-                  "authors.name^2", 
-                  "shortDesc^2", // Boosted Description for "finding by context"
+                  // "authors.name^2", 
+                  // "shortDesc^2", // Boosted Description for "finding by context"
                   "detailDesc^1"  // Deep Search
                 ],
                 fuzziness: "AUTO",
@@ -218,8 +217,9 @@ export const searchBooksAdmin = async (req: Request, res: Response) => {
         multi_match: {
           query: q,
           fields: [
-            "title.keyword^10", // Admin needs exact title lookup often
-            "title^5",
+            "title.keyword^20",
+            "title.clean^15",   // Prioritize Whole Word / Vietnamese matches
+            "title^5",          // Fallback to partial/prefix matches
             "authors.name^3", 
             "isbn^10"
           ],
